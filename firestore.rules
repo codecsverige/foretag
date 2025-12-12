@@ -1,6 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ----------------------------
+    // Shared helpers
+    // ----------------------------
     function isBusCompanyOrAdmin() {
       return isSignedIn() && (
         // Require user document with userType of 'bus_company' or 'admin'
@@ -43,6 +46,107 @@ service cloud.firestore {
           'email','phone','role','balance','createdAt','displayName','userId'
         ]);
       allow delete: if false;
+    }
+
+    // =========================================================
+    // BokaNära (new product): businesses + services + appointments
+    // =========================================================
+    // Memberships are stored as: businessMemberships/{businessId}_{uid}
+    function membershipId(businessId) {
+      return businessId + '_' + request.auth.uid;
+    }
+    function isBusinessMember(businessId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/businessMemberships/$(membershipId(businessId)));
+    }
+    function isBusinessOwner(businessId) {
+      return isBusinessMember(businessId)
+        && get(/databases/$(database)/documents/businessMemberships/$(membershipId(businessId))).data.role == 'owner';
+    }
+    function isBusinessStaff(businessId) {
+      return isBusinessMember(businessId)
+        && get(/databases/$(database)/documents/businessMemberships/$(membershipId(businessId))).data.role in ['owner','admin','staff'];
+    }
+
+    // Public business profile (read); write restricted to owner/admin
+    match /businesses/{businessId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['name','city','ownerUid','createdAt']);
+      allow update: if isBusinessOwner(businessId)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    // Membership document: businessMemberships/{businessId}_{uid}
+    match /businessMemberships/{id} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['businessId','uid','role','createdAt'])
+        && (request.resource.data.role in ['owner','admin','staff']);
+      // Only business owner can manage staff roles (except their own owner role)
+      allow update: if isSignedIn()
+        && (
+          // user can update their own "lastSeenAt" style fields (future-safe)
+          (request.auth.uid == resource.data.uid)
+          ||
+          // owner can update other membership roles
+          (isBusinessOwner(resource.data.businessId) && request.resource.data.uid == resource.data.uid)
+        )
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    // Services: public read; write restricted to business staff
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && isBusinessStaff(request.resource.data.businessId)
+        && request.resource.data.keys().hasAll(['businessId','name','durationMin','price','currency','createdAt']);
+      allow update: if isSignedIn()
+        && isBusinessStaff(resource.data.businessId)
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isSignedIn() && isBusinessOwner(resource.data.businessId);
+    }
+
+    // Appointments (Bookings): private read for parties (customer or business staff)
+    match /appointments/{appointmentId} {
+      function isParty() {
+        return isSignedIn() && (
+          request.auth.uid == resource.data.userId ||
+          isBusinessStaff(resource.data.businessId)
+        );
+      }
+      allow read: if isParty();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'businessId','serviceId','userId','status','startAt','endAt','createdAt'
+        ]);
+      allow update: if isParty()
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.serviceId == resource.data.serviceId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'status','notes','customerNote','staffNote','updatedAt','cancelledAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // Reminders: created/managed by server; readable by parties only
+    match /reminders/{reminderId} {
+      allow read: if isSignedIn()
+        && (
+          request.auth.uid == resource.data.userId ||
+          isBusinessStaff(resource.data.businessId)
+        );
+      allow create, update, delete: if false;
     }
 
     match /rides/{rideId} {

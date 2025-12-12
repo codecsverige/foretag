@@ -1459,6 +1459,127 @@ exports.cleanupContactExposure = onSchedule({ schedule: '20 11 * * *', timeZone:
   }
 });
 
+// =========================================================
+// BokaNära (new product): SMS appointment reminders (stub)
+// =========================================================
+const SMS_SENDER = process.env.SMS_SENDER || 'BokaNara';
+const SMS_PROVIDER = process.env.SMS_PROVIDER || ''; // e.g. 'twilio' / '46elks' / 'sinch'
+const SMS_API_KEY = process.env.SMS_API_KEY || '';
+const SMS_API_SECRET = process.env.SMS_API_SECRET || '';
+
+function normalizePhone(phone) {
+  const p = String(phone || '').trim();
+  return p.replace(/[^\d+]/g, '');
+}
+
+async function sendSmsStub({ to, message }) {
+  // Placeholder until provider is selected/configured.
+  console.log('[SMS STUB]', { provider: SMS_PROVIDER || 'none', from: SMS_SENDER, to, message, hasKey: !!SMS_API_KEY });
+  return { ok: false, skipped: true, reason: 'sms_not_configured' };
+}
+
+// Create reminders when a new appointment is created
+exports.createAppointmentReminders = onDocumentCreated("appointments/{appointmentId}", async (event) => {
+  try {
+    const appt = event.data && event.data.data();
+    if (!appt) return null;
+
+    const db = admin.firestore();
+    const appointmentId = event.params.appointmentId;
+    const now = Date.now();
+
+    const businessId = String(appt.businessId || '');
+    const userId = String(appt.userId || '');
+    const phone = normalizePhone(appt.userPhone || appt.phone || appt.customerPhone);
+
+    const toMs = (v) => (typeof v === 'number' ? v : (v && v.toMillis ? v.toMillis() : 0));
+    const startAtMs = toMs(appt.startAt);
+    if (!businessId || !userId || !startAtMs) return null;
+
+    const schedule = [
+      { kind: 'before_24h', offsetMs: 24 * 60 * 60 * 1000 },
+      { kind: 'before_2h', offsetMs: 2 * 60 * 60 * 1000 },
+    ];
+
+    const batch = db.batch();
+    schedule.forEach(({ kind, offsetMs }) => {
+      const sendAt = startAtMs - offsetMs;
+      if (sendAt <= now + 60 * 1000) return;
+      const ref = db.collection('reminders').doc();
+      batch.set(ref, {
+        channel: 'sms',
+        status: 'pending',
+        kind,
+        businessId,
+        userId,
+        appointmentId,
+        toPhone: phone || '',
+        sendAt,
+        createdAt: now,
+        attempts: 0,
+      });
+    });
+    await batch.commit();
+    return null;
+  } catch (e) {
+    console.error('createAppointmentReminders error', e);
+    return null;
+  }
+});
+
+// Scheduled sender: sends due reminders
+exports.sendDueReminders = onSchedule({ schedule: "every 5 minutes", timeZone: "Europe/Stockholm" }, async () => {
+  const db = admin.firestore();
+  const now = Date.now();
+  const LIMIT = 50;
+
+  try {
+    const snap = await db.collection('reminders')
+      .where('status', '==', 'pending')
+      .where('sendAt', '<=', now)
+      .orderBy('sendAt', 'asc')
+      .limit(LIMIT)
+      .get();
+
+    if (snap.empty) return null;
+
+    const tasks = snap.docs.map(async (docSnap) => {
+      const r = docSnap.data() || {};
+      const attempts = Number(r.attempts || 0);
+      if (attempts >= 3) {
+        await docSnap.ref.set({ status: 'failed', lastError: 'max_attempts', updatedAt: now }, { merge: true });
+        return;
+      }
+
+      const to = normalizePhone(r.toPhone);
+      if (!to) {
+        await docSnap.ref.set({ status: 'failed', lastError: 'missing_phone', updatedAt: now, attempts: attempts + 1 }, { merge: true });
+        return;
+      }
+
+      const message = r.message || 'Påminnelse: Du har en bokning snart. Öppna appen för detaljer.';
+      const result = await sendSmsStub({ to, message });
+
+      if (result && result.ok) {
+        await docSnap.ref.set({ status: 'sent', sentAt: now, updatedAt: now, provider: SMS_PROVIDER || 'unknown' }, { merge: true });
+      } else {
+        await docSnap.ref.set({
+          status: (attempts + 1 >= 3) ? 'failed' : 'pending',
+          attempts: attempts + 1,
+          lastError: (result && (result.reason || result.error)) || 'send_failed',
+          updatedAt: now,
+        }, { merge: true });
+      }
+    });
+
+    await Promise.all(tasks);
+    return null;
+  } catch (e) {
+    console.error('sendDueReminders error', e);
+    return null;
+  }
+});
+
 /**
  * 📆 Daily data maintenance: simple and compliant
  * - Delete stale notifications (>180 days)
