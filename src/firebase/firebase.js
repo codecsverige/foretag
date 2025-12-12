@@ -15,13 +15,14 @@ import { getMessaging, getToken, onMessage, isSupported } from "firebase/messagi
 
 /* قيم البيئة فى .env / .env.local */
 const firebaseConfig = {
-  apiKey:            process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBFJJAHtkBZQ8PQRXL6X4TBecK-eQZ-0Gs",
-  authDomain:        process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "vagvanner.firebaseapp.com",
-  projectId:         process.env.REACT_APP_FIREBASE_PROJECT_ID || "vagvanner",
-  storageBucket:     process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "vagvanner.appspot.com",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "504069749464",
-  appId:             process.env.REACT_APP_FIREBASE_APP_ID || "1:504069749464:web:b8d6529d243431dfa7b5ad",
-  measurementId:     process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-NCY1TDE13V",
+  apiKey:            process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
+  authDomain:        process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",
+  projectId:         process.env.REACT_APP_FIREBASE_PROJECT_ID || "bokanara-4797d",
+  storageBucket:     process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "bokanara-4797d.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "980354990772",
+  appId:             process.env.REACT_APP_FIREBASE_APP_ID || "1:980354990772:web:d02b0018fad7ef6dc90de1",
+  // Optional (only if you enable Analytics)
+  measurementId:     process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
 /* init */
