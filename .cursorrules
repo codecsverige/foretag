@@ -1,0 +1,22 @@
+# Cursor AI Agent Rules
+# هذا الملف يضمن أن جميع وكلاء Cursor يستخدمون النسخة المستقرة
+
+## Default Branch Configuration
+DEFAULT_BRANCH=main
+STABLE_COMMIT=c01a3408
+
+## Startup Commands for New Agents
+# يجب تشغيل هذه الأوامر عند بدء أي وكيل جديد:
+# 1. git checkout main
+# 2. git pull origin main  
+# 3. git log --oneline -1 (للتأكد من الـ commit الصحيح)
+
+## Expected Commit
+# يجب أن يكون آخر commit هو:
+# c01a3408 دمج النسخة المستقرة من cursor/send-a-greeting-8830
+
+## Instructions for AI Agents
+عند بدء جلسة جديدة، يجب على الوكيل:
+1. التأكد من أنه على فرع main
+2. التأكد من أن آخر commit هو c01a3408
+3. إذا لم يكن كذلك، تشغيل: git checkout main && git pull origin main

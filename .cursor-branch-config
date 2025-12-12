@@ -1,0 +1,12 @@
+# Cursor Branch Configuration
+# This file tracks the branch numbering for Cursor branches
+
+LAST_BRANCH_NUMBER=116
+LAST_BRANCH_NAME=cursor/fix-push-notification-issues-on-review-branch-d1b4
+NEXT_BRANCH_NUMBER=117
+LAST_UPDATED=2025-10-04
+
+# Notes:
+# - Branch #116 (cursor/fix-push-notification-issues-on-review-branch-d1b4) has been merged to main
+# - All branches after #116 have been deleted
+# - Next branch created should be #117

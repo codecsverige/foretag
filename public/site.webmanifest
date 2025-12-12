@@ -1,0 +1,52 @@
+{
+  "name": "VägVänner – Samåkning & Skjuts i Sverige",
+  "short_name": "VägVänner",
+  "description": "Plattform för samåkning i Sverige. Hitta skjuts eller erbjud resor enkelt och tryggt.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "sv",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/preview-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "transportation", "lifestyle", "social"],
+  "screenshots": [
+    {
+      "src": "/og/vagvanner-og.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Skapa resa",
+      "short_name": "Skapa",
+      "description": "Skapa en ny resa",
+      "url": "/create-ride",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mina resor",
+      "short_name": "Resor",
+      "description": "Se dina resor",
+      "url": "/my-rides",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    }
+  ]
+} 

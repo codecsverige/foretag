@@ -1,0 +1,36 @@
+name: Scheduled Capture
+
+on:
+  schedule:
+    - cron: '5 9 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: scheduled-capture
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run scheduleCapture script
+        env:
+          FIREBASE_ADMIN_SA_JSON: ${{ secrets.FIREBASE_ADMIN_SA_JSON }}
+          PAYPAL_CLIENT_ID:      ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_CLIENT_SECRET:  ${{ secrets.PAYPAL_CLIENT_SECRET }}
+          BASE_URL:             ${{ secrets.BASE_URL }}
+          DRY_RUN:               '1'
+        run: node scripts/scheduleCapture.js

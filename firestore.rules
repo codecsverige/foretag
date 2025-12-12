@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isBusCompanyOrAdmin() {
+      return isSignedIn() && (
+        // Require user document with userType of 'bus_company' or 'admin'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType in ['bus_company', 'admin']
+      );
+    }
+
+    // Bus routes: public read; write restricted to bus companies/admins
+    match /busRoutes/{routeId} {
+      allow read: if true;
+
+      allow create: if isBusCompanyOrAdmin()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'company','from','to','price','currency','totalSeats','availableSeats',
+          'amenities','bookingUrl','busNumber','status','type','createdBy',
+          'departureAt','arrivalAt'
+        ]);
+
+      allow update: if isBusCompanyOrAdmin()
+        && resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'company','from','to','price','currency','totalSeats','availableSeats',
+          'amenities','bookingUrl','busNumber','status','updatedAt','departureAt','arrivalAt','duration'
+        ]);
+
+      allow delete: if isBusCompanyOrAdmin() && resource.data.createdBy == request.auth.uid;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.keys().hasOnly([
+          'email','phone','role','balance','createdAt','displayName','userId'
+        ]);
+      allow delete: if false;
+    }
+
+    match /rides/{rideId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt is string;
+      allow update: if isSignedIn()
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    match /bookings/{bookingId} {
+      function isParty() {
+        return isSignedIn() && (
+          request.auth.uid == resource.data.userId ||
+          request.auth.uid == resource.data.counterpartyId
+        );
+      }
+      allow read: if isParty();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'bookingType','rideId','userId','counterpartyId','status','createdAt'
+        ]);
+      allow update: if isParty()
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.counterpartyId == resource.data.counterpartyId
+        && request.resource.data.rideId == resource.data.rideId
+        && request.resource.data.bookingType == resource.data.bookingType
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'status','paidAt','contactUnlockedAt','driverEmailShared','driverPhoneShared','cancelledAt','seats','price'
+        ]);
+      allow delete: if isParty() && !(resource.data.status in ['captured','paid']);
+    }
+
+    // alerts: each user can create and read own alerts; no mass delete
+    match /alerts/{alertId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    match /notifications/{id} {
+      allow read: if isSignedIn() && request.auth.token.email == resource.data.userEmail;
+      allow create: if isSignedIn()
+        && request.resource.data.userEmail == request.auth.token.email
+        && request.resource.data.keys().hasAll(['userEmail','userName','title','body','type','createdAt','read','sent']);
+      allow update, delete: if false;
+    }
+
+    match /contact_unlock/{id} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.counterpartyId
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['rideId','userId','counterpartyId','paidAt','createdAt']);
+      allow update: if isSignedIn()
+        && (request.auth.uid == resource.data.userId || request.auth.uid == resource.data.counterpartyId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.counterpartyId == resource.data.counterpartyId
+        && request.resource.data.rideId == resource.data.rideId
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['paidAt']);
+      allow delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
+

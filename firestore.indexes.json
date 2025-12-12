@@ -1,0 +1,109 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "rides",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "originNorm",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "departureAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rides",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "destNorm",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "departureAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rides",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "originNorm",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "destNorm",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "departureAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rides",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "role",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "bookingType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "busRoutes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "from",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "to",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "departureAt",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

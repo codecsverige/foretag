@@ -1,0 +1,13 @@
+/* TEAM */
+    Developer: VägVänner Team
+    Contact: info@vagvanner.se
+    From: Sweden
+
+/* SITE */
+    Last update: 2025/01/28
+    Language: Swedish
+    Doctype: HTML5
+    IDE: Visual Studio Code
+    Standards: HTML5, CSS3, JavaScript ES6+
+    Components: React 18, Firebase, Tailwind CSS
+    Software: Node.js, npm 

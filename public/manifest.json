@@ -1,0 +1,86 @@
+{
+  "name": "VägVänner - Samåkning Sverige",
+  "short_name": "VägVänner",
+  "description": "Sveriges bästa plattform för samåkning. Hitta resor eller passagerare enkelt och säkert.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "sv-SE",
+  "dir": "ltr",
+  "categories": ["travel", "transportation", "social"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Sök resor",
+      "short_name": "Sök",
+      "description": "Hitta resor snabbt",
+      "url": "/?action=search"
+    },
+    {
+      "name": "Skapa resa",
+      "short_name": "Skapa",
+      "description": "Erbjud en resa",
+      "url": "/select-location?action=create"
+    },
+    {
+      "name": "Mina resor",
+      "short_name": "Mina", 
+      "description": "Hantera dina resor",
+      "url": "/my-rides"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+vagvanner",
+      "url": "/ride/%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share-ride",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

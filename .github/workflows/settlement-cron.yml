@@ -1,0 +1,51 @@
+name: Settle bookings and cleanup (cron)
+
+on:
+  schedule:
+    - cron: '15 9 * * *'  # يوميًا 11:15 Stockholm (09:15 UTC صيفًا)
+  workflow_dispatch: {}
+
+concurrency:
+  group: settlement-cron
+  cancel-in-progress: false
+
+jobs:
+  run-settlement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (root)
+        run: npm ci
+
+      - name: Run settlement script
+        env:
+          NODE_ENV: production
+          FIREBASE_ADMIN_SA_JSON: ${{ secrets.FIREBASE_ADMIN_SA_JSON }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+        run: node scripts/scheduleCapture.js
+
+      - name: Slack notify on success
+        if: success() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          payload='{"text":"✅ Settlement cron succeeded on main."}'
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+
+      - name: Slack notify on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          payload='{"text":"❌ Settlement cron failed on main. Check GitHub Actions logs."}'
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+

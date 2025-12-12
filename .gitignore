@@ -1,0 +1,52 @@
+# See https://help.github.com/articles/ignoring-files/
+
+# dependencies
+/node_modules/
+/functions/node_modules/
+/.pnp
+.pnp.js
+
+# production build output
+/build/
+
+dist/
+
+# testing
+/coverage/
+
+# misc
+.DS_Store
+
+# Local env files (use Vercel/Secrets for prod)
+.env.local
+env.local
+.env.server.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
+.env.*
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel project link data (optional to keep ignored)
+.vercel/
+!.env.example
+
+# Firebase service account keys (NEVER commit!)
+.firebase-admin-key.json
+*-firebase-adminsdk-*.json
+service-account-*.json
+
+# ignore core dumps
+core
+*.core
+.vercel
+
+# Capacitor platforms
+android/
+ios/
+# Workflows Fixed - Tue Oct 28 09:08:47 AM UTC 2025

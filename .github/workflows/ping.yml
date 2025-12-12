@@ -1,0 +1,17 @@
+name: AutoPing Site
+
+on:
+  schedule:
+    - cron: "45 9 * * *"  # يوميًا 11:45 Stockholm (09:45 UTC صيفًا)
+  workflow_dispatch:
+
+jobs:
+  autopinger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install node-fetch@2
+      - run: node scripts/autoPing.js

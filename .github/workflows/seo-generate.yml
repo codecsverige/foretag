@@ -1,0 +1,55 @@
+name: SEO Static Pages & Sitemap
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # يوميًا 12:00 Stockholm (10:00 UTC صيفًا)
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Branch to run on'
+        required: false
+        default: 'seo'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seo-generate
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.target_branch || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps (safe for lock mismatch)
+        run: |
+          npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Generate static route/city/long pages
+        run: |
+          node scripts/generate-ride-pages.cjs
+
+      - name: Generate sitemap
+        run: |
+          node scripts/generate-sitemap.cjs
+
+      - name: Commit & push changes (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore(seo): auto-generate static pages and sitemap [skip ci]'
+          commit_user_name: 'github-actions[bot]'
+          commit_user_email: 'github-actions[bot]@users.noreply.github.com'
+          branch: ${{ github.ref_name }}
+

@@ -1,0 +1,6 @@
+{
+  "title": "🚀 Comprehensive Improvements for VägVänner - Swedish Only",
+  "body": "## ✅ Ready for Production\n\n### Improvements:\n- ✅ Custom error pages (404, 500, Offline) in Swedish\n- ✅ Full PWA support with enhanced Service Worker\n- ✅ All text in Swedish only (removed Arabic comments)\n- ✅ Jest tests configured and passing (41/41)\n- ✅ Sentry error monitoring integration\n- ✅ Comprehensive security utilities\n- ✅ Improved documentation\n\n### Security:\n- Reduced vulnerabilities from 25 to 9\n- All remaining vulnerabilities in dev dependencies only\n- Added XSS/CSRF protection\n\n### Tests:\n- All 41 tests passing\n- Build completes successfully\n- ESLint issues fixed\n\n### Ready to merge ✅",
+  "head": "feature/comprehensive-improvements-swedish-only",
+  "base": "main"
+}

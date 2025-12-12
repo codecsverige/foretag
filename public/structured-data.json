@@ -1,0 +1,59 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://vagvanner.se/#website",
+      "name": "VägVänner",
+      "description": "Sveriges ledande plattform för samåkning. Hitta skjuts eller erbjud resor enkelt och tryggt mellan svenska städer.",
+      "url": "https://vagvanner.se",
+      "inLanguage": "sv-SE",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://vagvanner.se/select-location?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "publisher": {
+        "@id": "https://vagvanner.se/#organization"
+      }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://vagvanner.se/#organization",
+      "name": "VägVänner",
+      "description": "Svensk samåkningsplattform som kopplar samman resenärer för miljövänliga och ekonomiska resor.",
+      "url": "https://vagvanner.se",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://vagvanner.se/favicon.png",
+        "width": 512,
+        "height": 512
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "availableLanguage": "Swedish"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Sverige"
+      },
+      "serviceType": "Samåkning och skjutstjänster"
+    },
+    {
+      "@type": "Service",
+      "@id": "https://vagvanner.se/#service",
+      "name": "Samåkningstjänst",
+      "description": "Plattform för att hitta och erbjuda samåkning mellan svenska städer. Spara pengar och hjälp miljön.",
+      "provider": {
+        "@id": "https://vagvanner.se/#organization"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Sverige"
+      },
+      "serviceType": "Transportation",
+      "category": "Ridesharing"
+    }
+  ]
+}

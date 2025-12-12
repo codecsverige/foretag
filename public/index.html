@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <!-- Preconnect to Firebase & Google for faster auth/Firestore paths -->
+    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
+    <!-- Version: v28 FIXED | Build: 2025-01-10 | Status: ROUTING ISSUE RESOLVED -->
+    <meta charset="utf-8" />
+    <base href="/" />
+    <!-- Force absolute paths for all resources -->
+    <script>
+      // Fix for routing issues on page refresh
+      if (window.location.pathname !== '/' && !window.location.pathname.includes('.')) {
+        // Store the intended path
+        sessionStorage.setItem('redirectPath', window.location.pathname);
+      }
+    </script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Force HTTPS -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.google-analytics.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+
+    <!-- Meta -->
+    <meta
+      name="description"
+      content="VägVänner - Sveriges största samåkningsplattform. Hitta eller erbjud skjuts mellan alla svenska städer. Miljövänligt, säkert och socialt. Dela resan med över 50 000 aktiva användare. Perfekt för pendling, helgresor och flygplatstransfer."
+    />
+    <meta
+      name="keywords"
+      content="samåkning sverige, skjuts sverige, dela bil, carpooling, stockholm göteborg malmö, pendling, student transport, miljövänlig resa, billig transport"
+    />
+    
+    <!-- Google Search Console Verification disabled: use DNS/domain property preferred -->
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="author" content="VägVänner Sverige" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:locale" content="sv_SE" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VägVänner" />
+    
+    <meta property="og:title" content="VägVänner – Samåkning & Skjuts i Sverige | Spara pengar på resor" />
+    <meta property="og:description" content="Hitta din nästa resa eller erbjud skjuts enkelt och säkert. Samåkning i hela Sverige med VägVänner." />
+    <meta property="og:image" content="https://vagvanner.se/og/vagvanner-og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="VägVänner – Samåkning i Sverige" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <meta name="twitter:title" content="VägVänner – Samåkning & Skjuts i Sverige | Spara pengar på resor" />
+    <meta name="twitter:description" content="Hitta din nästa resa eller erbjud skjuts enkelt och säkert. Samåkning i hela Sverige med VägVänner." />
+    <meta name="twitter:image" content="https://vagvanner.se/og/vagvanner-og.jpg" />
+    <meta name="twitter:image:alt" content="VägVänner – Samåkning i Sverige" />
+
+    <!-- Canonical / Hreflang -->
+    <link rel="canonical" href="https://vagvanner.se/" />
+    <link rel="alternate" href="https://vagvanner.se/" hreflang="sv-SE" />
+    <link rel="alternate" href="https://vagvanner.se/" hreflang="x-default" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "VägVänner",
+        "description": "Sveriges ledande plattform för samåkning och delad transport mellan städer.",
+        "url": "https://vagvanner.se",
+        "logo": "https://vagvanner.se/assets/rooster.svg",
+        "image": "https://vagvanner.se/og/vagvanner-og.jpg",
+        "email": "info@vagvanner.se",
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "SE",
+          "addressLocality": "Stockholm",
+          "addressRegion": "Stockholms län"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 59.3293,
+          "longitude": 18.0686
+        },
+        "areaServed": {
+          "@type": "Country",
+          "name": "Sverige"
+        },
+        "priceRange": "Gratis",
+        "openingHours": "Mo-Su 00:00-24:00",
+        "sameAs": [
+          "https://www.facebook.com/vagvanner",
+          "https://www.instagram.com/vagvanner"
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "VägVänner",
+        "url": "https://vagvanner.se",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://vagvanner.se/select-location?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TravelAction",
+        "name": "Samåkning i Sverige",
+        "description": "Hitta samåkning mellan svenska städer",
+        "provider": {
+          "@type": "Organization",
+          "name": "VägVänner"
+        },
+        "fromLocation": {
+          "@type": "Place",
+          "name": "Sverige"
+        },
+        "toLocation": {
+          "@type": "Place",
+          "name": "Sverige"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [{
+          "@type": "Question",
+          "name": "Hur fungerar samåkning med VägVänner?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sök efter resor mellan städer, kontakta föraren direkt, och res tillsammans. Betalning sker direkt mellan resenärerna."
+          }
+        },{
+          "@type": "Question",
+          "name": "Är VägVänner gratis att använda?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ja, VägVänner är helt gratis. Vi tar ingen provision eller avgift för att använda plattformen."
+          }
+        },{
+          "@type": "Question",
+          "name": "Hur mycket kan jag spara med samåkning?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Samåkning är det mest ekonomiska sättet att resa. Du delar på bränslekostnader och vägavgifter med andra resenärer."
+          }
+        }]
+      }
+    </script>
+
+    <!-- App Icons / Manifest -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="webmanifest" href="/site.webmanifest" />
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VägVänner" />
+
+    <title>VägVänner – Samåkning & Skjuts i Sverige | Spara pengar på resor</title>
+
+    <!-- Minimal loader (non-indexable) -->
+    <style>
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        z-index: 9999;
+      }
+      .app-ready #app-loader {
+        display: none;
+      }
+      .loader-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e3f2fd;
+        border-top: 3px solid #1976d2;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+
+    <script>
+      // Hide loader when React renders
+      new MutationObserver(function (muts, obs) {
+        try {
+          var root = document.getElementById("root");
+          if (root && root.childElementCount > 0) {
+            document.body.classList.add("app-ready");
+            obs.disconnect();
+          }
+        } catch (e) {}
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    </script>
+  </head>
+
+  <body>
+    <!-- Minimal loader (non-indexable) -->
+    <div id="app-loader" role="status" aria-hidden="true">
+      <div class="loader-spinner"></div>
+    </div>
+
+    <!-- React root -->
+    <div id="root"></div>
+
+    <!-- Enhanced noscript content for SEO and accessibility -->
+    <noscript>
+      <div style="max-width:800px;margin:40px auto;padding:20px;background:#fff;font-family:system-ui,sans-serif;">
+        <h1 style="color:#1976d2;font-size:24px;margin-bottom:20px;">VägVänner - Sveriges Samåkningsplattform</h1>
+        
+        <div style="margin-bottom:30px;">
+          <h2 style="color:#333;font-size:20px;margin-bottom:15px;">Populära sträckor:</h2>
+          <ul style="list-style:none;padding:0;">
+            <li style="margin:10px 0;"><a href="/ride/stockholm-goteborg" style="color:#1976d2;text-decoration:none;">Stockholm - Göteborg</a></li>
+            <li style="margin:10px 0;"><a href="/ride/malmo-stockholm" style="color:#1976d2;text-decoration:none;">Malmö - Stockholm</a></li>
+            <li style="margin:10px 0;"><a href="/ride/uppsala-stockholm" style="color:#1976d2;text-decoration:none;">Uppsala - Stockholm</a></li>
+          </ul>
+        </div>
+
+        <div style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:20px;margin-bottom:30px;color:#856404;">
+          <strong>OBS!</strong> För full funktionalitet behöver du aktivera JavaScript.
+          <br>
+          Du kan också kontakta oss på:
+          <br>
+          📞 Telefon: XXXX-XXXXXX
+          <br>
+          ✉️ E-post: info@vagvanner.se
+        </div>
+
+        <div style="color:#666;">
+          <h3 style="color:#333;font-size:18px;margin-bottom:15px;">Om VägVänner</h3>
+          <p>VägVänner är Sveriges ledande samåkningsplattform. Vi hjälper dig att:</p>
+          <ul style="margin-left:20px;">
+            <li>Hitta och erbjuda skjuts</li>
+            <li>Spara pengar på resekostnader</li>
+            <li>Minska miljöpåverkan</li>
+            <li>Resa säkert och bekvämt</li>
+          </ul>
+        </div>
+      </div>
+    </noscript>
+  </body>
+</html>

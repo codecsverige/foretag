@@ -1,0 +1,11 @@
+{
+  "version": "2025-09-13-seo-ux",
+  "timestamp": "2025-09-13T00:00:00Z",
+  "changes": [
+    "SEO pages expanded and improved",
+    "CreateRide field validation + min date/time + a11y",
+    "SelectLocation swap directions + quick cities",
+    "RideDetails expired badge + maps link + passenger cost note"
+  ],
+  "commit": "15a3428d"
+}

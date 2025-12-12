@@ -1,0 +1,28 @@
+{
+  "appId": "se.vagvanner.app",
+  "appName": "VägVänner",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "",
+    "cleartext": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#ffffff",
+    "minWebViewVersion": 60
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "allowsLinkPreview": true
+  }
+}

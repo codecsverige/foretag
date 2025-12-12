@@ -1,0 +1,22 @@
+name: Maintenance (run now)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run-maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call runMaintenanceNow (Cloud Functions)
+        env:
+          MAINT_KEY: ${{ secrets.MAINTENANCE_SECRET }}
+        run: |
+          set -e
+          KEY="$MAINT_KEY"
+          if [ -z "$KEY" ]; then KEY="v1_2025_maintenance_ok"; fi
+          echo "Using key: ${KEY:0:4}***"
+          curl -sS -H "Accept: application/json" "https://europe-west1-vagvanner.cloudfunctions.net/runMaintenanceNow?key=$KEY" | tee maintenance_output.json
+      - name: Show output
+        run: |
+          cat maintenance_output.json || true
+

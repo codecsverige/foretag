@@ -1,0 +1,4 @@
+# VägVänner App-ads.txt
+# This file lists authorized digital sellers for VägVänner mobile app
+# No advertising partners currently
+# For transparency and compliance 

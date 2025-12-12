@@ -1,0 +1,47 @@
+name: Deploy Firebase Functions
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/**'
+      - '.github/workflows/firebase-deploy.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools@latest
+      
+      - name: Install functions dependencies
+        run: cd functions && npm ci --legacy-peer-deps
+      
+      - name: Deploy to Firebase
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "❌ FIREBASE_TOKEN secret is missing!"
+            echo "Please add it in: https://github.com/codecsverige/vagvanner/settings/secrets/actions"
+            echo ""
+            echo "To get token, run locally: firebase login:ci"
+            exit 1
+          fi
+          
+          echo "🚀 Deploying critical notification functions..."
+          firebase deploy --only functions:matchAlertsOnRideCreate,pushOnNotificationCreate --project vagvanner --non-interactive --token "$FIREBASE_TOKEN" || {
+            echo "⚠️ Trying full functions deploy..."
+            firebase deploy --only functions --project vagvanner --non-interactive --token "$FIREBASE_TOKEN"
+          }
+          
+          echo "✅ Firebase Functions deployed successfully!"

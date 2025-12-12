@@ -1,0 +1,4 @@
+# ads.txt for vagvanner.se
+# Placeholder for future advertising partners
+# Google AdSense
+google.com, pub-XXXXXXXXXX, DIRECT, f08c47fec0942fa0
