@@ -84,6 +84,11 @@ const CommuterGuide      = lazyWithRetry(() => import("./pages/CommuterGuide.jsx
 const NoCarGuide         = lazyWithRetry(() => import("./pages/NoCarGuide.jsx"));
 const TravelTips         = lazyWithRetry(() => import("./pages/TravelTips.jsx"));
 
+/* ───── BokaNära (business booking) ───── */
+const Businesses         = lazyWithRetry(() => import("./pages/Businesses.jsx"));
+const BusinessDetails    = lazyWithRetry(() => import("./pages/BusinessDetails.jsx"));
+const BusinessDashboard  = lazyWithRetry(() => import("./pages/BusinessDashboard.jsx"));
+
 /* ───── Error pages ───── */
 const Error404           = lazyWithRetry(() => import("./pages/Error404.jsx"));
 const Error500           = lazyWithRetry(() => import("./pages/Error500.jsx"));
@@ -389,6 +394,8 @@ function ModalRoutesAware() {
       <Routes location={state?.background || location}>
         {/* public */}
         <Route path="/" element={<Home />} />
+        <Route path="/businesses" element={<Businesses />} />
+        <Route path="/business/:id" element={<BusinessDetails />} />
         <Route path="/ride/:id" element={<RideDetails />} />
         <Route path="/passenger/:id" element={<RideDetails />} />
         <Route path="/report/:id" element={<ReportPage />} />
@@ -411,6 +418,7 @@ function ModalRoutesAware() {
         <Route path="/my-driver-rides" element={<MyDriverRides />} />
         <Route path="/my-passenger-rides" element={<MyPassengerRides />} />
         <Route path="/user-profile" element={<UserSettings />} />
+        <Route path="/business-dashboard" element={<BusinessDashboard />} />
 
         {/* booking routes (phone verification enforced at submit, not at navigation) */}
         <Route path="/book-ride/:rideId" element={<BookRide />} />

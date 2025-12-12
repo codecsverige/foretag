@@ -20,6 +20,8 @@ const Badge = ({ n }) =>
 const preloads = {
   home: () => import("../pages/SearchDynamic.jsx"),
   createRide: () => import("../pages/CreateRide.jsx"),
+  businesses: () => import("../pages/Businesses.jsx"),
+  businessDashboard: () => import("../pages/BusinessDashboard.jsx"),
   inbox: () => import("../pages/Inbox.jsx"),
   myRides: () => import("../pages/MinaResor/index.jsx"),
   userProfile: () => import("../pages/UserProfilePage.jsx"),
@@ -113,8 +115,38 @@ const Header = function Header() {
           <span className="font-medium">Erbjud resa</span>
         </span>
       </NavLink>
+      <NavLink
+        to="/businesses"
+        className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
+        onMouseEnter={() => preload("businesses")}
+        onClick={handleButtonClick}
+      >
+        <span className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 2a2 2 0 00-2 2v14h16V4a2 2 0 00-2-2H4zm0 2h12v3H4V4zm0 5h12v7H4V9z" />
+            </svg>
+          </div>
+          <span className="font-medium">Företag</span>
+        </span>
+      </NavLink>
       {user && (
         <>
+          <NavLink
+            to="/business-dashboard"
+            className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
+            onMouseEnter={() => preload("businessDashboard")}
+            onClick={handleButtonClick}
+          >
+            <span className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V7.414a1 1 0 00-.293-.707l-3.414-3.414A1 1 0 0012.586 3H4zm8 1.5L15.5 8H12a1 1 0 01-1-1V4.5z" />
+                </svg>
+              </div>
+              <span className="font-medium">Dashboard</span>
+            </span>
+          </NavLink>
           <span onMouseEnter={() => preload("myRides")} className="relative inline-flex items-center">
             <MyRidesNavLink />
             {/* Förare aggregated notifications badge */}
