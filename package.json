@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   },
   "dependencies": {
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/push-notifications": "^7.0.3",
     "@heroicons/react": "^2.2.0",
     "@paypal/react-paypal-js": "^8.8.1",
     "@sentry/react": "^7.91.0",
@@ -50,9 +52,7 @@
   },
   "optionalDependencies": {
     "@capacitor/android": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/ios": "^7.0.0",
-    "@capacitor/push-notifications": "^7.0.0"
+    "@capacitor/ios": "^7.0.0"
   },
   "scripts": {
     "start": "cross-env PORT=3000 WDS_SOCKET_HOST=localhost WDS_SOCKET_PORT=3000 WDS_SOCKET_PATH=/ws HTTPS=false react-scripts start",
