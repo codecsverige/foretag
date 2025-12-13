@@ -9,7 +9,7 @@ export default function CreateListing() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const pageTitle = useMemo(() => "Skapa annons", []);
+  const pageTitle = useMemo(() => "Skapa företagsannons", []);
 
   const [companyName, setCompanyName] = useState("");
   const [city, setCity] = useState("");
@@ -42,9 +42,9 @@ export default function CreateListing() {
       return;
     }
 
-    if (!companyName.trim()) return setErr("اكتب اسم الشركة");
-    if (!city.trim()) return setErr("اكتب المدينة");
-    if (!title.trim()) return setErr("اكتب عنوان الإعلان");
+    if (!companyName.trim()) return setErr("Ange företagsnamn");
+    if (!city.trim()) return setErr("Ange stad");
+    if (!title.trim()) return setErr("Ange annonstitel");
 
     setSaving(true);
     try {
@@ -80,26 +80,26 @@ export default function CreateListing() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <PageMeta title={pageTitle} description="Skapa en annons för ditt företag och få bokningar." />
+      <PageMeta title={pageTitle} description="Skapa en annons för ditt företag." />
 
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">إنشاء إعلان شركة</h1>
-          <p className="text-gray-600 mt-1">املأ البيانات ثم انشر الإعلان ليظهر في الصفحة الرئيسية.</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">Skapa företagsannons</h1>
+          <p className="text-gray-600 mt-1">Fyll i uppgifterna och publicera annonsen.</p>
         </div>
         <Link to="/" className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50">
-          العودة للرئيسية
+          Till startsidan
         </Link>
       </div>
 
       {!user ? (
         <div className="mt-5 p-4 rounded-xl border border-gray-200 bg-white text-gray-700">
-          أنت الآن بدون تسجيل دخول. اضغط تسجيل الدخول (سيتم تلقائيًا في وضع bypass).
+          Du är inte inloggad. Klicka på logga in (i bypass-läge sker det automatiskt).
           <button
             onClick={handleLogin}
             className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
           >
-            تسجيل الدخول
+            Logga in
           </button>
         </div>
       ) : null}
@@ -107,10 +107,10 @@ export default function CreateListing() {
       {err ? <div className="mt-4 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700">{err}</div> : null}
       {okId ? (
         <div className="mt-4 p-4 rounded-xl border border-green-200 bg-green-50 text-green-800">
-          تم نشر الإعلان! ID: <span className="font-mono text-xs">{okId}</span>
+          Annonsen är publicerad! ID: <span className="font-mono text-xs">{okId}</span>
           <div className="mt-2">
             <Link to="/" className="underline font-semibold">
-              شاهد الإعلان في الرئيسية
+              Se annonsen på startsidan
             </Link>
           </div>
         </div>
@@ -119,17 +119,17 @@ export default function CreateListing() {
       <form onSubmit={handleSubmit} className="mt-6 p-5 rounded-2xl border border-gray-200 bg-white space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">اسم الشركة</label>
+          <label className="block text-sm font-medium text-gray-700">Företagsnamn</label>
             <input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200"
-              placeholder="مثال: Salon Nora"
+              placeholder="t.ex. Salon Nora"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">المدينة</label>
+          <label className="block text-sm font-medium text-gray-700">Stad</label>
             <input
               value={city}
               onChange={(e) => setCity(e.target.value)}
@@ -142,7 +142,7 @@ export default function CreateListing() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">التصنيف (اختياري)</label>
+            <label className="block text-sm font-medium text-gray-700">Kategori (valfritt)</label>
             <input
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -151,7 +151,7 @@ export default function CreateListing() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">هاتف (اختياري)</label>
+            <label className="block text-sm font-medium text-gray-700">Telefon (valfritt)</label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -162,29 +162,29 @@ export default function CreateListing() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">عنوان الإعلان</label>
+          <label className="block text-sm font-medium text-gray-700">Annonstitel</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200"
-            placeholder="مثال: Klippning + Styling"
+            placeholder="t.ex. Klippning + Styling"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">وصف الإعلان</label>
+          <label className="block text-sm font-medium text-gray-700">Beskrivning</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 min-h-[120px]"
-            placeholder="اكتب ما الذي تقدمه ولماذا العميل يختارك…"
+            placeholder="Skriv vad som ingår och varför kunden ska välja er…"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">السعر</label>
+            <label className="block text-sm font-medium text-gray-700">Pris</label>
             <input
               type="number"
               value={price}
@@ -194,7 +194,7 @@ export default function CreateListing() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">المدة (دقيقة)</label>
+            <label className="block text-sm font-medium text-gray-700">Tid (min)</label>
             <input
               type="number"
               value={durationMin}
@@ -204,7 +204,7 @@ export default function CreateListing() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">العملة</label>
+            <label className="block text-sm font-medium text-gray-700">Valuta</label>
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
@@ -217,7 +217,7 @@ export default function CreateListing() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">رابط صورة (اختياري)</label>
+          <label className="block text-sm font-medium text-gray-700">Bild-URL (valfritt)</label>
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
@@ -231,7 +231,7 @@ export default function CreateListing() {
           disabled={saving}
           className="w-full px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {saving ? "ينشر…" : "نشر الإعلان"}
+          {saving ? "Publicerar…" : "Publicera annons"}
         </button>
       </form>
     </div>

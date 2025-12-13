@@ -71,7 +71,7 @@ function ListingCard({ item }) {
         {item.description ? (
           <p className="mt-3 text-sm text-gray-600 line-clamp-2">{item.description}</p>
         ) : (
-          <p className="mt-3 text-sm text-gray-500 line-clamp-2">اضغط لإنشاء حجوزات (سيتم ربط الحجز بعد ذلك).</p>
+          <p className="mt-3 text-sm text-gray-500 line-clamp-2">Klicka för att boka (kopplas in i nästa steg).</p>
         )}
       </div>
     </div>
@@ -120,21 +120,21 @@ export default function SearchDynamic() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <PageMeta title="Hem" description="إعلانات الشركات والخدمات" />
+      <PageMeta title="Hem" description="Företagsannonser och tjänster" />
 
       <HeroSection />
       <SEOSection />
 
       <div className="mt-4 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl md:text-2xl font-extrabold text-gray-900">إعلانات الشركات</h2>
-          <p className="text-gray-600 mt-1">هذه هي الإعلانات التي تنشئها من صفحة إنشاء الإعلان.</p>
+          <h2 className="text-xl md:text-2xl font-extrabold text-gray-900">Företagsannonser</h2>
+          <p className="text-gray-600 mt-1">Här visas annonserna som skapas via “Erbjud resa” (nu företagsannons).</p>
         </div>
         <Link
           to="/create-ride"
           className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-900 text-white font-semibold hover:bg-gray-800 transition"
         >
-          إنشاء إعلان
+          Skapa annons
         </Link>
       </div>
 
@@ -149,11 +149,11 @@ export default function SearchDynamic() {
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">بحث</label>
+          <label className="block text-sm font-medium text-gray-700">Sök</label>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="ابحث عن خدمة أو شركة…"
+            placeholder="Sök tjänst eller företag…"
             className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200"
           />
         </div>
@@ -164,7 +164,7 @@ export default function SearchDynamic() {
 
       {!loading && !err && filtered.length === 0 ? (
         <div className="mt-6 p-4 rounded-xl border border-gray-200 bg-white text-gray-700">
-          لا توجد إعلانات بعد. أنشئ إعلانًا من زر "إنشاء إعلان".
+          Inga annonser ännu. Skapa en annons via knappen ovan.
         </div>
       ) : null}
 
