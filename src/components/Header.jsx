@@ -18,7 +18,8 @@ const Badge = ({ n }) =>
 
 // Préchargement des routes (React.lazy) au survol
 const preloads = {
-  home: () => import("../pages/SearchDynamic.jsx"),
+  home: () => import("../pages/Listings.jsx"),
+  ridesHome: () => import("../pages/SearchDynamic.jsx"),
   createRide: () => import("../pages/CreateRide.jsx"),
   businesses: () => import("../pages/Businesses.jsx"),
   businessDashboard: () => import("../pages/BusinessDashboard.jsx"),
@@ -99,6 +100,21 @@ const Header = function Header() {
             </svg>
           </div>
           <span className="font-medium">Hem</span>
+        </span>
+      </NavLink>
+      <NavLink
+        to="/rides"
+        className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
+        onMouseEnter={() => preload("ridesHome")}
+        onClick={handleButtonClick}
+      >
+        <span className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 000-2h1a1 1 0 001 1v3a1 1 0 00.293.707L18 11.414V13a1 1 0 00-1 1h-1.05a2.5 2.5 0 01-4.9 0H9a1 1 0 01-1-1v-1a1 1 0 011-1h5V7z" />
+            </svg>
+          </div>
+          <span className="font-medium">Resor</span>
         </span>
       </NavLink>
       <NavLink
@@ -284,6 +300,14 @@ const Header = function Header() {
               </svg>
             </div>
             <span>Hem</span>
+          </NavLink>
+          <NavLink to="/rides" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("ridesHome")}>
+            <div className="w-4 h-4 rounded bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center">
+              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3z" />
+              </svg>
+            </div>
+            <span>Resor</span>
           </NavLink>
           <NavLink to="/create-ride" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("createRide")}>
             <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
