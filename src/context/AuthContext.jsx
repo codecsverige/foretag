@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInAnonymously } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase.js";
+
+// TEMP bootstrap mode:
+// If REACT_APP_AUTH_BYPASS=1, the app will auto sign-in anonymously (no Google login required).
+// Turn it off later by removing/setting REACT_APP_AUTH_BYPASS=0 in Vercel env vars.
+const AUTH_BYPASS_ENABLED = String(process.env.REACT_APP_AUTH_BYPASS || "") === "1";
 
 const AuthContext = createContext({
   user: null,
@@ -18,6 +23,16 @@ export function AuthProvider({ children }) {
       console.log("🔄 Auth state changed:", fbUser ? "User logged in" : "No user");
       
       if (!fbUser) {
+        // Optional bootstrap: sign in anonymously to allow using the app without Google login.
+        if (AUTH_BYPASS_ENABLED) {
+          try {
+            // Keep loading until the next auth state change
+            await signInAnonymously(auth);
+            return;
+          } catch (e) {
+            console.warn("⚠️ Anonymous sign-in failed:", e?.message || e);
+          }
+        }
         setUser(null);
         setAuthLoading(false);
         return;
