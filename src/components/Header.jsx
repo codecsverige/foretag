@@ -102,6 +102,10 @@ const Header = function Header() {
           <span className="font-medium">Hem</span>
         </span>
       </NavLink>
+      {/* Deploy marker (Arabic): visible proof of new build */}
+      <span className={`${baseLink} bg-pink-50 text-pink-700 border border-pink-200 select-none`}>
+        وردة
+      </span>
       <NavLink
         to="/rides"
         className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
@@ -301,6 +305,12 @@ const Header = function Header() {
             </div>
             <span>Hem</span>
           </NavLink>
+          <div className="px-5 py-3 flex items-center gap-3 bg-pink-50 text-pink-700">
+            <div className="w-4 h-4 rounded bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white font-bold">
+              و
+            </div>
+            <span>وردة</span>
+          </div>
           <NavLink to="/rides" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("ridesHome")}>
             <div className="w-4 h-4 rounded bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center">
               <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
