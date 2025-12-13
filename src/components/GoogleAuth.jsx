@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import React, { useEffect, useMemo, useState } from "react";
+import { GoogleAuthProvider, signInAnonymously, signInWithPopup } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "../firebase/firebase.js";
 
@@ -8,18 +8,42 @@ const GoogleAuth = () => {
   const [err, setErr] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const returnTo = useMemo(() => new URLSearchParams(location.search).get("return") || "/", [location.search]);
+  const bypassEnabled = String(process.env.REACT_APP_AUTH_BYPASS || "") === "1";
+
+  // If bypass is enabled, don't block on Google popup: sign in anonymously and continue.
+  useEffect(() => {
+    if (!bypassEnabled) return;
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      setErr("");
+      try {
+        await signInAnonymously(auth);
+        if (!alive) return;
+        navigate(returnTo, { replace: true });
+      } catch (e) {
+        console.error(e);
+        if (!alive) return;
+        setErr(e?.message || "Kunde inte logga in (anonymous).");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [bypassEnabled, navigate, returnTo]);
 
   const login = async () => {
     setLoading(true);
     setErr("");
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
-
-      const returnTo = new URLSearchParams(location.search).get("return") || "/";
       navigate(returnTo, { replace: true });
     } catch (e) {
       console.error(e);
-      setErr("Kunde inte logga in, försök igen.");
+      setErr(e?.message || "Kunde inte logga in, försök igen.");
     }
     setLoading(false);
   };
@@ -31,9 +55,15 @@ const GoogleAuth = () => {
           Logga in för att fortsätta
         </h1>
 
+        {bypassEnabled ? (
+          <div className="text-sm text-center text-gray-700 bg-blue-50 border border-blue-200 px-4 py-3 rounded-lg">
+            Tillfälligt läge aktivt: loggar in automatiskt…
+          </div>
+        ) : null}
+
         <button
           onClick={login}
-          disabled={loading}
+          disabled={loading || bypassEnabled}
           className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-xl py-3 hover:bg-gray-100 transition disabled:opacity-50"
         >
           {/* Google icon built with Tailwind */}
@@ -45,7 +75,7 @@ const GoogleAuth = () => {
           </div>
 
           <span className="text-sm font-medium text-gray-700">
-            {loading ? "Loggar in..." : "Logga in med Google"}
+            {loading ? "Loggar in..." : bypassEnabled ? "Google login inaktiverad (bypass)" : "Logga in med Google"}
           </span>
         </button>
 
