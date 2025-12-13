@@ -149,6 +149,23 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Listings (Ads): public read; write restricted to business staff
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && isBusinessStaff(request.resource.data.businessId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'businessId','serviceId','title','city','price','currency','durationMin','createdAt','createdBy','status'
+        ]);
+      allow update: if isSignedIn()
+        && isBusinessStaff(resource.data.businessId)
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isSignedIn() && isBusinessOwner(resource.data.businessId);
+    }
+
     match /rides/{rideId} {
       allow read: if true;
       allow create: if isSignedIn()

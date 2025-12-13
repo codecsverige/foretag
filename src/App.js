@@ -88,6 +88,8 @@ const TravelTips         = lazyWithRetry(() => import("./pages/TravelTips.jsx"))
 const Businesses         = lazyWithRetry(() => import("./pages/Businesses.jsx"));
 const BusinessDetails    = lazyWithRetry(() => import("./pages/BusinessDetails.jsx"));
 const BusinessDashboard  = lazyWithRetry(() => import("./pages/BusinessDashboard.jsx"));
+const Listings           = lazyWithRetry(() => import("./pages/Listings.jsx"));
+const CreateListing      = lazyWithRetry(() => import("./pages/CreateListing.jsx"));
 
 /* ───── Error pages ───── */
 const Error404           = lazyWithRetry(() => import("./pages/Error404.jsx"));
@@ -396,6 +398,8 @@ function ModalRoutesAware() {
         <Route path="/" element={<Home />} />
         <Route path="/businesses" element={<Businesses />} />
         <Route path="/business/:id" element={<BusinessDetails />} />
+        <Route path="/listings" element={<Listings />} />
+        <Route path="/create-listing" element={<CreateListing />} />
         <Route path="/ride/:id" element={<RideDetails />} />
         <Route path="/passenger/:id" element={<RideDetails />} />
         <Route path="/report/:id" element={<ReportPage />} />

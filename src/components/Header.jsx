@@ -22,6 +22,8 @@ const preloads = {
   createRide: () => import("../pages/CreateRide.jsx"),
   businesses: () => import("../pages/Businesses.jsx"),
   businessDashboard: () => import("../pages/BusinessDashboard.jsx"),
+  listings: () => import("../pages/Listings.jsx"),
+  createListing: () => import("../pages/CreateListing.jsx"),
   inbox: () => import("../pages/Inbox.jsx"),
   myRides: () => import("../pages/MinaResor/index.jsx"),
   userProfile: () => import("../pages/UserProfilePage.jsx"),
@@ -130,8 +132,38 @@ const Header = function Header() {
           <span className="font-medium">Företag</span>
         </span>
       </NavLink>
+      <NavLink
+        to="/listings"
+        className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
+        onMouseEnter={() => preload("listings")}
+        onClick={handleButtonClick}
+      >
+        <span className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v3H2V5zm0 5h16v5a2 2 0 01-2 2H4a2 2 0 01-2-2v-5z" />
+            </svg>
+          </div>
+          <span className="font-medium">Annonser</span>
+        </span>
+      </NavLink>
       {user && (
         <>
+          <NavLink
+            to="/create-listing"
+            className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
+            onMouseEnter={() => preload("createListing")}
+            onClick={handleButtonClick}
+          >
+            <span className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
+                </svg>
+              </div>
+              <span className="font-medium">Skapa annons</span>
+            </span>
+          </NavLink>
           <NavLink
             to="/business-dashboard"
             className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
