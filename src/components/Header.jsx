@@ -18,13 +18,8 @@ const Badge = ({ n }) =>
 
 // Préchargement des routes (React.lazy) au survol
 const preloads = {
-  home: () => import("../pages/Listings.jsx"),
-  ridesHome: () => import("../pages/SearchDynamic.jsx"),
-  createRide: () => import("../pages/CreateRide.jsx"),
-  businesses: () => import("../pages/Businesses.jsx"),
-  businessDashboard: () => import("../pages/BusinessDashboard.jsx"),
-  listings: () => import("../pages/Listings.jsx"),
-  createListing: () => import("../pages/CreateListing.jsx"),
+  home: () => import("../pages/SearchDynamic.jsx"),
+  createRide: () => import("../pages/CreateListing.jsx"),
   inbox: () => import("../pages/Inbox.jsx"),
   myRides: () => import("../pages/MinaResor/index.jsx"),
   userProfile: () => import("../pages/UserProfilePage.jsx"),
@@ -102,29 +97,10 @@ const Header = function Header() {
           <span className="font-medium">Hem</span>
         </span>
       </NavLink>
-      {/* Deploy marker (Arabic): visible proof of new build */}
-      <span className={`${baseLink} bg-pink-50 text-pink-700 border border-pink-200 select-none`}>
-        وردة
-      </span>
       <NavLink
-        to="/rides"
+        to="/create-ride"
         className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-        onMouseEnter={() => preload("ridesHome")}
-        onClick={handleButtonClick}
-      >
-        <span className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 000-2h1a1 1 0 001 1v3a1 1 0 00.293.707L18 11.414V13a1 1 0 00-1 1h-1.05a2.5 2.5 0 01-4.9 0H9a1 1 0 01-1-1v-1a1 1 0 011-1h5V7z" />
-            </svg>
-          </div>
-          <span className="font-medium">Resor</span>
-        </span>
-      </NavLink>
-      <NavLink
-        to="/create-listing"
-        className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-        onMouseEnter={() => preload("createListing")}
+        onMouseEnter={() => preload("createRide")}
         onClick={handleButtonClick}
       >
         <span className="flex items-center gap-2">
@@ -134,71 +110,11 @@ const Header = function Header() {
               <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 000-2h1a1 1 0 001 1v3a1 1 0 00.293.707L18 11.414V13a1 1 0 00-1 1h-1.05a2.5 2.5 0 01-4.9 0H9a1 1 0 01-1-1v-1a1 1 0 011-1h5V7z" />
             </svg>
           </div>
-          <span className="font-medium">Skapa annons</span>
-        </span>
-      </NavLink>
-      <NavLink
-        to="/businesses"
-        className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-        onMouseEnter={() => preload("businesses")}
-        onClick={handleButtonClick}
-      >
-        <span className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M4 2a2 2 0 00-2 2v14h16V4a2 2 0 00-2-2H4zm0 2h12v3H4V4zm0 5h12v7H4V9z" />
-            </svg>
-          </div>
-          <span className="font-medium">Företag</span>
-        </span>
-      </NavLink>
-      <NavLink
-        to="/listings"
-        className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-        onMouseEnter={() => preload("listings")}
-        onClick={handleButtonClick}
-      >
-        <span className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v3H2V5zm0 5h16v5a2 2 0 01-2 2H4a2 2 0 01-2-2v-5z" />
-            </svg>
-          </div>
-          <span className="font-medium">Annonser</span>
+          <span className="font-medium">Erbjud resa</span>
         </span>
       </NavLink>
       {user && (
         <>
-          <NavLink
-            to="/create-listing"
-            className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-            onMouseEnter={() => preload("createListing")}
-            onClick={handleButtonClick}
-          >
-            <span className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
-                </svg>
-              </div>
-              <span className="font-medium">Skapa annons</span>
-            </span>
-          </NavLink>
-          <NavLink
-            to="/business-dashboard"
-            className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-            onMouseEnter={() => preload("businessDashboard")}
-            onClick={handleButtonClick}
-          >
-            <span className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M4 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V7.414a1 1 0 00-.293-.707l-3.414-3.414A1 1 0 0012.586 3H4zm8 1.5L15.5 8H12a1 1 0 01-1-1V4.5z" />
-                </svg>
-              </div>
-              <span className="font-medium">Dashboard</span>
-            </span>
-          </NavLink>
           <span onMouseEnter={() => preload("myRides")} className="relative inline-flex items-center">
             <MyRidesNavLink />
             {/* Förare aggregated notifications badge */}
@@ -305,28 +221,14 @@ const Header = function Header() {
             </div>
             <span>Hem</span>
           </NavLink>
-          <div className="px-5 py-3 flex items-center gap-3 bg-pink-50 text-pink-700">
-            <div className="w-4 h-4 rounded bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white font-bold">
-              و
-            </div>
-            <span>وردة</span>
-          </div>
-          <NavLink to="/rides" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("ridesHome")}>
-            <div className="w-4 h-4 rounded bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center">
-              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3z" />
-              </svg>
-            </div>
-            <span>Resor</span>
-          </NavLink>
-          <NavLink to="/create-listing" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("createListing")}>
+          <NavLink to="/create-ride" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("createRide")}>
             <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
               <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                 <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3z" />
               </svg>
             </div>
-            <span>Skapa annons</span>
+            <span>Erbjud resa</span>
           </NavLink>
           {user ? (
             <>
