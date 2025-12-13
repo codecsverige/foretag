@@ -19,7 +19,7 @@ const Badge = ({ n }) =>
 // Préchargement des routes (React.lazy) au survol
 const preloads = {
   home: () => import("../pages/SearchDynamic.jsx"),
-  createRide: () => import("../pages/CreateRide.jsx"),
+  createRide: () => import("../pages/CreateListing.jsx"),
   inbox: () => import("../pages/Inbox.jsx"),
   myRides: () => import("../pages/MinaResor/index.jsx"),
   userProfile: () => import("../pages/UserProfilePage.jsx"),

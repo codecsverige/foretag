@@ -9,8 +9,8 @@ import HeroSection from "../components/HeroSection.jsx";
 import TrustSection from "../components/TrustSection.jsx";
 import QuickTips from "../components/QuickTips.jsx";
 import RideFilters from "../components/rides/RideFilters";
-import RideGrid    from "../components/rides/RideGrid";
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import ListingGrid from "../components/listings/ListingGrid.jsx";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db, onForegroundFcm } from "../firebase/firebase.js";
 import { HiBell } from "react-icons/hi2";
 import { createRideAlert, listActiveAlerts, deactivateAlert } from "../services/alertService.js";
@@ -326,7 +326,7 @@ export default function SearchDynamic() {
             }
           }}
         />
-        <RideGrid 
+        <ListingGrid 
           filters={filters} 
           onRidesChange={handleRidesChange} 
           directRideId={directRideId}

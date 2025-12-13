@@ -56,7 +56,7 @@ scheduleIdle(async () => {
 /* ───── Lazy‐loaded pages ───── */
 const Home               = lazyWithRetry(() => import("./pages/SearchDynamic.jsx"));
 const SelectLocation     = lazyWithRetry(() => import("./pages/SelectLocation.jsx"));
-const CreateRide         = lazyWithRetry(() => import("./pages/CreateRide.jsx"));
+// const CreateRide         = lazyWithRetry(() => import("./pages/CreateRide.jsx"));
 const Inbox              = lazyWithRetry(() => import("./pages/Inbox.jsx"));
 const BusSearch          = lazyWithRetry(() => import("./pages/BusSearch.jsx"));
 const BusAdmin           = lazyWithRetry(() => import("./pages/BusAdmin.jsx"));
@@ -83,6 +83,9 @@ const StudentGuide       = lazyWithRetry(() => import("./pages/StudentGuide.jsx"
 const CommuterGuide      = lazyWithRetry(() => import("./pages/CommuterGuide.jsx"));
 const NoCarGuide         = lazyWithRetry(() => import("./pages/NoCarGuide.jsx"));
 const TravelTips         = lazyWithRetry(() => import("./pages/TravelTips.jsx"));
+
+/* ───── Ads (company listings) ───── */
+const CreateListing      = lazyWithRetry(() => import("./pages/CreateListing.jsx"));
 
 /* ───── Error pages ───── */
 const Error404           = lazyWithRetry(() => import("./pages/Error404.jsx"));
@@ -393,7 +396,10 @@ function ModalRoutesAware() {
         <Route path="/passenger/:id" element={<RideDetails />} />
         <Route path="/report/:id" element={<ReportPage />} />
         <Route path="/select-location" element={<SelectLocation />} />
-        <Route path="/create-ride" element={<CreateRide />} />
+        {/* Company ad creation (uses listings collection) */}
+        <Route path="/create-ride" element={<CreateListing />} />
+        {/* Alias for older/newer links */}
+        <Route path="/create-listing" element={<CreateListing />} />
         <Route path="/samakning" element={<Samakning />} />
         <Route path="/city/:city" element={<CityPage />} />
         
