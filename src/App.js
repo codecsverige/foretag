@@ -395,7 +395,8 @@ function ModalRoutesAware() {
       <RouteSeo />
       <Routes location={state?.background || location}>
         {/* public */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Listings />} />
+        <Route path="/rides" element={<Home />} />
         <Route path="/businesses" element={<Businesses />} />
         <Route path="/business/:id" element={<BusinessDetails />} />
         <Route path="/listings" element={<Listings />} />
