@@ -5,7 +5,7 @@ export default function QuickTips() {
   const [showTips, setShowTips] = useState(false);
 
   useEffect(() => {
-    const hasSeenTips = localStorage.getItem('vagvanner_tips_seen');
+    const hasSeenTips = localStorage.getItem('bokanara_tips_seen');
     if (!hasSeenTips) {
       // Show tips after a short delay
       const timer = setTimeout(() => {
@@ -17,21 +17,21 @@ export default function QuickTips() {
 
   const handleClose = () => {
     setShowTips(false);
-    localStorage.setItem('vagvanner_tips_seen', 'true');
+    localStorage.setItem('bokanara_tips_seen', 'true');
   };
 
   if (!showTips) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 bg-blue-600 text-white rounded-xl shadow-2xl p-4 max-w-sm z-50 animate-slide-in-right">
+    <div className="fixed bottom-4 right-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl shadow-2xl p-4 max-w-sm z-50 animate-slide-in-right">
       <div className="flex items-start gap-3">
         <HiLightBulb className="w-6 h-6 text-yellow-300 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
-          <h4 className="font-bold mb-2">💡 Snabbtips för VägVänner:</h4>
+          <h4 className="font-bold mb-2">💡 Snabbtips för BokaNära:</h4>
           <ul className="text-sm space-y-1 opacity-90">
-            <li>• Sök på stad eller rutt</li>
-            <li>• Använd filter för bättre träffar</li>
-            <li>• Skapa egen resa om ingen passar</li>
+            <li>• Sök på stad eller kategori</li>
+            <li>• Klicka "Boka nu" för att kontakta företaget</li>
+            <li>• Är du företagare? Skapa gratis annons!</li>
           </ul>
         </div>
         <button

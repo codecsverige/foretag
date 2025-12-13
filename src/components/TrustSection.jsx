@@ -1,53 +1,57 @@
 import React, { useState } from "react";
-import { HiShieldCheck, HiUsers, HiStar, HiGlobeAlt, HiChevronDown, HiChevronUp } from "react-icons/hi2";
+import { HiShieldCheck, HiUsers, HiStar, HiCalendar, HiChevronDown, HiChevronUp, HiClock, HiBuildingStorefront } from "react-icons/hi2";
 
 export default function TrustSection() {
   const [showTestimonials, setShowTestimonials] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
+  
   const trustStats = [
     {
-      icon: HiUsers,
-      number: "50,000+",
-      label: "Nöjda resenärer",
-      description: "Över 50,000 personer har rest säkert med VägVänner"
+      icon: HiBuildingStorefront,
+      number: "1,000+",
+      label: "Lokala företag",
+      description: "Över 1,000 företag listar sina tjänster på BokaNära"
     },
     {
       icon: HiStar,
-      number: "4.8/5",
+      number: "4.9/5",
       label: "Genomsnittligt betyg",
-      description: "Högt betyg från våra användare"
+      description: "Högt betyg från nöjda kunder"
     },
     {
-      icon: HiShieldCheck,
-      number: "100%",
-      label: "Säker plattform",
-      description: "Verifierade profiler och säkra betalningar"
+      icon: HiCalendar,
+      number: "10,000+",
+      label: "Bokningar/månad",
+      description: "Tusentals bokningar genomförs varje månad"
     },
     {
-      icon: HiGlobeAlt,
-      number: "5+",
-      label: "År av erfarenhet",
-      description: "Sveriges mest pålitliga samåkningsplattform"
+      icon: HiClock,
+      number: "SMS",
+      label: "Automatiska påminnelser",
+      description: "Aldrig missa en tid med SMS-påminnelser"
     }
   ];
 
   const testimonials = [
     {
-      name: "Anna L.",
+      name: "Emma S.",
       location: "Stockholm",
-      text: "Fantastisk service! Sparade över 2000 kr per månad på mina resor till jobbet.",
+      business: "Frisör",
+      text: "BokaNära har förändrat hur jag driver min salong. Mina kunder bokar enkelt och jag slipper missade tider!",
       rating: 5
     },
     {
-      name: "Erik M.",
+      name: "Johan K.",
       location: "Göteborg", 
-      text: "Enkelt att hitta resenärer och alltid trevligt sällskap på långa resor.",
+      business: "Kund",
+      text: "Så smidigt att hitta och boka tjänster i min stad. Sparar massor av tid!",
       rating: 5
     },
     {
-      name: "Maria S.",
+      name: "Sara L.",
       location: "Malmö",
-      text: "Miljövänligt och ekonomiskt smart. Använder VägVänner varje vecka!",
+      business: "Massage",
+      text: "Jag har fått 30% fler kunder sen jag började använda BokaNära. Rekommenderar starkt!",
       rating: 5
     }
   ];
@@ -59,10 +63,10 @@ export default function TrustSection() {
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Varför väljer 50,000+ svenskar VägVänner?
+            Varför väljer företag och kunder BokaNära?
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Sveriges mest pålitliga och populära plattform för samåkning
+            Sveriges smartaste plattform för att hitta och boka lokala tjänster
           </p>
         </div>
 
@@ -131,7 +135,7 @@ export default function TrustSection() {
                         {testimonial.name}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {testimonial.location}
+                        {testimonial.location} • {testimonial.business}
                       </div>
                     </div>
                   </div>
@@ -141,13 +145,13 @@ export default function TrustSection() {
           )}
         </div>
 
-        {/* Security Features - Collapsible */}
+        {/* Features for Businesses - Collapsible */}
         <div className="mt-12">
           <button
             onClick={() => setShowSecurity(!showSecurity)}
             className="flex items-center justify-center gap-2 mx-auto text-gray-900 hover:text-blue-600 font-bold text-xl md:text-2xl transition-colors mb-6"
           >
-            <span>🛡️ Din säkerhet är vår prioritet</span>
+            <span>🏢 För företag</span>
             {showSecurity ? (
               <HiChevronUp className="w-6 h-6" />
             ) : (
@@ -159,26 +163,26 @@ export default function TrustSection() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex flex-col items-center bg-white rounded-xl p-6 shadow-sm">
                 <div className="bg-green-100 p-4 rounded-full mb-4">
-                  <HiShieldCheck className="w-8 h-8 text-green-600" />
+                  <HiUsers className="w-8 h-8 text-green-600" />
                 </div>
-                <h4 className="font-semibold text-gray-900 mb-2">Verifierade profiler</h4>
-                <p className="text-gray-600 text-sm text-center">Alla användare verifieras för din trygghet</p>
+                <h4 className="font-semibold text-gray-900 mb-2">Nå nya kunder</h4>
+                <p className="text-gray-600 text-sm text-center">Tusentals potentiella kunder söker tjänster varje dag</p>
               </div>
               
               <div className="flex flex-col items-center bg-white rounded-xl p-6 shadow-sm">
                 <div className="bg-blue-100 p-4 rounded-full mb-4">
-                  <span className="text-2xl">🔒</span>
+                  <span className="text-2xl">📱</span>
                 </div>
-                <h4 className="font-semibold text-gray-900 mb-2">Säkra betalningar</h4>
-                <p className="text-gray-600 text-sm text-center">Krypterade transaktioner och datasäkerhet</p>
+                <h4 className="font-semibold text-gray-900 mb-2">SMS-påminnelser</h4>
+                <p className="text-gray-600 text-sm text-center">Automatiska påminnelser minskar no-shows med 80%</p>
               </div>
               
               <div className="flex flex-col items-center bg-white rounded-xl p-6 shadow-sm">
                 <div className="bg-purple-100 p-4 rounded-full mb-4">
-                  <span className="text-2xl">📞</span>
+                  <span className="text-2xl">📊</span>
                 </div>
-                <h4 className="font-semibold text-gray-900 mb-2">24/7 Support</h4>
-                <p className="text-gray-600 text-sm text-center">Vi finns här för dig när du behöver hjälp</p>
+                <h4 className="font-semibold text-gray-900 mb-2">Enkel hantering</h4>
+                <p className="text-gray-600 text-sm text-center">Hantera alla bokningar från en översiktlig dashboard</p>
               </div>
             </div>
           )}
