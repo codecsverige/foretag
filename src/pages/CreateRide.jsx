@@ -1,5 +1,5 @@
 // ───────────── src/pages/CreateRide.jsx ─────────────
-// تم تحويله إلى صفحة إنشاء إعلان شركة (BokaNära)
+// تم تحويله لإنشاء إعلانات الشركات مع الحفاظ على نفس التدفق
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
@@ -19,11 +19,10 @@ import {
   FaCheck,
   FaImage,
   FaTag,
-  FaMoneyBillWave,
-  FaCalendarAlt
+  FaMoneyBillWave
 } from "react-icons/fa";
 
-/* Snackbar Component */
+/* Snackbar */
 function Snackbar({ msg, type = "info", clear }) {
   if (!msg) return null;
   const palette = {
@@ -33,10 +32,7 @@ function Snackbar({ msg, type = "info", clear }) {
   };
   return (
     <div
-      className={`${palette[type]} fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 text-white rounded-2xl shadow-2xl backdrop-blur-sm border border-white/20`}
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
+      className={`${palette[type]} fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 text-white rounded-2xl shadow-2xl`}
       onClick={clear}
     >
       <div className="flex items-center gap-3">
@@ -47,9 +43,8 @@ function Snackbar({ msg, type = "info", clear }) {
   );
 }
 
-// قائمة الفئات المتاحة
+// الفئات المتاحة
 const CATEGORIES = [
-  { value: "", label: "Välj kategori..." },
   { value: "beauty", label: "💇 Skönhet & Frisör" },
   { value: "health", label: "🏥 Hälsa & Sjukvård" },
   { value: "home", label: "🏠 Hemservice" },
@@ -57,23 +52,15 @@ const CATEGORIES = [
   { value: "restaurant", label: "🍽️ Restaurang & Café" },
   { value: "fitness", label: "💪 Gym & Fitness" },
   { value: "education", label: "📚 Utbildning" },
-  { value: "tech", label: "💻 IT & Teknik" },
-  { value: "legal", label: "⚖️ Juridik" },
-  { value: "finance", label: "💰 Ekonomi & Finans" },
-  { value: "photo", label: "📷 Foto & Video" },
-  { value: "events", label: "🎉 Event & Fest" },
-  { value: "pets", label: "🐾 Djur & Husdjur" },
   { value: "cleaning", label: "🧹 Städning" },
-  { value: "moving", label: "📦 Flytt & Transport" },
   { value: "other", label: "📋 Övrigt" }
 ];
 
-// مدن السويد الرئيسية
+// المدن السويدية
 const CITIES = [
   "Stockholm", "Göteborg", "Malmö", "Uppsala", "Västerås", 
   "Örebro", "Linköping", "Helsingborg", "Jönköping", "Norrköping",
-  "Lund", "Umeå", "Gävle", "Borås", "Södertälje", "Eskilstuna",
-  "Karlstad", "Täby", "Växjö", "Halmstad"
+  "Lund", "Umeå", "Gävle", "Borås", "Eskilstuna"
 ];
 
 export default function CreateRide() {
@@ -83,42 +70,25 @@ export default function CreateRide() {
   const [flash, setFlash] = useState({ msg: "", type: "info" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [useCustomCity, setUseCustomCity] = useState(false);
 
   // بيانات الإعلان
-  const [listing, setListing] = useState({
-    // معلومات الشركة
+  const [ad, setAd] = useState({
     companyName: "",
     city: "",
-    category: "",
-    phone: user?.phoneNumber || "",
-    email: user?.email || "",
-    website: "",
-    address: "",
-    
-    // معلومات الخدمة
+    category: "other",
     title: "",
     description: "",
-    price: 300,
+    price: "",
     durationMin: 30,
-    currency: "SEK",
-    imageUrl: "",
-    
-    // معلومات إضافية
-    openingHours: "",
-    specialOffer: "",
-    tags: ""
+    phone: user?.phoneNumber || "",
+    imageUrl: ""
   });
 
-  // تحديث الهاتف والإيميل عند تسجيل الدخول
+  // تحديث الهاتف عند تسجيل الدخول
   useEffect(() => {
-    if (!user) return;
-    setListing((prev) => ({
-      ...prev,
-      phone: prev.phone || user.phoneNumber || "",
-      email: prev.email || user.email || ""
-    }));
+    if (user?.phoneNumber && !ad.phone) {
+      setAd(prev => ({ ...prev, phone: user.phoneNumber }));
+    }
   }, [user]);
 
   // توجيه للتسجيل إذا لم يكن مسجل
@@ -133,57 +103,27 @@ export default function CreateRide() {
   const onInput = (e) => {
     const { name, value, type } = e.target;
     let v = type === "number" ? (value === "" ? "" : Number(value)) : value;
-    if (name === "email") v = sanitizeInput(v, "email");
-    if (name === "description" || name === "specialOffer") v = sanitizeInput(v, "message");
-    if (name === "companyName" || name === "title" || name === "city") v = sanitizeInput(v, "city");
-    setListing((r) => ({ ...r, [name]: v }));
-    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    setAd(prev => ({ ...prev, [name]: v }));
+    setFieldErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   const validate = () => {
     const errs = {};
-    
-    if (!listing.companyName || listing.companyName.trim().length < 2) {
-      errs.companyName = "Ange företagsnamn (minst 2 tecken).";
+    if (!ad.companyName.trim() || ad.companyName.length < 2) {
+      errs.companyName = "Ange företagsnamn.";
     }
-    if (!listing.city || listing.city.trim().length < 2) {
-      errs.city = "Ange stad.";
+    if (!ad.city.trim()) {
+      errs.city = "Välj stad.";
     }
-    if (!listing.category) {
-      errs.category = "Välj en kategori.";
+    if (!ad.title.trim() || ad.title.length < 3) {
+      errs.title = "Ange titel för tjänsten.";
     }
-    if (!listing.title || listing.title.trim().length < 3) {
-      errs.title = "Ange tjänstens titel (minst 3 tecken).";
+    if (!ad.description.trim() || ad.description.length < 10) {
+      errs.description = "Ange beskrivning (minst 10 tecken).";
     }
-    if (!listing.description || listing.description.trim().length < 10) {
-      errs.description = "Ange en beskrivning (minst 10 tecken).";
+    if (containsProfanity(ad.description) || containsProfanity(ad.title)) {
+      errs.description = "Ta bort olämpliga ord.";
     }
-    if (listing.price < 0) {
-      errs.price = "Priset kan inte vara negativt.";
-    }
-    if (listing.durationMin < 0) {
-      errs.durationMin = "Tiden kan inte vara negativ.";
-    }
-    
-    // التحقق من الهاتف
-    const effectivePhone = user?.phoneNumber || listing.phone;
-    if (!effectivePhone || String(effectivePhone).trim().replace(/\D/g, '').length < 6) {
-      errs.phone = "Giltigt telefonnummer krävs (minst 6 siffror).";
-    }
-    
-    // التحقق من البريد
-    if (listing.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(listing.email)) {
-      errs.email = "Ange en giltig e-postadress.";
-    }
-    
-    // التحقق من الألفاظ النابية
-    if (containsProfanity(listing.description)) {
-      errs.description = "Ta bort olämpliga ord i beskrivningen.";
-    }
-    if (containsProfanity(listing.title)) {
-      errs.title = "Ta bort olämpliga ord i titeln.";
-    }
-    
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -192,86 +132,69 @@ export default function CreateRide() {
     e.preventDefault();
     if (isSubmitting) return;
     
-    const ok = validate();
-    if (!ok) {
-      const errorFields = Object.keys(fieldErrors);
-      setFlash({ 
-        msg: `❌ Korrigera följande: ${errorFields.join(', ')}`, 
-        type: "error" 
-      });
-      setTimeout(() => {
-        const firstErrorField = document.querySelector(`[name="${errorFields[0]}"]`);
-        if (firstErrorField) {
-          firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          firstErrorField.focus();
-        }
-      }, 100);
+    if (!validate()) {
+      setFlash({ msg: "Korrigera felen ovan.", type: "error" });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // التحقق من عدد الإعلانات الحالية (حد أقصى 5)
-      const q = query(collection(db, "listings"), where("createdBy", "==", user.uid));
+      // التحقق من عدد الإعلانات (حد أقصى 5)
+      const q = query(collection(db, "rides"), where("userId", "==", user.uid));
       const existing = await getDocs(q);
-      const active = existing.docs.filter(d => {
-        const r = d.data() || {};
-        return r.status !== "deleted" && r.status !== "cancelled";
-      });
-      if (active.length >= 5) {
-        setFlash({ msg: "Du har nått gränsen (5) för aktiva annonser.", type: "error" });
+      if (existing.size >= 5) {
+        setFlash({ msg: "Du har nått gränsen för annonser.", type: "error" });
         setIsSubmitting(false);
         return;
       }
 
-      // إنشاء البيانات
+      // إنشاء البيانات - نستخدم بنية متوافقة مع rides + حقول الإعلان
       const payload = {
-        // Owner
-        createdBy: user.uid,
-        createdAt: Date.now(),
-        status: "active",
-
-        // Company info
-        companyName: listing.companyName.trim(),
-        city: listing.city.trim(),
-        category: listing.category,
-        phone: sanitizeInput(user?.phoneNumber || listing.phone || '', 'phone'),
-        email: sanitizeInput(listing.email || user?.email || '', 'email'),
-        website: listing.website.trim(),
-        address: listing.address.trim(),
-
-        // Service info
-        title: listing.title.trim(),
-        description: listing.description.trim(),
-        price: Number(listing.price) || 0,
-        durationMin: Number(listing.durationMin) || 0,
-        currency: listing.currency,
-        imageUrl: listing.imageUrl.trim(),
+        // حقول rides الأساسية (للتوافق مع RideCard و RideDetails)
+        userId: user.uid,
+        createdAt: new Date().toISOString(),
         
-        // Extra
-        openingHours: listing.openingHours.trim(),
-        specialOffer: listing.specialOffer.trim(),
-        tags: listing.tags.trim(),
+        // نوع الإعلان - مهم للتمييز
+        adType: "company",
         
-        // Owner display name
-        ownerName: user.displayName || "Företag"
+        // حقول متوافقة مع rides (تُستخدم للعرض)
+        origin: ad.city,  // المدينة
+        destination: ad.category, // الفئة
+        role: "företag", // دور الشركة
+        
+        // حقول الإعلان
+        companyName: sanitizeInput(ad.companyName.trim(), 'city'),
+        city: ad.city,
+        category: ad.category,
+        title: sanitizeInput(ad.title.trim(), 'message'),
+        description: sanitizeInput(ad.description.trim(), 'message'),
+        price: Number(ad.price) || 0,
+        durationMin: Number(ad.durationMin) || 30,
+        phone: sanitizeInput(ad.phone || user?.phoneNumber || '', 'phone'),
+        driverPhone: sanitizeInput(ad.phone || user?.phoneNumber || '', 'phone'),
+        email: user?.email || '',
+        driverEmail: user?.email || '',
+        imageUrl: ad.imageUrl.trim(),
+        
+        // حقول إضافية للعرض
+        driverName: ad.companyName.trim(),
+        notes: ad.description.trim(),
+        costMode: "fixed_price",
+        status: "active"
       };
 
-      const docRef = await addDoc(collection(db, "listings"), payload);
+      const docRef = await addDoc(collection(db, "rides"), payload);
       
       setFlash({ msg: "✅ Annons publicerad!", type: "success" });
       
-      // الانتقال للصفحة الرئيسية
+      // الانتقال لصفحة التفاصيل (مثل الموقع القديم)
       setTimeout(() => {
-        nav("/", { replace: true });
-      }, 1500);
+        nav(`/ride/${docRef.id}`, { replace: true });
+      }, 1000);
       
     } catch (error) {
-      console.error("❌ Submission error:", error);
-      setFlash({ 
-        msg: `Fel: ${error.message || "Kunde inte publicera annonsen."}`, 
-        type: "error" 
-      });
+      console.error("Error:", error);
+      setFlash({ msg: `Fel: ${error.message}`, type: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -279,443 +202,196 @@ export default function CreateRide() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Laddar...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
-      <PageMeta
-        title="Skapa företagsannons | BokaNära"
-        description="Skapa en annons för ditt företag och nå nya kunder."
-        canonical="https://bokanara.se/create-ride"
-      />
-      <Helmet>
-        <title>Skapa företagsannons | BokaNära</title>
-      </Helmet>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <PageMeta title="Skapa annons" description="Skapa en annons för ditt företag." />
+      <Helmet><title>Skapa annons</title></Helmet>
 
-      <Snackbar
-        msg={flash.msg}
-        type={flash.type}
-        clear={() => setFlash({ msg: "", type: "info" })}
-      />
+      <Snackbar msg={flash.msg} type={flash.type} clear={() => setFlash({ msg: "", type: "info" })} />
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4">
         {/* Header */}
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 transition-colors font-medium"
-          >
+        <div className="mb-6">
+          <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-4">
             <FaArrowLeft className="w-4 h-4" />
-            <span>Tillbaka till startsidan</span>
+            <span>Tillbaka</span>
           </Link>
-          
-          <div className="text-center bg-white rounded-2xl p-8 shadow-lg">
-            <div className="inline-block bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl mb-4">
-              <FaBuilding className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-              Skapa företagsannons
-            </h1>
-            <p className="text-gray-600 text-lg">
-              Publicera din tjänst och nå nya kunder i din stad
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Skapa företagsannons</h1>
+          <p className="text-gray-600">Publicera din tjänst och nå nya kunder</p>
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <form onSubmit={onSubmit} className="p-8">
-            
-            {/* معلومات الشركة */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <FaBuilding className="w-5 h-5 text-white" />
-                </div>
-                Företagsinformation
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Företagsnamn *
-                  </label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    value={listing.companyName}
-                    onChange={onInput}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors ${fieldErrors.companyName ? 'border-red-400' : 'border-gray-200'}`}
-                    placeholder="t.ex. Salon Nora"
-                    required
-                  />
-                  {fieldErrors.companyName && <p className="mt-1 text-xs text-red-600">{fieldErrors.companyName}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Stad *
-                  </label>
-                  {!useCustomCity ? (
-                    <div className="relative">
-                      <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <select
-                        name="city"
-                        value={listing.city}
-                        onChange={(e) => {
-                          if (e.target.value === "other") {
-                            setUseCustomCity(true);
-                            setListing(prev => ({ ...prev, city: "" }));
-                          } else {
-                            onInput(e);
-                          }
-                        }}
-                        className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors bg-white ${fieldErrors.city ? 'border-red-400' : 'border-gray-200'}`}
-                        required
-                      >
-                        <option value="">Välj stad...</option>
-                        {CITIES.map(city => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                        <option value="other">Annan stad...</option>
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        name="city"
-                        value={listing.city}
-                        onChange={onInput}
-                        className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors ${fieldErrors.city ? 'border-red-400' : 'border-gray-200'}`}
-                        placeholder="Skriv din stad..."
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUseCustomCity(false);
-                          setListing(prev => ({ ...prev, city: "" }));
-                        }}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-                      >
-                        ← Tillbaka
-                      </button>
-                    </div>
-                  )}
-                  {fieldErrors.city && <p className="mt-1 text-xs text-red-600">{fieldErrors.city}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Kategori *
-                  </label>
-                  <div className="relative">
-                    <FaTag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <select
-                      name="category"
-                      value={listing.category}
-                      onChange={onInput}
-                      className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors bg-white ${fieldErrors.category ? 'border-red-400' : 'border-gray-200'}`}
-                      required
-                    >
-                      {CATEGORIES.map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {fieldErrors.category && <p className="mt-1 text-xs text-red-600">{fieldErrors.category}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Telefon *
-                  </label>
-                  <div className="relative">
-                    <FaPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={listing.phone}
-                      onChange={onInput}
-                      className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors ${fieldErrors.phone ? 'border-red-400' : 'border-gray-200'}`}
-                      placeholder="+46 70 123 45 67"
-                      required
-                    />
-                  </div>
-                  {fieldErrors.phone && <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>}
-                </div>
-              </div>
-            </div>
+        <form onSubmit={onSubmit} className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+          
+          {/* اسم الشركة */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <FaBuilding className="inline w-4 h-4 mr-1" />
+              Företagsnamn *
+            </label>
+            <input
+              type="text"
+              name="companyName"
+              value={ad.companyName}
+              onChange={onInput}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${fieldErrors.companyName ? 'border-red-400' : 'border-gray-200'}`}
+              placeholder="t.ex. Salon Nora"
+            />
+            {fieldErrors.companyName && <p className="text-red-500 text-xs mt-1">{fieldErrors.companyName}</p>}
+          </div>
 
-            {/* معلومات الخدمة */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                  <FaInfoCircle className="w-5 h-5 text-white" />
-                </div>
-                Tjänsteinformation
-              </h2>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tjänstens titel *
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={listing.title}
-                    onChange={onInput}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors ${fieldErrors.title ? 'border-red-400' : 'border-gray-200'}`}
-                    placeholder="t.ex. Klippning + Styling"
-                    required
-                  />
-                  {fieldErrors.title && <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Beskrivning *
-                  </label>
-                  <textarea
-                    name="description"
-                    rows={4}
-                    value={listing.description}
-                    onChange={onInput}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors resize-none ${fieldErrors.description ? 'border-red-400' : 'border-gray-200'}`}
-                    placeholder="Beskriv din tjänst i detalj. Vad ingår? Varför ska kunden välja dig?"
-                    required
-                  />
-                  {fieldErrors.description && <p className="mt-1 text-xs text-red-600">{fieldErrors.description}</p>}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Pris *
-                    </label>
-                    <div className="relative">
-                      <FaMoneyBillWave className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="number"
-                        name="price"
-                        value={listing.price}
-                        onChange={onInput}
-                        className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors ${fieldErrors.price ? 'border-red-400' : 'border-gray-200'}`}
-                        min={0}
-                        required
-                      />
-                    </div>
-                    {fieldErrors.price && <p className="mt-1 text-xs text-red-600">{fieldErrors.price}</p>}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Tid (minuter)
-                    </label>
-                    <div className="relative">
-                      <FaClock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="number"
-                        name="durationMin"
-                        value={listing.durationMin}
-                        onChange={onInput}
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                        min={0}
-                        placeholder="30"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Valuta
-                    </label>
-                    <select
-                      name="currency"
-                      value={listing.currency}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors bg-white"
-                    >
-                      <option value="SEK">SEK (kr)</option>
-                      <option value="EUR">EUR (€)</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Bild-URL (valfritt)
-                  </label>
-                  <div className="relative">
-                    <FaImage className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="url"
-                      name="imageUrl"
-                      value={listing.imageUrl}
-                      onChange={onInput}
-                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="https://example.com/bild.jpg"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Lägg till en bild som representerar din tjänst</p>
-                </div>
-              </div>
-            </div>
-
-            {/* حقول إضافية */}
-            <div className="mb-8">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full text-left flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors mb-4"
+          {/* المدينة والفئة */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <FaMapMarkerAlt className="inline w-4 h-4 mr-1" />
+                Stad *
+              </label>
+              <select
+                name="city"
+                value={ad.city}
+                onChange={onInput}
+                className={`w-full px-4 py-2 border rounded-lg ${fieldErrors.city ? 'border-red-400' : 'border-gray-200'}`}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                    <FaCalendarAlt className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">Ytterligare information (valfritt)</h3>
-                    <p className="text-sm text-gray-600">Öppettider, adress, erbjudanden...</p>
-                  </div>
-                </div>
-                <svg 
-                  className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {showAdvanced && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">E-post</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={listing.email}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="info@foretag.se"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Webbplats</label>
-                    <input
-                      type="url"
-                      name="website"
-                      value={listing.website}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="https://www.foretag.se"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Adress</label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={listing.address}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="Storgatan 1, 111 22 Stockholm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Öppettider</label>
-                    <input
-                      type="text"
-                      name="openingHours"
-                      value={listing.openingHours}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="Mån-Fre 9-18, Lör 10-15"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Specialerbjudande</label>
-                    <input
-                      type="text"
-                      name="specialOffer"
-                      value={listing.specialOffer}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="t.ex. 20% rabatt för nya kunder!"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Taggar (kommaseparerade)</label>
-                    <input
-                      type="text"
-                      name="tags"
-                      value={listing.tags}
-                      onChange={onInput}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 transition-colors"
-                      placeholder="t.ex. frisör, klippning, styling, hår"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Hjälper kunder att hitta din tjänst</p>
-                  </div>
-                </div>
-              )}
+                <option value="">Välj stad...</option>
+                {CITIES.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+              {fieldErrors.city && <p className="text-red-500 text-xs mt-1">{fieldErrors.city}</p>}
             </div>
-
-            {/* الشروط والأحكام */}
-            <div className="mb-8 p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl">
-              <h3 className="text-lg font-bold text-blue-900 mb-3">📋 Villkor för publicering</h3>
-              <ul className="text-sm text-blue-800 space-y-2 list-disc pl-5">
-                <li>Annonsen måste vara korrekt och sanningsenlig</li>
-                <li>Du ansvarar för att tjänsten levereras enligt beskrivningen</li>
-                <li>Olämpligt innehåll kommer att tas bort</li>
-                <li>Kontaktinformation visas för kunder som vill boka</li>
-              </ul>
-            </div>
-
-            {/* أزرار الإرسال */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <Link
-                to="/"
-                className="flex-1 px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <FaTag className="inline w-4 h-4 mr-1" />
+                Kategori
+              </label>
+              <select
+                name="category"
+                value={ad.category}
+                onChange={onInput}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg"
               >
-                <FaArrowLeft className="w-4 h-4" />
-                Avbryt
-              </Link>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Publicerar...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <FaCheck className="w-5 h-5" />
-                    <span>Publicera annons</span>
-                  </div>
-                )}
-              </button>
+                {CATEGORIES.map(cat => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
             </div>
-          </form>
-        </div>
+          </div>
+
+          {/* عنوان الخدمة */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tjänstens titel *
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={ad.title}
+              onChange={onInput}
+              className={`w-full px-4 py-2 border rounded-lg ${fieldErrors.title ? 'border-red-400' : 'border-gray-200'}`}
+              placeholder="t.ex. Klippning + Styling"
+            />
+            {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+          </div>
+
+          {/* الوصف */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <FaInfoCircle className="inline w-4 h-4 mr-1" />
+              Beskrivning *
+            </label>
+            <textarea
+              name="description"
+              value={ad.description}
+              onChange={onInput}
+              rows={4}
+              className={`w-full px-4 py-2 border rounded-lg ${fieldErrors.description ? 'border-red-400' : 'border-gray-200'}`}
+              placeholder="Beskriv din tjänst..."
+            />
+            {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
+          </div>
+
+          {/* السعر والمدة */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <FaMoneyBillWave className="inline w-4 h-4 mr-1" />
+                Pris (SEK)
+              </label>
+              <input
+                type="number"
+                name="price"
+                value={ad.price}
+                onChange={onInput}
+                min={0}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg"
+                placeholder="300"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <FaClock className="inline w-4 h-4 mr-1" />
+                Tid (min)
+              </label>
+              <input
+                type="number"
+                name="durationMin"
+                value={ad.durationMin}
+                onChange={onInput}
+                min={0}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg"
+                placeholder="30"
+              />
+            </div>
+          </div>
+
+          {/* الهاتف */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <FaPhone className="inline w-4 h-4 mr-1" />
+              Telefon
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={ad.phone}
+              onChange={onInput}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg"
+              placeholder="+46..."
+            />
+          </div>
+
+          {/* رابط الصورة */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <FaImage className="inline w-4 h-4 mr-1" />
+              Bild-URL (valfritt)
+            </label>
+            <input
+              type="url"
+              name="imageUrl"
+              value={ad.imageUrl}
+              onChange={onInput}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg"
+              placeholder="https://..."
+            />
+          </div>
+
+          {/* زر الإرسال */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? "Publicerar..." : "Publicera annons"}
+          </button>
+        </form>
       </div>
     </div>
   );

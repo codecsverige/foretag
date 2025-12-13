@@ -56,7 +56,7 @@ scheduleIdle(async () => {
 /* ───── Lazy‐loaded pages ───── */
 const Home               = lazyWithRetry(() => import("./pages/SearchDynamic.jsx"));
 const SelectLocation     = lazyWithRetry(() => import("./pages/SelectLocation.jsx"));
-// const CreateRide         = lazyWithRetry(() => import("./pages/CreateRide.jsx"));
+const CreateRide         = lazyWithRetry(() => import("./pages/CreateRide.jsx"));
 const Inbox              = lazyWithRetry(() => import("./pages/Inbox.jsx"));
 const BusSearch          = lazyWithRetry(() => import("./pages/BusSearch.jsx"));
 const BusAdmin           = lazyWithRetry(() => import("./pages/BusAdmin.jsx"));
@@ -84,8 +84,12 @@ const CommuterGuide      = lazyWithRetry(() => import("./pages/CommuterGuide.jsx
 const NoCarGuide         = lazyWithRetry(() => import("./pages/NoCarGuide.jsx"));
 const TravelTips         = lazyWithRetry(() => import("./pages/TravelTips.jsx"));
 
-/* ───── BokaNära (ads creation only for now) ───── */
-const CreateListing      = lazyWithRetry(() => import("./pages/CreateRide.jsx"));
+/* ───── BokaNära (business booking) ───── */
+const Businesses         = lazyWithRetry(() => import("./pages/Businesses.jsx"));
+const BusinessDetails    = lazyWithRetry(() => import("./pages/BusinessDetails.jsx"));
+const BusinessDashboard  = lazyWithRetry(() => import("./pages/BusinessDashboard.jsx"));
+const Listings           = lazyWithRetry(() => import("./pages/Listings.jsx"));
+const CreateListing      = lazyWithRetry(() => import("./pages/CreateListing.jsx"));
 
 /* ───── Error pages ───── */
 const Error404           = lazyWithRetry(() => import("./pages/Error404.jsx"));
@@ -391,13 +395,18 @@ function ModalRoutesAware() {
       <RouteSeo />
       <Routes location={state?.background || location}>
         {/* public */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Listings />} />
+        <Route path="/rides" element={<Home />} />
+        <Route path="/businesses" element={<Businesses />} />
+        <Route path="/business/:id" element={<BusinessDetails />} />
+        <Route path="/listings" element={<Listings />} />
+        <Route path="/create-listing" element={<CreateListing />} />
         <Route path="/ride/:id" element={<RideDetails />} />
         <Route path="/passenger/:id" element={<RideDetails />} />
         <Route path="/report/:id" element={<ReportPage />} />
         <Route path="/select-location" element={<SelectLocation />} />
-        {/* Replace create-ride flow with company ad creation */}
-        <Route path="/create-ride" element={<CreateListing />} />
+        {/* Create company ad */}
+        <Route path="/create-ride" element={<CreateRide />} />
         <Route path="/samakning" element={<Samakning />} />
         <Route path="/city/:city" element={<CityPage />} />
         
@@ -415,6 +424,7 @@ function ModalRoutesAware() {
         <Route path="/my-driver-rides" element={<MyDriverRides />} />
         <Route path="/my-passenger-rides" element={<MyPassengerRides />} />
         <Route path="/user-profile" element={<UserSettings />} />
+        <Route path="/business-dashboard" element={<BusinessDashboard />} />
 
         {/* booking routes (phone verification enforced at submit, not at navigation) */}
         <Route path="/book-ride/:rideId" element={<BookRide />} />

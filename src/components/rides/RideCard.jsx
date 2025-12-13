@@ -1,16 +1,33 @@
 // src/components/rides/RideCard.jsx
+// معدّل ليدعم كلاً من الرحلات وإعلانات الشركات
 
 import React, { useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { HiShare } from "react-icons/hi";
-import { FaLock, FaMapMarkerAlt, FaFlag } from "react-icons/fa";
+import { FaLock, FaMapMarkerAlt, FaFlag, FaBuilding, FaClock, FaPhone } from "react-icons/fa";
 import { extractCity } from "../../utils/address";
 import { MiniStarRating } from "../SimpleStarRating";
 import { buildSamakningSummary } from "../../utils/rideSummary";
 
+// خريطة الفئات
+const CATEGORY_MAP = {
+  beauty: { label: "Skönhet", emoji: "💇" },
+  health: { label: "Hälsa", emoji: "🏥" },
+  home: { label: "Hemservice", emoji: "🏠" },
+  auto: { label: "Bil & Motor", emoji: "🚗" },
+  restaurant: { label: "Restaurang", emoji: "🍽️" },
+  fitness: { label: "Fitness", emoji: "💪" },
+  education: { label: "Utbildning", emoji: "📚" },
+  cleaning: { label: "Städning", emoji: "🧹" },
+  other: { label: "Övrigt", emoji: "📋" }
+};
+
 function RideCard({ ride, bookedSeats }) {
   const navigate = useNavigate();
+  
+  // التحقق من نوع الإعلان
+  const isCompanyAd = ride.adType === "company";
   
   // عدد المقاعد الأصلي ثابت
   const count = ride.count || 0;
@@ -18,8 +35,9 @@ function RideCard({ ride, bookedSeats }) {
   // لا نعتبر إعلان الراكب ممتلئاً تلقائياً؛ نظهر شارة unlock بدلاً من الإخفاء
   const isFull = false;
 
-  // فحص انتهاء الرحلة محلياً لمساعدة السكربت على الالتقاط
+  // فحص انتهاء الرحلة (لا ينطبق على إعلانات الشركات)
   const isExpired = useMemo(() => {
+    if (isCompanyAd) return false; // إعلانات الشركات لا تنتهي بنفس الطريقة
     try {
       const tz = 'Europe/Stockholm';
       const nowDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -33,18 +51,18 @@ function RideCard({ ride, bookedSeats }) {
     } catch {
       return false;
     }
-  }, [ride.date, ride.departureTime]);
+  }, [ride.date, ride.departureTime, isCompanyAd]);
 
   const handleCardClick = useCallback((e) => {
     e.preventDefault();
     if (!isFull && !isExpired) {
-      // Navigate to ride details page directly (no modal)
       navigate(`/ride/${ride.id}`, { state: { ride } });
     }
-  }, [isFull, isExpired, navigate, ride.id]);
+  }, [isFull, isExpired, navigate, ride]);
   
-  // تنسيق التاريخ والوقت
+  // تنسيق التاريخ والوقت (للرحلات فقط)
   const [dateStr, timeStr] = useMemo(() => {
+    if (isCompanyAd) return ['', ''];
     try {
       const dt = new Date(`${ride.date}T${ride.departureTime}`);
       return [
@@ -61,10 +79,11 @@ function RideCard({ ride, bookedSeats }) {
     } catch {
       return [ride.date, ride.departureTime];
     }
-  }, [ride.date, ride.departureTime]);
+  }, [ride.date, ride.departureTime, isCompanyAd]);
 
-  // Nice date label: Idag / Imorgon / Ons 2 okt
+  // Nice date label
   const niceDateStr = useMemo(() => {
+    if (isCompanyAd) return '';
     try {
       const tz = 'Europe/Stockholm';
       const today = new Date();
@@ -81,14 +100,14 @@ function RideCard({ ride, bookedSeats }) {
     } catch {
       return dateStr;
     }
-  }, [ride.date, ride.departureTime, dateStr]);
-
+  }, [ride.date, ride.departureTime, dateStr, isCompanyAd]);
 
   // Dynamisk, alltid inkluderar "samåkning"
-  const userMessage = buildSamakningSummary(ride);
+  const userMessage = isCompanyAd ? ride.description : buildSamakningSummary(ride);
 
   // TripType chip (for passenger cards)
   const tripTypeChip = (() => {
+    if (isCompanyAd) return null;
     const t = ride.tripType;
     if (!t) return null;
     const map = {
@@ -116,6 +135,14 @@ function RideCard({ ride, bookedSeats }) {
 
   // بادج السعر
   const priceBadge = (() => {
+    if (isCompanyAd) {
+      const p = Number(ride.price) || 0;
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+          {p > 0 ? `${p} SEK` : 'Kontakta'}
+        </span>
+      );
+    }
     const mode = ride.costMode || (ride.price ? 'fixed_price' : 'cost_share');
     let label = 'Kostnadsdelning';
     if (mode === 'fixed_price') label = ride.price ? `${ride.price} kr` : 'Kostnad';
@@ -141,15 +168,12 @@ function RideCard({ ride, bookedSeats }) {
     const url = `${window.location.origin}/ride/${ride.id}`;
     if (navigator.share) {
       navigator.share({
-        title: "VägVänner Samåkning",
-        text:
-          ride.role === "passagerare"
-            ? `Jag söker samåkning från ${extractCity(
-                ride.origin
-              )} till ${extractCity(ride.destination)}.`
-            : `Jag erbjuder samåkning från ${extractCity(
-                ride.origin
-              )} till ${extractCity(ride.destination)}.`,
+        title: isCompanyAd ? ride.companyName : "VägVänner Samåkning",
+        text: isCompanyAd 
+          ? `${ride.title} - ${ride.companyName} i ${ride.city}`
+          : ride.role === "passagerare"
+            ? `Jag söker samåkning från ${extractCity(ride.origin)} till ${extractCity(ride.destination)}.`
+            : `Jag erbjuder samåkning från ${extractCity(ride.origin)} till ${extractCity(ride.destination)}.`,
         url
       }).catch(() => {});
     } else {
@@ -162,22 +186,103 @@ function RideCard({ ride, bookedSeats }) {
   const handleReport = e => {
     e.preventDefault();
     e.stopPropagation();
-    // Navigate to report page directly (no modal)
     navigate(`/report/${ride.id}`);
   };
 
   // بادج الدور
-  const badge =
-    ride.role === "passagerare" ? (
-      <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
-        👤 Söker samåkning
-      </span>
-    ) : (
-      <span className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
-        🚗 Erbjuder samåkning
-      </span>
-    );
+  const badge = isCompanyAd ? (
+    <span className="inline-block bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
+      🏢 Företag
+    </span>
+  ) : ride.role === "passagerare" ? (
+    <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
+      👤 Söker samåkning
+    </span>
+  ) : (
+    <span className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
+      🚗 Erbjuder samåkning
+    </span>
+  );
 
+  // الحصول على معلومات الفئة
+  const categoryInfo = isCompanyAd ? (CATEGORY_MAP[ride.category] || { label: "Tjänst", emoji: "📋" }) : null;
+
+  // ========== عرض إعلان الشركة ==========
+  if (isCompanyAd) {
+    return (
+      <a
+        href={`/ride/${ride.id}`}
+        onClick={handleCardClick}
+        className="relative flex flex-col justify-between bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow hover:shadow-lg transition-all duration-200 p-4 w-full max-w-sm mx-auto cursor-pointer no-underline text-inherit"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-2">
+            {badge}
+            <span className="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px]">
+              {categoryInfo.emoji} {categoryInfo.label}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={handleShare} className="p-1 rounded-full hover:bg-gray-100">
+              <HiShare className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </div>
+
+        {/* اسم الشركة */}
+        <div className="flex items-center gap-2 mb-1">
+          <FaBuilding className="text-indigo-500 w-4 h-4" />
+          <span className="font-bold text-gray-900 dark:text-gray-100 text-base truncate">
+            {ride.companyName || ride.driverName || "Företag"}
+          </span>
+        </div>
+
+        {/* عنوان الخدمة */}
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2">
+          {ride.title || "Tjänst"}
+        </h3>
+
+        {/* الوصف */}
+        {ride.description && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+            {ride.description}
+          </p>
+        )}
+
+        {/* المدينة والمدة */}
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-3">
+          <span className="inline-flex items-center gap-1">
+            <FaMapMarkerAlt className="w-3 h-3 text-red-400" />
+            {ride.city || ride.origin}
+          </span>
+          {ride.durationMin > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <FaClock className="w-3 h-3 text-blue-400" />
+              {ride.durationMin} min
+            </span>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
+          <button
+            className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold rounded-full text-white bg-blue-600 hover:bg-blue-700 transition"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              navigate(`/ride/${ride.id}`, { state: { ride } });
+            }}
+          >
+            Visa mer
+          </button>
+          <div>{priceBadge}</div>
+        </div>
+      </a>
+    );
+  }
+
+  // ========== عرض الرحلة (الكود الأصلي) ==========
   return (
     <>
       <a
@@ -187,15 +292,12 @@ function RideCard({ ride, bookedSeats }) {
         tabIndex={0}
         className={`relative flex flex-col justify-between bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow hover:shadow-lg transition-all duration-200 p-4 w-full max-w-sm mx-auto cursor-pointer block no-underline text-inherit focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800`}
       >
-        {/* Removed green 'Upplåst kontakt' badge on passenger cards */}
-
         {/* Header */}
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-2">
             {badge}
           </div>
           <div className="flex items-center gap-2">
-            {/* User Rating Stars */}
             {ride.userId && (
               <MiniStarRating userId={ride.userId} />
             )}
@@ -252,13 +354,6 @@ function RideCard({ ride, bookedSeats }) {
           </div>
         )}
 
-        {/* Unlock shared hint (UI-only, from sessionStorage) */}
-        {ride._unlockShared && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-2 text-[11px] mb-2">
-            Kontakt delad: {ride._unlockShared.mode === 'both' ? '📧 + 📞' : (ride._unlockShared.mode === 'phone' ? '📞' : '📧')}
-          </div>
-        )}
-
         {/* Schema chips: trip type, frequency and round-trip */}
         {(tripTypeChip || ride.recurrence === "dagligen" || ride.roundTrip) && (
           <div className="flex flex-wrap gap-2 mb-2">
@@ -312,7 +407,6 @@ function RideCard({ ride, bookedSeats }) {
 
         {/* Footer */}
         <div className="flex items-center">
-          {/* Right-aligned group: CTA then Price (price stays far-right) */}
           <div className="ml-auto flex items-center gap-2">
             <button
             disabled={isFull || isExpired}
@@ -344,7 +438,6 @@ function RideCard({ ride, bookedSeats }) {
               <>Skicka förfrågan</>
             )}
             </button>
-            {/* Price badge to far right (kept in place) */}
             <div>{priceBadge}</div>
           </div>
         </div>

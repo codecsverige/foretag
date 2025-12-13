@@ -367,8 +367,170 @@ export default function RideDetails() {
     rideId: ride.id,
     rideRole: ride.role,
     rideType: ride.type,
+    adType: ride.adType,
     rideData: ride
   });
+
+  // ========== عرض إعلان الشركة ==========
+  if (ride.adType === "company") {
+    const categoryMap = {
+      beauty: { label: "Skönhet & Frisör", emoji: "💇" },
+      health: { label: "Hälsa & Sjukvård", emoji: "🏥" },
+      home: { label: "Hemservice", emoji: "🏠" },
+      auto: { label: "Bil & Motor", emoji: "🚗" },
+      restaurant: { label: "Restaurang & Café", emoji: "🍽️" },
+      fitness: { label: "Gym & Fitness", emoji: "💪" },
+      education: { label: "Utbildning", emoji: "📚" },
+      cleaning: { label: "Städning", emoji: "🧹" },
+      other: { label: "Övrigt", emoji: "📋" }
+    };
+    const catInfo = categoryMap[ride.category] || { label: "Tjänst", emoji: "📋" };
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <PageMeta
+          title={`${ride.title || ride.companyName} - ${ride.city}`}
+          description={ride.description || `${ride.companyName} i ${ride.city}`}
+        />
+        
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b">
+          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+              <HiArrowLeft className="text-xl" />
+              <span>Tillbaka</span>
+            </button>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/ride/${id}`;
+                if (navigator.share) {
+                  navigator.share({ title: ride.companyName, text: ride.title, url });
+                } else {
+                  navigator.clipboard.writeText(url);
+                  alert("Länk kopierad!");
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <HiShare />
+              <span>Dela</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            
+            {/* صورة (إذا وجدت) */}
+            {ride.imageUrl && (
+              <div className="h-64 bg-gray-100">
+                <img src={ride.imageUrl} alt={ride.title} className="w-full h-full object-cover" />
+              </div>
+            )}
+            
+            {/* معلومات الشركة */}
+            <div className="p-6">
+              {/* شارات */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                  🏢 Företag
+                </span>
+                <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                  {catInfo.emoji} {catInfo.label}
+                </span>
+                <span className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm">
+                  📍 {ride.city}
+                </span>
+              </div>
+              
+              {/* اسم الشركة */}
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {ride.companyName || ride.driverName}
+              </h1>
+              
+              {/* عنوان الخدمة */}
+              <h2 className="text-xl text-gray-700 mb-4">
+                {ride.title}
+              </h2>
+              
+              {/* السعر والمدة */}
+              <div className="flex flex-wrap gap-4 mb-6">
+                {ride.price > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 rounded-lg">
+                    <HiCurrencyDollar className="text-yellow-600 text-xl" />
+                    <span className="font-bold text-yellow-700">{ride.price} SEK</span>
+                  </div>
+                )}
+                {ride.durationMin > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
+                    <HiClock className="text-blue-600 text-xl" />
+                    <span className="text-blue-700">{ride.durationMin} min</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* الوصف */}
+              {ride.description && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2">Beskrivning</h3>
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    {ride.description}
+                  </p>
+                </div>
+              )}
+              
+              {/* معلومات الاتصال */}
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Kontakt</h3>
+                <div className="space-y-3">
+                  {(ride.phone || ride.driverPhone) && (
+                    <a
+                      href={`tel:${ride.phone || ride.driverPhone}`}
+                      className="flex items-center gap-3 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition"
+                    >
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-lg">📞</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-green-800">Ring direkt</div>
+                        <div className="text-green-600 text-sm">{ride.phone || ride.driverPhone}</div>
+                      </div>
+                    </a>
+                  )}
+                  {(ride.email || ride.driverEmail) && (
+                    <a
+                      href={`mailto:${ride.email || ride.driverEmail}`}
+                      className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition"
+                    >
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-lg">📧</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-blue-800">Skicka e-post</div>
+                        <div className="text-blue-600 text-sm">{ride.email || ride.driverEmail}</div>
+                      </div>
+                    </a>
+                  )}
+                </div>
+              </div>
+              
+              {/* زر الحجز */}
+              <div className="mt-6 pt-6 border-t">
+                <a
+                  href={`tel:${ride.phone || ride.driverPhone}`}
+                  className="block w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition shadow-lg"
+                >
+                  📞 Boka nu - Ring företaget
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ========== نهاية عرض إعلان الشركة ==========
   
   const fromCity = extractCity(ride.origin);
   const toCity = extractCity(ride.destination);
