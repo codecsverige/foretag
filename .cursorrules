@@ -1,22 +1,37 @@
-# Cursor AI Agent Rules
-# هذا الملف يضمن أن جميع وكلاء Cursor يستخدمون النسخة المستقرة
+# BokaNära - Cursor Rules
 
-## Default Branch Configuration
-DEFAULT_BRANCH=main
-STABLE_COMMIT=c01a3408
+## Project Overview
+BokaNära is a Swedish platform for local businesses. Customers can search, discover, and book services with SMS reminders.
 
-## Startup Commands for New Agents
-# يجب تشغيل هذه الأوامر عند بدء أي وكيل جديد:
-# 1. git checkout main
-# 2. git pull origin main  
-# 3. git log --oneline -1 (للتأكد من الـ commit الصحيح)
+## Tech Stack
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- Firebase (Auth, Firestore, Storage, Functions)
+- Vercel (Hosting)
 
-## Expected Commit
-# يجب أن يكون آخر commit هو:
-# c01a3408 دمج النسخة المستقرة من cursor/send-a-greeting-8830
+## Directory Structure
+- `/app` - Next.js pages and routes
+- `/components` - Reusable React components
+- `/services` - Business logic and API calls
+- `/context` - React Context providers
+- `/lib` - Utilities and configurations
+- `/functions` - Firebase Cloud Functions
 
-## Instructions for AI Agents
-عند بدء جلسة جديدة، يجب على الوكيل:
-1. التأكد من أنه على فرع main
-2. التأكد من أن آخر commit هو c01a3408
-3. إذا لم يكن كذلك، تشغيل: git checkout main && git pull origin main
+## Coding Standards
+- Use TypeScript for all new files
+- Follow Swedish naming conventions for user-facing text
+- Use Tailwind CSS for styling
+- Prefer server components when possible
+- Use 'use client' only when necessary
+
+## Firebase Collections
+- `users` - User profiles
+- `companies` - Business listings
+- `bookings` - Appointment bookings
+- `reviews` - Customer reviews
+- `notifications` - In-app notifications
+- `reminders` - SMS reminder queue
+
+## Environment Variables
+All Firebase config uses `NEXT_PUBLIC_FIREBASE_*` prefix.
