@@ -85,7 +85,7 @@ const NoCarGuide         = lazyWithRetry(() => import("./pages/NoCarGuide.jsx"))
 const TravelTips         = lazyWithRetry(() => import("./pages/TravelTips.jsx"));
 
 /* ───── BokaNära (ads creation only for now) ───── */
-const CreateListing      = lazyWithRetry(() => import("./pages/CreateListing.jsx"));
+const CreateListing      = lazyWithRetry(() => import("./pages/CreateRide.jsx"));
 
 /* ───── Error pages ───── */
 const Error404           = lazyWithRetry(() => import("./pages/Error404.jsx"));

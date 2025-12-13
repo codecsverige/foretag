@@ -84,6 +84,7 @@ export default function CreateRide() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [useCustomCity, setUseCustomCity] = useState(false);
 
   // بيانات الإعلان
   const [listing, setListing] = useState({
@@ -362,31 +363,53 @@ export default function CreateRide() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Stad *
                   </label>
-                  <div className="relative">
-                    <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <select
-                      name="city"
-                      value={listing.city}
-                      onChange={onInput}
-                      className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors bg-white ${fieldErrors.city ? 'border-red-400' : 'border-gray-200'}`}
-                      required
-                    >
-                      <option value="">Välj stad...</option>
-                      {CITIES.map(city => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                      <option value="other">Annan stad...</option>
-                    </select>
-                  </div>
-                  {listing.city === "other" && (
-                    <input
-                      type="text"
-                      name="city"
-                      value=""
-                      onChange={onInput}
-                      className="mt-2 w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500"
-                      placeholder="Skriv din stad..."
-                    />
+                  {!useCustomCity ? (
+                    <div className="relative">
+                      <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <select
+                        name="city"
+                        value={listing.city}
+                        onChange={(e) => {
+                          if (e.target.value === "other") {
+                            setUseCustomCity(true);
+                            setListing(prev => ({ ...prev, city: "" }));
+                          } else {
+                            onInput(e);
+                          }
+                        }}
+                        className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors bg-white ${fieldErrors.city ? 'border-red-400' : 'border-gray-200'}`}
+                        required
+                      >
+                        <option value="">Välj stad...</option>
+                        {CITIES.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                        <option value="other">Annan stad...</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="city"
+                        value={listing.city}
+                        onChange={onInput}
+                        className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:border-blue-500 transition-colors ${fieldErrors.city ? 'border-red-400' : 'border-gray-200'}`}
+                        placeholder="Skriv din stad..."
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseCustomCity(false);
+                          setListing(prev => ({ ...prev, city: "" }));
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                      >
+                        ← Tillbaka
+                      </button>
+                    </div>
                   )}
                   {fieldErrors.city && <p className="mt-1 text-xs text-red-600">{fieldErrors.city}</p>}
                 </div>
