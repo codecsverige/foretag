@@ -405,7 +405,9 @@ function ModalRoutesAware() {
         <Route path="/passenger/:id" element={<RideDetails />} />
         <Route path="/report/:id" element={<ReportPage />} />
         <Route path="/select-location" element={<SelectLocation />} />
-        <Route path="/create-ride" element={<CreateRide />} />
+        {/* Keep old ride creation available, but make /create-ride become "create listing" */}
+        <Route path="/create-ride" element={<Navigate to="/create-listing" replace />} />
+        <Route path="/create-ride-old" element={<CreateRide />} />
         <Route path="/samakning" element={<Samakning />} />
         <Route path="/city/:city" element={<CityPage />} />
         
