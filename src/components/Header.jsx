@@ -118,9 +118,9 @@ const Header = function Header() {
         </span>
       </NavLink>
       <NavLink
-        to="/create-ride"
+        to="/create-listing"
         className={({ isActive }) => `${baseLink} ${isActive ? activeLink : linkClass} group`}
-        onMouseEnter={() => preload("createRide")}
+        onMouseEnter={() => preload("createListing")}
         onClick={handleButtonClick}
       >
         <span className="flex items-center gap-2">
@@ -130,7 +130,7 @@ const Header = function Header() {
               <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 000-2h1a1 1 0 001 1v3a1 1 0 00.293.707L18 11.414V13a1 1 0 00-1 1h-1.05a2.5 2.5 0 01-4.9 0H9a1 1 0 01-1-1v-1a1 1 0 011-1h5V7z" />
             </svg>
           </div>
-          <span className="font-medium">Erbjud resa</span>
+          <span className="font-medium">Skapa annons</span>
         </span>
       </NavLink>
       <NavLink
@@ -309,14 +309,14 @@ const Header = function Header() {
             </div>
             <span>Resor</span>
           </NavLink>
-          <NavLink to="/create-ride" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("createRide")}>
+          <NavLink to="/create-listing" onClick={handleMenuClose} className="px-5 py-3 hover:bg-gray-50 flex items-center gap-3" onMouseEnter={() => preload("createListing")}>
             <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
               <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                 <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3z" />
               </svg>
             </div>
-            <span>Erbjud resa</span>
+            <span>Skapa annons</span>
           </NavLink>
           {user ? (
             <>
