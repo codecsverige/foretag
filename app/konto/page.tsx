@@ -31,12 +31,24 @@ interface Booking {
 }
 
 export default function AccountPage() {
-  const { user, loading: authLoading, logout } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'companies' | 'bookings'>('companies')
   const [companies, setCompanies] = useState<Company[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  
+  let user: any = null
+  let authLoading = true
+  let logout = async () => {}
+  
+  try {
+    const auth = useAuth()
+    user = auth.user
+    authLoading = auth.loading
+    logout = auth.logout
+  } catch (error) {
+    authLoading = false
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -46,7 +58,10 @@ export default function AccountPage() {
 
   useEffect(() => {
     async function fetchUserData() {
-      if (!user) return
+      if (!user || !db) {
+        setLoading(false)
+        return
+      }
       
       setLoading(true)
       try {
@@ -88,6 +103,7 @@ export default function AccountPage() {
   }, [user])
 
   const handleDeleteCompany = async (companyId: string) => {
+    if (!db) return
     if (!confirm('Är du säker på att du vill radera denna annons?')) return
     
     try {

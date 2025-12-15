@@ -7,7 +7,20 @@ import { HiMenu, HiX, HiUser, HiPlus, HiLogout, HiLogin } from 'react-icons/hi'
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { user, loading, logout } = useAuth()
+  
+  let user = null
+  let loading = true
+  let logout = async () => {}
+  
+  try {
+    const auth = useAuth()
+    user = auth.user
+    loading = auth.loading
+    logout = auth.logout
+  } catch (error) {
+    // Auth context not available, show logged out state
+    loading = false
+  }
 
   const handleLogout = async () => {
     await logout()

@@ -20,7 +20,13 @@ interface BookingFormProps {
 }
 
 export default function BookingForm({ services, companyName, companyId }: BookingFormProps) {
-  const { user } = useAuth()
+  let user = null
+  try {
+    const auth = useAuth()
+    user = auth.user
+  } catch (error) {
+    // Auth not available
+  }
   
   const [selectedService, setSelectedService] = useState('')
   const [date, setDate] = useState('')
@@ -36,6 +42,12 @@ export default function BookingForm({ services, companyName, companyId }: Bookin
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
+
+    if (!db) {
+      setError('Databasanslutning saknas. Försök igen senare.')
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       const selectedServiceData = services.find(

@@ -6,7 +6,7 @@
  * Stödda leverantörer: Twilio, 46elks, Sinch
  */
 
-import { collection, addDoc } from 'firebase/firestore'
+import { collection, addDoc, Firestore } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 // Environment variables for SMS provider
@@ -93,6 +93,10 @@ export async function createBookingReminder(
   serviceName: string
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
   try {
+    if (!db) {
+      return { success: false, error: 'Databasanslutning saknas' }
+    }
+    
     const normalizedPhone = normalizePhone(phone)
     if (!normalizedPhone) {
       return { success: false, error: 'Ogiltigt telefonnummer' }
@@ -136,7 +140,7 @@ export async function createBookingReminder(
         attempts: 0,
       }
       
-      const docRef = await addDoc(collection(db, 'reminders'), reminderData)
+      const docRef = await addDoc(collection(db as Firestore, 'reminders'), reminderData)
       createdIds.push(docRef.id)
     }
     
@@ -155,10 +159,12 @@ export async function createBookingReminder(
  */
 export async function cancelBookingReminders(bookingId: string): Promise<boolean> {
   try {
+    if (!db) return false
+    
     const { query, where, getDocs, updateDoc } = await import('firebase/firestore')
     
     const q = query(
-      collection(db, 'reminders'),
+      collection(db as Firestore, 'reminders'),
       where('bookingId', '==', bookingId),
       where('status', '==', 'pending')
     )

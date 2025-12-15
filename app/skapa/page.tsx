@@ -58,7 +58,17 @@ const dayNames: { [key: string]: string } = {
 
 export default function CreatePage() {
   const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  
+  let user: any = null
+  let authLoading = true
+  
+  try {
+    const auth = useAuth()
+    user = auth.user
+    authLoading = auth.loading
+  } catch (error) {
+    authLoading = false
+  }
   
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -114,6 +124,11 @@ export default function CreatePage() {
   const handleSubmit = async () => {
     if (!user) {
       setError('Du måste vara inloggad för att skapa en annons')
+      return
+    }
+
+    if (!db) {
+      setError('Databasanslutning saknas. Försök igen senare.')
       return
     }
 

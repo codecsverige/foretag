@@ -1,15 +1,31 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { HiMail, HiLockClosed, HiExclamationCircle } from 'react-icons/hi'
 import { FcGoogle } from 'react-icons/fc'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
-  const { signInWithGoogle, signInWithEmail, user, loading } = useAuth()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/'
+  
+  let signInWithGoogle = async () => {}
+  let signInWithEmail = async (email: string, password: string) => {}
+  let user: any = null
+  let loading = true
+  
+  try {
+    const auth = useAuth()
+    signInWithGoogle = auth.signInWithGoogle
+    signInWithEmail = auth.signInWithEmail
+    user = auth.user
+    loading = auth.loading
+  } catch (error) {
+    loading = false
+  }
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,17 +33,18 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   // Redirect if already logged in
-  if (user && !loading) {
-    router.push('/')
-    return null
-  }
+  useEffect(() => {
+    if (user && !loading) {
+      router.push(redirect)
+    }
+  }, [user, loading, router, redirect])
 
   const handleGoogleSignIn = async () => {
     try {
       setError('')
       setIsLoading(true)
       await signInWithGoogle()
-      router.push('/')
+      router.push(redirect)
     } catch (err: any) {
       setError('Kunde inte logga in med Google. Försök igen.')
       console.error(err)
@@ -47,7 +64,7 @@ export default function LoginPage() {
       setError('')
       setIsLoading(true)
       await signInWithEmail(email, password)
-      router.push('/')
+      router.push(redirect)
     } catch (err: any) {
       if (err.code === 'auth/user-not-found') {
         setError('Ingen användare hittades med denna e-post')
@@ -65,6 +82,14 @@ export default function LoginPage() {
   }
 
   if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+      </div>
+    )
+  }
+
+  if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
@@ -167,5 +192,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

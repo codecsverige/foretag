@@ -59,6 +59,12 @@ function SearchContent() {
   // Fetch companies from Firestore
   useEffect(() => {
     async function fetchCompanies() {
+      if (!db) {
+        setCompanies([])
+        setLoading(false)
+        return
+      }
+      
       setLoading(true)
       try {
         let q = query(

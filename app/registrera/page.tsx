@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
@@ -9,7 +9,21 @@ import { FcGoogle } from 'react-icons/fc'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { signInWithGoogle, signUpWithEmail, user, loading } = useAuth()
+  
+  let signInWithGoogle = async () => {}
+  let signUpWithEmail = async (email: string, password: string, name: string) => {}
+  let user = null
+  let loading = true
+  
+  try {
+    const auth = useAuth()
+    signInWithGoogle = auth.signInWithGoogle
+    signUpWithEmail = auth.signUpWithEmail
+    user = auth.user
+    loading = auth.loading
+  } catch (error) {
+    loading = false
+  }
   
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -19,10 +33,11 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   // Redirect if already logged in
-  if (user && !loading) {
-    router.push('/')
-    return null
-  }
+  useEffect(() => {
+    if (user && !loading) {
+      router.push('/')
+    }
+  }, [user, loading, router])
 
   const handleGoogleSignIn = async () => {
     try {
@@ -78,6 +93,14 @@ export default function RegisterPage() {
   }
 
   if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+      </div>
+    )
+  }
+
+  if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>

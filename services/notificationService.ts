@@ -3,7 +3,7 @@
  * Hanterar in-app notifikationer och push-meddelanden
  */
 
-import { collection, addDoc, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc, limit } from 'firebase/firestore'
+import { collection, addDoc, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc, limit, Firestore } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 export interface Notification {
@@ -30,6 +30,10 @@ export async function sendNotification(
   route?: string
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
+    if (!db) {
+      throw new Error('Databasanslutning saknas')
+    }
+    
     if (!userEmail) {
       throw new Error('Email användare krävs')
     }
@@ -47,7 +51,7 @@ export async function sendNotification(
       ...(route && { route })
     }
 
-    const docRef = await addDoc(collection(db, 'notifications'), notificationData)
+    const docRef = await addDoc(collection(db as Firestore, 'notifications'), notificationData)
     
     console.log('✅ Notifikation skickad:', docRef.id)
     
@@ -72,10 +76,12 @@ export async function getUserNotifications(
   limitCount = 50
 ): Promise<Notification[]> {
   try {
+    if (!db) return []
+    
     const normalizedEmail = userEmail.trim().toLowerCase()
     
     const q = query(
-      collection(db, 'notifications'),
+      collection(db as Firestore, 'notifications'),
       where('userEmail', '==', normalizedEmail),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
@@ -98,7 +104,9 @@ export async function getUserNotifications(
  */
 export async function markAsRead(notificationId: string): Promise<boolean> {
   try {
-    await updateDoc(doc(db, 'notifications', notificationId), {
+    if (!db) return false
+    
+    await updateDoc(doc(db as Firestore, 'notifications', notificationId), {
       read: true
     })
     return true
@@ -113,10 +121,12 @@ export async function markAsRead(notificationId: string): Promise<boolean> {
  */
 export async function markAllAsRead(userEmail: string): Promise<boolean> {
   try {
+    if (!db) return false
+    
     const normalizedEmail = userEmail.trim().toLowerCase()
     
     const q = query(
-      collection(db, 'notifications'),
+      collection(db as Firestore, 'notifications'),
       where('userEmail', '==', normalizedEmail),
       where('read', '==', false)
     )
@@ -140,7 +150,9 @@ export async function markAllAsRead(userEmail: string): Promise<boolean> {
  */
 export async function deleteNotification(notificationId: string): Promise<boolean> {
   try {
-    await deleteDoc(doc(db, 'notifications', notificationId))
+    if (!db) return false
+    
+    await deleteDoc(doc(db as Firestore, 'notifications', notificationId))
     return true
   } catch (error) {
     console.error('Fel vid borttagning:', error)

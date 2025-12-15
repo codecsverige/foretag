@@ -30,23 +30,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || !auth) {
+      setLoading(false)
+      return
+    }
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user && db) {
         // Check if user exists in Firestore, if not create profile
-        const userRef = doc(db, 'users', user.uid)
-        const userSnap = await getDoc(userRef)
-        
-        if (!userSnap.exists()) {
-          await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          })
+        try {
+          const userRef = doc(db, 'users', user.uid)
+          const userSnap = await getDoc(userRef)
+          
+          if (!userSnap.exists()) {
+            await setDoc(userRef, {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            })
+          }
+        } catch (error) {
+          console.error('Error creating user profile:', error)
         }
       }
       setUser(user)
@@ -57,15 +64,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithGoogle = async () => {
+    if (!auth) throw new Error('Auth not initialized')
     const provider = new GoogleAuthProvider()
     await signInWithPopup(auth, provider)
   }
 
   const signInWithEmail = async (email: string, password: string) => {
+    if (!auth) throw new Error('Auth not initialized')
     await signInWithEmailAndPassword(auth, email, password)
   }
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
+    if (!auth || !db) throw new Error('Firebase not initialized')
     const result = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(result.user, { displayName: name })
     
@@ -81,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
+    if (!auth) return
     await signOut(auth)
   }
 
