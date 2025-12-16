@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { HiPlus, HiTrash, HiCheck, HiExclamationCircle } from 'react-icons/hi'
 import Link from 'next/link'
+
+// ⚠️ TEMPORARY: Allow creating without login
+// Set to false when Firebase Auth is configured
+const SKIP_AUTH = true
 
 const categories = [
   { id: 'frisor', name: 'Frisör', emoji: '💇' },
@@ -59,17 +62,6 @@ const dayNames: { [key: string]: string } = {
 export default function CreatePage() {
   const router = useRouter()
   
-  let user: any = null
-  let authLoading = true
-  
-  try {
-    const auth = useAuth()
-    user = auth.user
-    authLoading = auth.loading
-  } catch (error) {
-    authLoading = false
-  }
-  
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -89,13 +81,6 @@ export default function CreatePage() {
     { id: '1', name: '', price: '', duration: '', description: '' }
   ])
   const [openingHours, setOpeningHours] = useState(defaultOpeningHours)
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?redirect=/skapa')
-    }
-  }, [user, authLoading, router])
 
   const addService = () => {
     setServices([
@@ -122,16 +107,6 @@ export default function CreatePage() {
   }
 
   const handleSubmit = async () => {
-    if (!user) {
-      setError('Du måste vara inloggad för att skapa en annons')
-      return
-    }
-
-    if (!db) {
-      setError('Databasanslutning saknas. Försök igen senare.')
-      return
-    }
-
     setIsSubmitting(true)
     setError('')
     
@@ -159,17 +134,17 @@ export default function CreatePage() {
         
         // Contact
         phone,
-        email: email || user.email || '',
+        email: email || '',
         website,
         
         // Services & Hours
         services: validServices,
         openingHours,
         
-        // Metadata
-        ownerId: user.uid,
-        ownerName: user.displayName || '',
-        ownerEmail: user.email || '',
+        // Metadata - temporary anonymous
+        ownerId: 'anonymous',
+        ownerName: 'Anonymous',
+        ownerEmail: email || '',
         
         // Stats (initial)
         rating: 0,
@@ -185,9 +160,31 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      const docRef = await addDoc(collection(db, 'companies'), companyData)
+      // Try to save to Firestore
+      if (db) {
+        try {
+          const docRef = await addDoc(collection(db, 'companies'), companyData)
+          setNewCompanyId(docRef.id)
+          console.log('✅ Saved to Firestore:', docRef.id)
+        } catch (firestoreError: any) {
+          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
+          // Save to localStorage as backup
+          const localId = 'local_' + Date.now()
+          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
+          localStorage.setItem('companies', JSON.stringify(savedCompanies))
+          setNewCompanyId(localId)
+        }
+      } else {
+        // Save to localStorage
+        const localId = 'local_' + Date.now()
+        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
+        localStorage.setItem('companies', JSON.stringify(savedCompanies))
+        setNewCompanyId(localId)
+        console.log('💾 Saved locally:', localId)
+      }
       
-      setNewCompanyId(docRef.id)
       setSubmitted(true)
       
     } catch (err: any) {
@@ -196,38 +193,6 @@ export default function CreatePage() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  // Loading state
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
-      </div>
-    )
-  }
-
-  // Not logged in
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
-          <div className="text-6xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Logga in för att skapa annons
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Du måste vara inloggad för att kunna skapa en företagsannons.
-          </p>
-          <Link
-            href="/login?redirect=/skapa"
-            className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-          >
-            Logga in
-          </Link>
-        </div>
-      </div>
-    )
   }
 
   // Success state
@@ -239,24 +204,48 @@ export default function CreatePage() {
             <HiCheck className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            🎉 Annonsen publicerad!
+            🎉 Annonsen skapad!
           </h1>
-          <p className="text-gray-600 mb-6">
-            Din företagsannons är nu live. Kunder kan hitta dig och boka tjänster direkt.
+          <p className="text-gray-600 mb-2">
+            Din företagsannons är nu skapad.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            ID: {newCompanyId}
           </p>
           <div className="space-y-3">
-            <Link
-              href={`/foretag/${newCompanyId}`}
-              className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-            >
-              Visa din sida
-            </Link>
+            {!newCompanyId.startsWith('local_') && (
+              <Link
+                href={`/foretag/${newCompanyId}`}
+                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+              >
+                Visa din sida
+              </Link>
+            )}
             <Link
               href="/"
               className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
             >
               Tillbaka till startsidan
             </Link>
+            <button
+              onClick={() => {
+                setSubmitted(false)
+                setNewCompanyId(null)
+                setStep(1)
+                setName('')
+                setCategory('')
+                setCity('')
+                setAddress('')
+                setDescription('')
+                setPhone('')
+                setEmail('')
+                setWebsite('')
+                setServices([{ id: '1', name: '', price: '', duration: '', description: '' }])
+              }}
+              className="block w-full text-brand hover:underline py-2"
+            >
+              Skapa en till annons
+            </button>
           </div>
         </div>
       </div>
@@ -274,6 +263,11 @@ export default function CreatePage() {
           <p className="text-gray-600">
             Gratis! Nå tusentals nya kunder.
           </p>
+          {SKIP_AUTH && (
+            <p className="text-xs text-orange-600 mt-2 bg-orange-50 inline-block px-3 py-1 rounded-full">
+              ⚠️ Testläge: Inget login krävs
+            </p>
+          )}
         </div>
 
         {/* Progress */}
