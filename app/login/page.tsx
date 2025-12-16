@@ -1,16 +1,25 @@
 'use client'
 
+/* ────────────────────────────────────────────────
+   app/login/page.tsx
+   صفحة تسجيل الدخول - منسوخ من المشروع القديم
+──────────────────────────────────────────────── */
+
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { HiMail, HiLockClosed, HiExclamationCircle } from 'react-icons/hi'
-import { FcGoogle } from 'react-icons/fc'
 
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
+  
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   
   let signInWithGoogle = async () => {}
   let signInWithEmail = async (email: string, password: string) => {}
@@ -26,11 +35,6 @@ function LoginContent() {
   } catch (error) {
     loading = false
   }
-  
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
 
   // Redirect if already logged in
   useEffect(() => {
@@ -39,15 +43,27 @@ function LoginContent() {
     }
   }, [user, loading, router, redirect])
 
+  // Google Sign In - نفس الطريقة من المشروع القديم
   const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    setError('')
+    
     try {
-      setError('')
-      setIsLoading(true)
       await signInWithGoogle()
       router.push(redirect)
     } catch (err: any) {
-      setError('Kunde inte logga in med Google. Försök igen.')
-      console.error(err)
+      console.error('Google sign-in error:', err)
+      
+      // Better error messages
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('تم إغلاق نافذة تسجيل الدخول. حاول مرة أخرى.')
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('تم حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة.')
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('هذا النطاق غير مُصرّح به. تحقق من إعدادات Firebase.')
+      } else {
+        setError(err.message || 'Kunde inte logga in med Google. Försök igen.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -113,27 +129,36 @@ function LoginContent() {
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
               <HiExclamationCircle className="w-5 h-5 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
           )}
 
-          {/* Google Sign In */}
+          {/* Google Sign In - نفس التصميم من المشروع القديم */}
           <button
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-xl py-3 hover:bg-gray-100 transition disabled:opacity-50"
           >
-            <FcGoogle className="w-6 h-6" />
-            <span className="font-medium text-gray-700">Fortsätt med Google</span>
+            {/* Google icon built with Tailwind - من المشروع القديم */}
+            <div className="w-5 h-5 relative">
+              <div className="absolute w-2.5 h-2.5 bg-[#EA4335] rounded top-0 left-0"></div>
+              <div className="absolute w-2.5 h-2.5 bg-[#FBBC04] rounded top-0 right-0"></div>
+              <div className="absolute w-2.5 h-2.5 bg-[#34A853] rounded bottom-0 left-0"></div>
+              <div className="absolute w-2.5 h-2.5 bg-[#4285F4] rounded bottom-0 right-0"></div>
+            </div>
+
+            <span className="text-sm font-medium text-gray-700">
+              {isLoading ? 'Loggar in...' : 'Logga in med Google'}
+            </span>
           </button>
 
           {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
+          <div className="flex items-center gap-4">
             <div className="flex-1 h-px bg-gray-200"></div>
             <span className="text-sm text-gray-500">eller</span>
             <div className="flex-1 h-px bg-gray-200"></div>
@@ -183,11 +208,16 @@ function LoginContent() {
           </form>
 
           {/* Register Link */}
-          <p className="mt-6 text-center text-gray-600">
+          <p className="text-center text-gray-600">
             Har du inget konto?{' '}
             <Link href="/registrera" className="text-brand hover:underline font-medium">
               Registrera dig
             </Link>
+          </p>
+          
+          {/* Security note - من المشروع القديم */}
+          <p className="text-xs text-center text-gray-500">
+            Vi använder ditt Google-konto för att autentisera dig på ett säkert sätt.
           </p>
         </div>
       </div>

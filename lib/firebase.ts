@@ -1,9 +1,23 @@
+/* ────────────────────────────────────────────────
+   lib/firebase.ts
+   ملفّ التهيئة المركزى لـ Firebase - منسوخ من المشروع القديم
+──────────────────────────────────────────────── */
+
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
-import { getFirestore, Firestore } from 'firebase/firestore'
-import { getAuth, Auth } from 'firebase/auth'
+import { 
+  getAuth, 
+  setPersistence, 
+  browserLocalPersistence,
+  Auth 
+} from 'firebase/auth'
+import { 
+  getFirestore, 
+  initializeFirestore,
+  Firestore
+} from 'firebase/firestore'
 import { getStorage, FirebaseStorage } from 'firebase/storage'
 
-// Firebase configuration with fallback values
+/* قيم البيئة - نفس الإعدادات من المشروع القديم */
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",
@@ -13,36 +27,49 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:980354990772:web:d02b0018fad7ef6dc90de1",
 }
 
-// Initialize Firebase
+/* Initialize Firebase */
 let app: FirebaseApp | undefined
-let db: Firestore | undefined
 let auth: Auth | undefined
+let db: Firestore | undefined
 let storage: FirebaseStorage | undefined
 
-function initializeFirebase() {
-  if (typeof window === 'undefined') {
-    return // Don't initialize on server
-  }
-  
+// Only initialize on client side
+if (typeof window !== 'undefined') {
   try {
+    // Initialize app
     if (getApps().length === 0) {
       app = initializeApp(firebaseConfig)
     } else {
       app = getApps()[0]
     }
-    
-    db = getFirestore(app)
+
+    // Initialize auth with persistence
     auth = getAuth(app)
+    setPersistence(auth, browserLocalPersistence).catch(console.error)
+
+    // Initialize Firestore with settings for better compatibility
+    try {
+      db = initializeFirestore(app, {
+        experimentalAutoDetectLongPolling: true,
+      })
+    } catch (e: any) {
+      // If already initialized, just get the instance
+      if (e.code === 'failed-precondition') {
+        db = getFirestore(app)
+      } else {
+        console.error('Firestore init error:', e)
+        db = getFirestore(app)
+      }
+    }
+
+    // Initialize storage
     storage = getStorage(app)
+    
+    console.log('✅ Firebase initialized successfully')
   } catch (error) {
-    console.error('Firebase initialization error:', error)
+    console.error('❌ Firebase initialization error:', error)
   }
 }
 
-// Initialize on client side
-if (typeof window !== 'undefined') {
-  initializeFirebase()
-}
-
-export { app, db, auth, storage }
+export { app, auth, db, storage }
 export default app

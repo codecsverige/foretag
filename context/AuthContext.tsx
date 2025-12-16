@@ -1,5 +1,10 @@
 'use client'
 
+/* ────────────────────────────────────────────────
+   context/AuthContext.tsx
+   نظام المصادقة - منسوخ من المشروع القديم مع تعديلات لـ Next.js
+──────────────────────────────────────────────── */
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { 
   User,
@@ -30,43 +35,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Only run on client side
     if (typeof window === 'undefined' || !auth) {
       setLoading(false)
       return
     }
     
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && db) {
-        // Check if user exists in Firestore, if not create profile
-        try {
-          const userRef = doc(db, 'users', user.uid)
-          const userSnap = await getDoc(userRef)
-          
-          if (!userSnap.exists()) {
-            await setDoc(userRef, {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            })
-          }
-        } catch (error) {
-          console.error('Error creating user profile:', error)
-        }
+    console.log('🔄 Setting up auth listener...')
+    
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      console.log('🔄 Auth state changed:', fbUser ? 'User logged in' : 'No user')
+      
+      if (!fbUser) {
+        setUser(null)
+        setLoading(false)
+        return
       }
-      setUser(user)
-      setLoading(false)
+
+      try {
+        // Reload user data from Firebase Auth
+        await fbUser.reload()
+        const fresh = auth?.currentUser
+        
+        if (!fresh) {
+          setUser(null)
+          setLoading(false)
+          return
+        }
+
+        // Set user immediately (don't wait for Firestore)
+        setUser(fresh)
+        
+        // Try to sync with Firestore (with timeout)
+        if (db) {
+          const ref = doc(db, 'users', fresh.uid)
+          
+          // Add timeout to prevent infinite loading
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Firestore timeout')), 5000)
+          )
+          
+          try {
+            const snap = await Promise.race([getDoc(ref), timeoutPromise]) as any
+            
+            if (!snap.exists()) {
+              // Create user document
+              const userData = {
+                uid: fresh.uid,
+                email: fresh.email,
+                displayName: fresh.displayName,
+                photoURL: fresh.photoURL,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              }
+              // Don't wait for setDoc to complete
+              setDoc(ref, userData, { merge: true }).catch(console.warn)
+            }
+          } catch (firestoreError: any) {
+            console.warn('⚠️ Firestore error (continuing with auth data):', firestoreError.message)
+            // Continue with basic user data even if Firestore fails
+          }
+        }
+        
+        console.log('✅ User set successfully')
+      } catch (err: any) {
+        console.warn('❗ Auth sync error:', err.message)
+        // Set user even on error
+        setUser(fbUser)
+      } finally {
+        setLoading(false)
+        console.log('✅ Auth loading completed')
+      }
     })
 
     return () => unsubscribe()
   }, [])
 
+  // Google Sign In - نفس الطريقة من المشروع القديم
   const signInWithGoogle = async () => {
-    if (!auth) throw new Error('Auth not initialized')
+    if (!auth) {
+      throw new Error('Auth not initialized')
+    }
+    
+    console.log('🔐 Starting Google sign-in...')
     const provider = new GoogleAuthProvider()
+    
+    // Add scopes for better user info
+    provider.addScope('email')
+    provider.addScope('profile')
+    
+    // Force account selection
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    })
+    
     await signInWithPopup(auth, provider)
+    console.log('✅ Google sign-in successful')
   }
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -75,24 +139,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
-    if (!auth || !db) throw new Error('Firebase not initialized')
+    if (!auth) throw new Error('Auth not initialized')
+    
     const result = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(result.user, { displayName: name })
     
-    // Create user document
-    await setDoc(doc(db, 'users', result.user.uid), {
-      uid: result.user.uid,
-      email: result.user.email,
-      displayName: name,
-      photoURL: null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
+    // Create user document in Firestore
+    if (db) {
+      try {
+        await setDoc(doc(db, 'users', result.user.uid), {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: name,
+          photoURL: null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      } catch (e) {
+        console.warn('Failed to create user document:', e)
+      }
+    }
   }
 
   const logout = async () => {
     if (!auth) return
-    await signOut(auth)
+    
+    try {
+      console.log('🚪 Logging out user...')
+      // Clear user state immediately
+      setUser(null)
+      
+      // Sign out from Firebase
+      await signOut(auth)
+      console.log('✅ Firebase signOut successful')
+      
+      // Clear any cached data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user')
+        sessionStorage.clear()
+      }
+      
+      console.log('✅ Logout completed successfully')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if Firebase logout fails, clear local state
+      setUser(null)
+    }
   }
 
   return (
