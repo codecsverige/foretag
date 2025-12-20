@@ -167,29 +167,32 @@ export default function CreatePage() {
           setNewCompanyId(docRef.id)
           console.log('✅ Saved to Firestore:', docRef.id)
         } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          console.error('⚠️ Firestore error:', {
+            code: firestoreError.code,
+            message: firestoreError.message,
+            details: firestoreError
+          })
+          
+          // Provide specific error messages based on error type
+          if (firestoreError.code === 'permission-denied') {
+            throw new Error('Åtkomst nekad. Kontrollera Firestore-reglerna.')
+          } else if (firestoreError.code === 'unavailable') {
+            throw new Error('Kan inte ansluta till Firebase. Kontrollera din internetanslutning.')
+          } else if (firestoreError.code === 'invalid-argument') {
+            throw new Error('Ogiltiga data. Kontrollera att alla fält är korrekt ifyllda.')
+          } else {
+            throw new Error(`Firebase-fel: ${firestoreError.message}`)
+          }
         }
       } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+        throw new Error('Firebase är inte initialiserat. Kontrollera konfigurationen.')
       }
       
       setSubmitted(true)
       
     } catch (err: any) {
       console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen.')
+      setError(err.message || 'Kunde inte skapa annonsen. Försök igen.')
     } finally {
       setIsSubmitting(false)
     }

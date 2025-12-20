@@ -36,38 +36,56 @@ let storage: FirebaseStorage | undefined
 // Only initialize on client side
 if (typeof window !== 'undefined') {
   try {
+    // Validate configuration
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      console.error('❌ Missing Firebase configuration. Check environment variables.')
+      throw new Error('Missing Firebase configuration')
+    }
+
     // Initialize app
     if (getApps().length === 0) {
       app = initializeApp(firebaseConfig)
+      console.log('🔥 Firebase app initialized')
     } else {
       app = getApps()[0]
+      console.log('🔥 Using existing Firebase app')
     }
 
     // Initialize auth with persistence
     auth = getAuth(app)
-    setPersistence(auth, browserLocalPersistence).catch(console.error)
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.error('⚠️ Auth persistence error:', error)
+    })
+    console.log('🔐 Firebase Auth initialized')
 
     // Initialize Firestore with settings for better compatibility
     try {
       db = initializeFirestore(app, {
         experimentalAutoDetectLongPolling: true,
       })
+      console.log('📊 Firestore initialized with long polling')
     } catch (e: any) {
       // If already initialized, just get the instance
       if (e.code === 'failed-precondition') {
         db = getFirestore(app)
+        console.log('📊 Using existing Firestore instance')
       } else {
-        console.error('Firestore init error:', e)
+        console.error('❌ Firestore init error:', e)
         db = getFirestore(app)
+        console.log('📊 Fallback to default Firestore')
       }
     }
 
     // Initialize storage
     storage = getStorage(app)
+    console.log('💾 Firebase Storage initialized')
     
     console.log('✅ Firebase initialized successfully')
-  } catch (error) {
+    console.log('   Project ID:', firebaseConfig.projectId)
+  } catch (error: any) {
     console.error('❌ Firebase initialization error:', error)
+    console.error('   Error code:', error.code)
+    console.error('   Error message:', error.message)
   }
 }
 
