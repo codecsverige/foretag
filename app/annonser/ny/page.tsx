@@ -28,7 +28,8 @@ interface AdPayload {
 interface Company {
   id: string
   name: string
-  [key: string]: any
+  category?: string
+  ownerId?: string
 }
 
 async function createAdInFirestore(payload: AdPayload) {
@@ -44,7 +45,6 @@ async function createAdInFirestore(payload: AdPayload) {
 
   const ad = {
     ...payload,
-    id: ref.id,
     ownerId: uid,
     status: 'active',
     createdAt: now,
@@ -139,13 +139,11 @@ export default function NewAdPage() {
       // Create ad in Firestore
       const adId = await createAdInFirestore(payload)
 
-      // Show success message
+      // Show success message briefly then navigate
       setSuccess(true)
       
-      // Navigate to home page after 1.5 seconds
-      setTimeout(() => {
-        router.push('/')
-      }, 1500)
+      // Use React useEffect to handle navigation after success state updates
+      // Navigation will happen in the useEffect below
       
     } catch (err: any) {
       console.error('Error creating ad:', err)
@@ -159,6 +157,17 @@ export default function NewAdPage() {
       setIsSubmitting(false)
     }
   }
+
+  // Handle navigation after successful ad creation
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        router.push('/')
+      }, 1500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [success, router])
 
   // Show loading state while checking auth
   if (authLoading) {
