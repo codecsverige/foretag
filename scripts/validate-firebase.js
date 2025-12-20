@@ -14,7 +14,9 @@
 const { initializeApp, getApps } = require('firebase/app')
 const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp } = require('firebase/firestore')
 
-// Firebase configuration from environment or defaults
+// NOTE: Firebase client API keys are safe to commit and designed to be public.
+// Security is enforced through Firestore security rules, not API key secrecy.
+// These are the actual project keys for validation testing.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",
@@ -120,9 +122,9 @@ async function validateFirebase() {
     console.log('✅ Test data cleaned up successfully\n')
     
     // Final summary
-    console.log('=' .repeat(60))
+    console.log('='.repeat(60))
     console.log('🎉 ALL FIREBASE INTEGRATION TESTS PASSED!')
-    console.log('=' .repeat(60))
+    console.log('='.repeat(60))
     console.log('\n✅ Firebase SDK: OK')
     console.log('✅ Firestore Connection: OK')
     console.log('✅ Write Operations: OK')
@@ -136,7 +138,7 @@ async function validateFirebase() {
     
   } catch (error) {
     console.error('\n❌ Firebase Validation Failed!')
-    console.error('=' .repeat(60))
+    console.error('='.repeat(60))
     console.error('Error:', error.message)
     
     if (error.code) {

@@ -10,6 +10,8 @@
 const { initializeApp, getApps } = require('firebase/app')
 const { getFirestore, collection, getDocs, limit, query } = require('firebase/firestore')
 
+// NOTE: Firebase client API keys are safe to commit and designed to be public.
+// Security is enforced through Firestore security rules, not API key secrecy.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",

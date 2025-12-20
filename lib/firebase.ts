@@ -17,7 +17,11 @@ import {
 } from 'firebase/firestore'
 import { getStorage, FirebaseStorage } from 'firebase/storage'
 
-/* قيم البيئة - نفس الإعدادات من المشروع القديم */
+/* قيم البيئة - نفس الإعدادات من المشروع القديم 
+ * NOTE: Firebase client API keys are safe to commit and designed to be public.
+ * Security is enforced through Firestore security rules, not API key secrecy.
+ * These are fallback values - production should use environment variables.
+ */
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",
@@ -42,13 +46,15 @@ if (typeof window !== 'undefined') {
       throw new Error('Missing Firebase configuration')
     }
 
+    const isDev = process.env.NODE_ENV === 'development'
+
     // Initialize app
     if (getApps().length === 0) {
       app = initializeApp(firebaseConfig)
-      console.log('🔥 Firebase app initialized')
+      if (isDev) console.log('🔥 Firebase app initialized')
     } else {
       app = getApps()[0]
-      console.log('🔥 Using existing Firebase app')
+      if (isDev) console.log('🔥 Using existing Firebase app')
     }
 
     // Initialize auth with persistence
@@ -56,32 +62,34 @@ if (typeof window !== 'undefined') {
     setPersistence(auth, browserLocalPersistence).catch((error) => {
       console.error('⚠️ Auth persistence error:', error)
     })
-    console.log('🔐 Firebase Auth initialized')
+    if (isDev) console.log('🔐 Firebase Auth initialized')
 
     // Initialize Firestore with settings for better compatibility
     try {
       db = initializeFirestore(app, {
         experimentalAutoDetectLongPolling: true,
       })
-      console.log('📊 Firestore initialized with long polling')
+      if (isDev) console.log('📊 Firestore initialized with long polling')
     } catch (e: any) {
       // If already initialized, just get the instance
       if (e.code === 'failed-precondition') {
         db = getFirestore(app)
-        console.log('📊 Using existing Firestore instance')
+        if (isDev) console.log('📊 Using existing Firestore instance')
       } else {
         console.error('❌ Firestore init error:', e)
         db = getFirestore(app)
-        console.log('📊 Fallback to default Firestore')
+        if (isDev) console.log('📊 Fallback to default Firestore')
       }
     }
 
     // Initialize storage
     storage = getStorage(app)
-    console.log('💾 Firebase Storage initialized')
+    if (isDev) console.log('💾 Firebase Storage initialized')
     
-    console.log('✅ Firebase initialized successfully')
-    console.log('   Project ID:', firebaseConfig.projectId)
+    if (isDev) {
+      console.log('✅ Firebase initialized successfully')
+      console.log('   Project ID:', firebaseConfig.projectId)
+    }
   } catch (error: any) {
     console.error('❌ Firebase initialization error:', error)
     console.error('   Error code:', error.code)
