@@ -41,7 +41,7 @@ async function getCompanies() {
     // Fetch premium companies
     const premiumQuery = query(
       collection(db, 'companies'),
-      where('status', '==', 'active'),
+      where('status', '==', 'published'),
       where('premium', '==', true),
       limit(6)
     )
@@ -49,7 +49,7 @@ async function getCompanies() {
     // Fetch latest companies
     const latestQuery = query(
       collection(db, 'companies'),
-      where('status', '==', 'active'),
+      where('status', '==', 'published'),
       orderBy('createdAt', 'desc'),
       limit(6)
     )

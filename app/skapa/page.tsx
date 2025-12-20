@@ -152,7 +152,7 @@ export default function CreatePage() {
         views: 0,
         
         // Status
-        status: 'active',
+        status: 'published',
         premium: false,
         
         // Timestamps
@@ -160,29 +160,36 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
-      if (db) {
+      // Save to Firestore with retry logic
+      if (!db) {
+        throw new Error('Firebase är inte konfigurerat. Kontrollera din internetanslutning och försök igen.')
+      }
+
+      // Retry logic for transient failures
+      let retries = 3
+      let lastError: any = null
+      
+      while (retries > 0) {
         try {
           const docRef = await addDoc(collection(db, 'companies'), companyData)
           setNewCompanyId(docRef.id)
           console.log('✅ Saved to Firestore:', docRef.id)
+          break // Success, exit retry loop
         } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          lastError = firestoreError
+          retries--
+          console.warn(`⚠️ Firestore error (${3 - retries}/3 attempts):`, firestoreError.message)
+          
+          if (retries > 0) {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)))
+          }
         }
-      } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+      }
+      
+      // If all retries failed, throw the error
+      if (retries === 0 && lastError) {
+        throw new Error(`Kunde inte spara annonsen efter 3 försök. Fel: ${lastError.message}`)
       }
       
       setSubmitted(true)
