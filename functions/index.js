@@ -275,39 +275,77 @@ exports.sendDueReminders = onSchedule({ schedule: "every 5 minutes", timeZone: "
       .limit(LIMIT)
       .get();
 
-    if (snap.empty) return null;
+    if (snap.empty) {
+      console.log('No reminders to send');
+      return null;
+    }
+
+    console.log(`Processing ${snap.size} reminders`);
 
     const tasks = snap.docs.map(async (docSnap) => {
       const r = docSnap.data() || {};
       const attempts = Number(r.attempts || 0);
       
+      // Max 3 attempts
       if (attempts >= 3) {
-        await docSnap.ref.set({ status: 'failed', lastError: 'max_attempts', updatedAt: now }, { merge: true });
+        await docSnap.ref.set({ 
+          status: 'failed', 
+          lastError: 'max_attempts', 
+          updatedAt: now 
+        }, { merge: true });
+        console.log(`Reminder ${docSnap.id} failed: max attempts`);
         return;
       }
 
       const to = normalizePhone(r.toPhone);
       if (!to) {
-        await docSnap.ref.set({ status: 'failed', lastError: 'missing_phone', updatedAt: now, attempts: attempts + 1 }, { merge: true });
+        await docSnap.ref.set({ 
+          status: 'failed', 
+          lastError: 'missing_phone', 
+          updatedAt: now, 
+          attempts: attempts + 1 
+        }, { merge: true });
+        console.log(`Reminder ${docSnap.id} failed: missing phone`);
         return;
       }
 
       const message = r.message || 'Påminnelse: Du har en bokning snart. Öppna BokaNära för detaljer.';
-      const result = await sendSms({ to, message });
+      
+      try {
+        const result = await sendSms({ to, message });
 
-      if (result && result.ok) {
-        await docSnap.ref.set({ status: 'sent', sentAt: now, updatedAt: now, provider: SMS_PROVIDER || 'unknown' }, { merge: true });
-      } else {
+        if (result && result.ok) {
+          await docSnap.ref.set({ 
+            status: 'sent', 
+            sentAt: now, 
+            updatedAt: now, 
+            provider: SMS_PROVIDER || 'unknown',
+            messageId: result.messageId 
+          }, { merge: true });
+          console.log(`Reminder ${docSnap.id} sent successfully`);
+        } else {
+          const newAttempts = attempts + 1;
+          await docSnap.ref.set({
+            status: (newAttempts >= 3) ? 'failed' : 'pending',
+            attempts: newAttempts,
+            lastError: (result && (result.reason || result.error)) || 'send_failed',
+            updatedAt: now,
+          }, { merge: true });
+          console.log(`Reminder ${docSnap.id} failed: ${result && (result.reason || result.error)}`);
+        }
+      } catch (smsError) {
+        console.error(`SMS send error for reminder ${docSnap.id}:`, smsError);
         await docSnap.ref.set({
-          status: (attempts + 1 >= 3) ? 'failed' : 'pending',
+          status: 'pending',
           attempts: attempts + 1,
-          lastError: (result && (result.reason || result.error)) || 'send_failed',
+          lastError: String(smsError.message || smsError),
           updatedAt: now,
         }, { merge: true });
       }
     });
 
     await Promise.all(tasks);
+    console.log('sendDueReminders completed');
     return null;
   } catch (e) {
     console.error('sendDueReminders error:', e);
@@ -460,5 +498,59 @@ exports.health = onRequest({ cors: true }, async (req, res) => {
     service: 'BokaNära Functions',
     timestamp: new Date().toISOString(),
     region: 'europe-west1'
+  });
+});
+
+// =========================================================
+// Company View Counter
+// =========================================================
+
+/**
+ * Track company views with rate limiting
+ */
+exports.trackCompanyView = onRequest({ cors: true }, async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      const { companyId } = req.body;
+      const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      const key = `view_${companyId}_${clientIp}`;
+
+      // Rate limiting: 1 view per company per IP per hour
+      try {
+        await rateLimiter.consume(key);
+      } catch (rateLimitError) {
+        return res.status(200).json({ 
+          ok: false, 
+          message: 'View already counted',
+          counted: false 
+        });
+      }
+
+      if (!companyId) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Missing companyId' 
+        });
+      }
+
+      const db = admin.firestore();
+      const companyRef = db.collection('companies').doc(companyId);
+      
+      await companyRef.update({
+        viewCount: admin.firestore.FieldValue.increment(1),
+        lastViewedAt: Date.now()
+      });
+
+      return res.status(200).json({ 
+        ok: true, 
+        counted: true 
+      });
+    } catch (error) {
+      console.error('trackCompanyView error:', error);
+      return res.status(500).json({ 
+        ok: false, 
+        error: 'Failed to track view' 
+      });
+    }
   });
 });

@@ -156,7 +156,8 @@ export async function verifyCode(
     }
 
     // Mark as verified
-    await doc.ref.update({
+    const { updateDoc } = await import('firebase/firestore')
+    await updateDoc(doc.ref, {
       verified: true,
       verifiedAt: Date.now()
     })
