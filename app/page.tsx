@@ -1,10 +1,12 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import CategoryGrid from '@/components/search/CategoryGrid'
-import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
-import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { collection, query, orderBy, limit, where, onSnapshot } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 // الفئات
 const categories = [
@@ -18,71 +20,81 @@ const categories = [
   { id: 'utbildning', name: 'Utbildning', emoji: '📚', count: 0 },
 ]
 
-// Initialize Firebase for server-side
-function getFirebaseDb() {
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  }
+export default function Home() {
+  const [premiumCompanies, setPremiumCompanies] = useState<any[]>([])
+  const [latestCompanies, setLatestCompanies] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-  return getFirestore(app)
-}
+  // Show placeholder if no companies yet
+  const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0 && !loading
 
-// Fetch companies from Firestore
-async function getCompanies() {
-  try {
-    const db = getFirebaseDb()
-    
-    // Fetch premium companies
+  useEffect(() => {
+    if (!db) {
+      setLoading(false)
+      setError('Firebase not initialized')
+      return
+    }
+
+    // Real-time listener for premium companies
     const premiumQuery = query(
       collection(db, 'companies'),
       where('status', '==', 'active'),
       where('premium', '==', true),
       limit(6)
     )
-    
-    // Fetch latest companies
+
+    // Real-time listener for latest companies
     const latestQuery = query(
       collection(db, 'companies'),
       where('status', '==', 'active'),
       orderBy('createdAt', 'desc'),
       limit(6)
     )
-    
-    const [premiumSnap, latestSnap] = await Promise.all([
-      getDocs(premiumQuery).catch(() => ({ docs: [] })),
-      getDocs(latestQuery).catch(() => ({ docs: [] }))
-    ])
-    
-    const premiumCompanies = premiumSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
-    
-    const latestCompanies = latestSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
-    
-    return { premiumCompanies, latestCompanies }
-  } catch (error) {
-    console.error('Error fetching companies:', error)
-    return { premiumCompanies: [], latestCompanies: [] }
-  }
-}
 
-export default async function Home() {
-  const { premiumCompanies, latestCompanies } = await getCompanies()
-  
-  // Show placeholder if no companies yet
-  const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0
+    // Set up real-time listeners
+    const unsubscribePremium = onSnapshot(
+      premiumQuery,
+      (snapshot) => {
+        const companies = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          priceFrom: doc.data().services?.[0]?.price || 0,
+        }))
+        setPremiumCompanies(companies)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('Error fetching premium companies:', err)
+        setError('Failed to load premium companies')
+        setLoading(false)
+      }
+    )
+
+    const unsubscribeLatest = onSnapshot(
+      latestQuery,
+      (snapshot) => {
+        const companies = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          priceFrom: doc.data().services?.[0]?.price || 0,
+        }))
+        setLatestCompanies(companies)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('Error fetching latest companies:', err)
+        setError('Failed to load latest companies')
+        setLoading(false)
+      }
+    )
+
+    // Cleanup listeners on unmount
+    return () => {
+      unsubscribePremium()
+      unsubscribeLatest()
+    }
+  }, [])
 
   return (
     <div className="min-h-screen">
@@ -146,8 +158,35 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Loading State */}
+      {loading && (
+        <section className="py-12 md:py-16">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
+            <p className="text-gray-600">Laddar företag...</p>
+          </div>
+        </section>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <section className="py-12 md:py-16">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div className="bg-red-50 rounded-2xl p-8 md:p-12">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                Något gick fel
+              </h2>
+              <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+                {error}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Featured Companies or Placeholder */}
-      {showPlaceholder ? (
+      {!loading && !error && showPlaceholder ? (
         <section className="py-12 md:py-16">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="bg-blue-50 rounded-2xl p-8 md:p-12">
@@ -168,7 +207,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
-      ) : (
+      ) : !loading && !error ? (
         <>
           {/* Premium Companies */}
           {premiumCompanies.length > 0 && (
@@ -212,7 +251,7 @@ export default async function Home() {
             </section>
           )}
         </>
-      )}
+      ) : null}
 
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">

@@ -111,31 +111,83 @@ export default function CreatePage() {
     setError('')
     
     try {
+      // Additional validations
+      if (!name || name.trim().length < 2) {
+        setError('Företagsnamn måste vara minst 2 tecken')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!category) {
+        setError('Välj en kategori')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!city) {
+        setError('Välj en stad')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!description || description.trim().length < 10) {
+        setError('Beskrivning måste vara minst 10 tecken')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!phone || phone.trim().length < 7) {
+        setError('Ange ett giltigt telefonnummer')
+        setIsSubmitting(false)
+        return
+      }
+      
+      // Validate email format if provided
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setError('Ange en giltig e-postadress')
+        setIsSubmitting(false)
+        return
+      }
+      
       // Prepare services data
       const validServices = services
         .filter(s => s.name && s.price)
         .map(s => ({
-          name: s.name,
+          name: s.name.trim(),
           price: parseInt(s.price) || 0,
           duration: parseInt(s.duration) || 30,
-          description: s.description || '',
+          description: s.description?.trim() || '',
         }))
+      
+      // Validate at least one service
+      if (validServices.length === 0) {
+        setError('Lägg till minst en tjänst med namn och pris')
+        setIsSubmitting(false)
+        return
+      }
+      
+      // Validate service prices
+      if (validServices.some(s => s.price <= 0)) {
+        setError('Alla tjänster måste ha ett pris större än 0 kr')
+        setIsSubmitting(false)
+        return
+      }
 
       // Create company document
       const companyData = {
         // Basic info
-        name,
+        name: name.trim(),
         category,
         categoryName: categories.find(c => c.id === category)?.name || category,
         emoji: categories.find(c => c.id === category)?.emoji || '📋',
         city,
-        address,
-        description,
+        address: address.trim(),
+        description: description.trim(),
         
         // Contact
-        phone,
-        email: email || '',
-        website,
+        phone: phone.trim(),
+        email: email?.trim() || '',
+        website: website.trim(),
         
         // Services & Hours
         services: validServices,
@@ -144,7 +196,7 @@ export default function CreatePage() {
         // Metadata - temporary anonymous
         ownerId: 'anonymous',
         ownerName: 'Anonymous',
-        ownerEmail: email || '',
+        ownerEmail: email?.trim() || '',
         
         // Stats (initial)
         rating: 0,
