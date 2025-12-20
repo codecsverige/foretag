@@ -15,7 +15,23 @@ import { HiExclamationCircle, HiCheckCircle } from 'react-icons/hi'
  * on home page, search page, and company page (if companyId is set)
  */
 
-async function createAdInFirestore(payload: any) {
+interface AdPayload {
+  title: string
+  description: string
+  category: string | null
+  companyId: string | null
+  location: string | null
+  price: string | null
+  contactEmail: string | null
+}
+
+interface Company {
+  id: string
+  name: string
+  [key: string]: any
+}
+
+async function createAdInFirestore(payload: AdPayload) {
   if (!db) throw new Error('Firestore not initialized')
   
   const auth = getAuth()
@@ -40,7 +56,7 @@ async function createAdInFirestore(payload: any) {
 }
 
 // Fetch user's companies
-async function fetchUserCompanies(uid: string) {
+async function fetchUserCompanies(uid: string): Promise<Company[]> {
   if (!db) return []
   
   try {
@@ -49,7 +65,7 @@ async function fetchUserCompanies(uid: string) {
       where('ownerId', '==', uid)
     )
     const snap = await getDocs(q)
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Company))
   } catch (error) {
     console.error('Error fetching companies:', error)
     return []
@@ -68,7 +84,7 @@ export default function NewAdPage() {
   const [price, setPrice] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   
-  const [companies, setCompanies] = useState<any[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loadingCompanies, setLoadingCompanies] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -254,7 +270,7 @@ export default function NewAdPage() {
               disabled={isSubmitting}
             >
               <option value="">Välj företag (valfritt)</option>
-              {companies.map((company: any) => (
+              {companies.map((company) => (
                 <option key={company.id} value={company.id}>
                   {company.name}
                 </option>

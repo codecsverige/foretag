@@ -48,27 +48,32 @@ interface Ad {
   location?: string
   price?: string
   contactEmail?: string
-  createdAt: any
+  createdAt: any // Firestore Timestamp
+}
+
+// Helper function to initialize Firebase for server-side rendering
+async function getServerFirestore() {
+  const { initializeApp, getApps } = await import('firebase/app')
+  const { getFirestore } = await import('firebase/firestore')
+  
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  }
+  
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+  return getFirestore(app)
 }
 
 // Fetch company from Firestore
 async function getCompany(id: string): Promise<Company | null> {
   try {
-    // For server-side, we need to initialize Firebase differently
-    const { initializeApp, getApps } = await import('firebase/app')
-    const { getFirestore, doc, getDoc } = await import('firebase/firestore')
-    
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    }
-    
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-    const db = getFirestore(app)
+    const { doc, getDoc } = await import('firebase/firestore')
+    const db = await getServerFirestore()
     
     const docRef = doc(db, 'companies', id)
     const docSnap = await getDoc(docRef)
@@ -90,20 +95,8 @@ async function getCompany(id: string): Promise<Company | null> {
 // Fetch company's active ads
 async function getCompanyAds(companyId: string): Promise<Ad[]> {
   try {
-    const { initializeApp, getApps } = await import('firebase/app')
-    const { getFirestore, collection, query, where, orderBy, getDocs } = await import('firebase/firestore')
-    
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    }
-    
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-    const db = getFirestore(app)
+    const { collection, query, where, orderBy, getDocs } = await import('firebase/firestore')
+    const db = await getServerFirestore()
     
     const q = query(
       collection(db, 'ads'),
