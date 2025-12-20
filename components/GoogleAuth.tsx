@@ -56,15 +56,9 @@ export default function GoogleAuth({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   
-  // Get auth functions from context
-  let signInWithGoogle = async () => {}
-  
-  try {
-    const auth = useAuth()
-    signInWithGoogle = auth.signInWithGoogle
-  } catch (err) {
-    console.error('GoogleAuth: Auth context not available')
-  }
+  // Get auth functions from context - must be called unconditionally
+  const auth = useAuth()
+  const signInWithGoogle = auth.signInWithGoogle
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)

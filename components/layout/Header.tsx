@@ -8,19 +8,11 @@ import { useAuth } from '@/context/AuthContext'
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   
-  // Get auth state
-  let user: any = null
-  let loading = true
-  let logout = async () => {}
-  
-  try {
-    const auth = useAuth()
-    user = auth.user
-    loading = auth.loading
-    logout = auth.logout
-  } catch (error) {
-    loading = false
-  }
+  // Get auth state - must be called unconditionally
+  const auth = useAuth()
+  const user = auth.user
+  const loading = auth.loading
+  const logout = auth.logout
 
   const handleLogout = async () => {
     await logout()

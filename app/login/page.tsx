@@ -22,18 +22,11 @@ function LoginContent() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   
-  let signInWithEmail = async (email: string, password: string) => {}
-  let user: any = null
-  let loading = true
-  
-  try {
-    const auth = useAuth()
-    signInWithEmail = auth.signInWithEmail
-    user = auth.user
-    loading = auth.loading
-  } catch (error) {
-    loading = false
-  }
+  // Get auth functions from context - must be called unconditionally
+  const auth = useAuth()
+  const signInWithEmail = auth.signInWithEmail
+  const user = auth.user
+  const loading = auth.loading
 
   // Redirect if already logged in
   useEffect(() => {
