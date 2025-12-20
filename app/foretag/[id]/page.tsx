@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { HiArrowLeft, HiPhone, HiMail, HiLocationMarker, HiStar, HiShare, HiHeart } from 'react-icons/hi'
 import BookingForm from '@/components/booking/BookingForm'
+import ReviewSection from '@/components/company/ReviewSection'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -285,6 +286,9 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 )}
               </div>
             </section>
+
+            {/* Reviews */}
+            <ReviewSection companyId={company.id} companyName={company.name} />
           </div>
 
           {/* Sidebar - Booking Form */}
@@ -294,6 +298,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 services={company.services || []} 
                 companyName={company.name}
                 companyId={company.id}
+                openingHours={company.openingHours}
               />
             </div>
           </div>

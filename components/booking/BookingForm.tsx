@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { HiCalendar, HiClock, HiUser, HiPhone, HiCheck } from 'react-icons/hi'
-import Link from 'next/link'
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
+import { HiUser, HiPhone, HiCheck } from 'react-icons/hi'
+import TimeSlotPicker from './TimeSlotPicker'
 
 interface Service {
   name: string
@@ -13,13 +13,22 @@ interface Service {
   duration: number
 }
 
+interface OpeningHours {
+  [key: string]: {
+    open: string
+    close: string
+    closed: boolean
+  }
+}
+
 interface BookingFormProps {
   services: Service[]
   companyName: string
   companyId?: string
+  openingHours?: OpeningHours
 }
 
-export default function BookingForm({ services, companyName, companyId }: BookingFormProps) {
+export default function BookingForm({ services, companyName, companyId, openingHours }: BookingFormProps) {
   let user = null
   try {
     const auth = useAuth()
@@ -37,6 +46,42 @@ export default function BookingForm({ services, companyName, companyId }: Bookin
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [existingBookings, setExistingBookings] = useState<Array<{ date: string; time: string }>>([])
+
+  // Load existing bookings for the selected date
+  useEffect(() => {
+    if (companyId && date && db) {
+      loadExistingBookings()
+    }
+  }, [companyId, date])
+
+  const loadExistingBookings = async () => {
+    if (!db || !companyId || !date) return
+
+    try {
+      const q = query(
+        collection(db, 'bookings'),
+        where('companyId', '==', companyId),
+        where('date', '==', date),
+        where('status', 'in', ['pending', 'confirmed'])
+      )
+      
+      const snapshot = await getDocs(q)
+      const bookings = snapshot.docs.map(doc => ({
+        date: doc.data().date,
+        time: doc.data().time
+      }))
+      
+      setExistingBookings(bookings)
+    } catch (error) {
+      console.error('Error loading bookings:', error)
+    }
+  }
+
+  const getServiceDuration = () => {
+    const service = services.find(s => `${s.name}-${s.price}` === selectedService)
+    return service?.duration || 30
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -159,41 +204,16 @@ export default function BookingForm({ services, companyName, companyId }: Bookin
           </select>
         </div>
 
-        {/* Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <HiCalendar className="inline w-4 h-4 mr-1" />
-            Datum *
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            min={new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-          />
-        </div>
-
-        {/* Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <HiClock className="inline w-4 h-4 mr-1" />
-            Tid *
-          </label>
-          <select
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-          >
-            <option value="">Välj tid...</option>
-            {['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', 
-              '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'].map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
+        {/* Time Slot Picker */}
+        <TimeSlotPicker
+          selectedDate={date}
+          selectedTime={time}
+          onDateChange={setDate}
+          onTimeChange={setTime}
+          openingHours={openingHours}
+          serviceDuration={getServiceDuration()}
+          existingBookings={existingBookings}
+        />
 
         {/* Name */}
         <div>

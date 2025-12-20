@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
+import { HiArrowRight } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import CategoryGrid from '@/components/search/CategoryGrid'
+import EnhancedSearchBox from '@/components/search/EnhancedSearchBox'
 import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
@@ -99,40 +100,8 @@ export default async function Home() {
             Upptäck företag i din stad. Boka frisör, massage, städning och mer – enkelt och snabbt.
           </p>
 
-          {/* Search Box */}
-          <form action="/sok" method="GET" className="max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl p-4 md:p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="q"
-                  placeholder="Vad söker du? (t.ex. frisör, massage)"
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div className="relative md:w-48">
-                <HiLocationMarker className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select 
-                  name="stad"
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none appearance-none bg-white"
-                >
-                  <option value="">Alla städer</option>
-                  <option value="stockholm">Stockholm</option>
-                  <option value="goteborg">Göteborg</option>
-                  <option value="malmo">Malmö</option>
-                  <option value="uppsala">Uppsala</option>
-                </select>
-              </div>
-              <button 
-                type="submit"
-                className="bg-brand hover:bg-brand-dark text-white px-8 py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2"
-              >
-                <HiSearch className="w-5 h-5" />
-                Sök
-              </button>
-            </div>
-          </form>
+          {/* Enhanced Search Box */}
+          <EnhancedSearchBox variant="hero" />
         </div>
       </section>
 
