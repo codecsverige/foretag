@@ -62,18 +62,7 @@ const dayNames: { [key: string]: string } = {
 
 export default function CreatePage() {
   const router = useRouter()
-  
-  // Get auth context - with fallback for when auth is not ready
-  let user: any = null
-  let loading = false
-  try {
-    const auth = useAuth()
-    user = auth.user
-    loading = auth.loading
-  } catch (error) {
-    // AuthContext not available, continue without auth
-    console.warn('Auth context not available')
-  }
+  const { user, loading: authLoading } = useAuth()
   
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)

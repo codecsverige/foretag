@@ -7,18 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
-  
-  // Get auth context - with fallback
-  let user: any = null
-  let loading = false
-  try {
-    const auth = useAuth()
-    user = auth.user
-    loading = auth.loading
-  } catch (error) {
-    // AuthContext not available
-    loading = false
-  }
+  const { user, loading } = useAuth()
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
