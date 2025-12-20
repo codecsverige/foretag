@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { HiStar, HiLocationMarker } from 'react-icons/hi'
 
 interface Company {
@@ -43,10 +44,12 @@ export default function CompanyCard({ company }: { company: Company }) {
         {/* Image */}
         <div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
           {company.image ? (
-            <img
+            <Image
               src={company.image}
               alt={company.name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl">
@@ -54,7 +57,7 @@ export default function CompanyCard({ company }: { company: Company }) {
             </div>
           )}
           {company.premium && (
-            <span className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-semibold">
+            <span className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-semibold z-10">
               ⭐ Premium
             </span>
           )}
