@@ -97,7 +97,12 @@ export default function CreatePage() {
       const validServices = services
         .filter(s => s.name && s.price)
         .map(s => {
-          const serviceData: any = {
+          const serviceData: {
+            name: string
+            price: number
+            description: string
+            duration?: number
+          } = {
             name: s.name,
             price: parseInt(s.price) || 0,
             description: s.description || '',

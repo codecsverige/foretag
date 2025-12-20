@@ -62,7 +62,7 @@ export default function BookingForm({ services, companyName, companyId }: Bookin
         // Service
         service: selectedServiceData?.name || selectedService,
         servicePrice: selectedServiceData?.price || 0,
-        serviceDuration: selectedServiceData?.duration || null,
+        serviceDuration: selectedServiceData?.duration || undefined,
         
         // Customer
         customerName: name,

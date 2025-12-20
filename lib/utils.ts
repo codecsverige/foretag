@@ -2,6 +2,9 @@
  * Utility functions for BokaNära
  */
 
+// Default app URL for share links
+const DEFAULT_APP_URL = 'https://bokanara.se'
+
 /**
  * Compute the minimum price from an array of services
  * @param services Array of service objects with price property
@@ -28,7 +31,7 @@ export function buildShareUrl(companyId: string): string {
   // Use NEXT_PUBLIC_APP_URL if available, otherwise use window.location.origin
   const baseUrl = typeof window !== 'undefined' 
     ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
-    : (process.env.NEXT_PUBLIC_APP_URL || 'https://bokanara.se')
+    : (process.env.NEXT_PUBLIC_APP_URL || DEFAULT_APP_URL)
   
   return `${baseUrl}/foretag/${companyId}`
 }
