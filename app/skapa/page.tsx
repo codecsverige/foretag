@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { HiPlus, HiTrash, HiCheck, HiExclamationCircle } from 'react-icons/hi'
+import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiClipboard } from 'react-icons/hi'
 import Link from 'next/link'
+import { buildShareUrl, copyToClipboard } from '@/lib/utils'
 
 // ⚠️ TEMPORARY: Allow creating without login
 // Set to false when Firebase Auth is configured
@@ -39,26 +40,6 @@ interface Service {
   description: string
 }
 
-const defaultOpeningHours = {
-  monday: { open: '09:00', close: '18:00', closed: false },
-  tuesday: { open: '09:00', close: '18:00', closed: false },
-  wednesday: { open: '09:00', close: '18:00', closed: false },
-  thursday: { open: '09:00', close: '18:00', closed: false },
-  friday: { open: '09:00', close: '18:00', closed: false },
-  saturday: { open: '10:00', close: '16:00', closed: false },
-  sunday: { open: '', close: '', closed: true },
-}
-
-const dayNames: { [key: string]: string } = {
-  monday: 'Måndag',
-  tuesday: 'Tisdag',
-  wednesday: 'Onsdag',
-  thursday: 'Torsdag',
-  friday: 'Fredag',
-  saturday: 'Lördag',
-  sunday: 'Söndag',
-}
-
 export default function CreatePage() {
   const router = useRouter()
   
@@ -67,6 +48,7 @@ export default function CreatePage() {
   const [submitted, setSubmitted] = useState(false)
   const [newCompanyId, setNewCompanyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [copySuccess, setCopySuccess] = useState(false)
 
   // Form data
   const [name, setName] = useState('')
@@ -80,7 +62,6 @@ export default function CreatePage() {
   const [services, setServices] = useState<Service[]>([
     { id: '1', name: '', price: '', duration: '', description: '' }
   ])
-  const [openingHours, setOpeningHours] = useState(defaultOpeningHours)
 
   const addService = () => {
     setServices([
@@ -99,27 +80,34 @@ export default function CreatePage() {
     setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s))
   }
 
-  const updateHours = (day: string, field: string, value: string | boolean) => {
-    setOpeningHours({
-      ...openingHours,
-      [day]: { ...openingHours[day as keyof typeof openingHours], [field]: value }
-    })
-  }
-
   const handleSubmit = async () => {
     setIsSubmitting(true)
     setError('')
     
     try {
-      // Prepare services data
+      // Validate: at least one service with name and price
+      const hasValidService = services.some(s => s.name && s.price)
+      if (!hasValidService) {
+        setError('Du måste lägga till minst en tjänst med namn och pris.')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Prepare services data - duration is optional
       const validServices = services
         .filter(s => s.name && s.price)
-        .map(s => ({
-          name: s.name,
-          price: parseInt(s.price) || 0,
-          duration: parseInt(s.duration) || 30,
-          description: s.description || '',
-        }))
+        .map(s => {
+          const serviceData: any = {
+            name: s.name,
+            price: parseInt(s.price) || 0,
+            description: s.description || '',
+          }
+          // Only include duration if provided
+          if (s.duration) {
+            serviceData.duration = parseInt(s.duration) || 30
+          }
+          return serviceData
+        })
 
       // Create company document
       const companyData = {
@@ -129,17 +117,16 @@ export default function CreatePage() {
         categoryName: categories.find(c => c.id === category)?.name || category,
         emoji: categories.find(c => c.id === category)?.emoji || '📋',
         city,
-        address,
+        address: address || '',
         description,
         
         // Contact
         phone,
         email: email || '',
-        website,
+        website: website || '',
         
-        // Services & Hours
+        // Services
         services: validServices,
-        openingHours,
         
         // Metadata - temporary anonymous
         ownerId: 'anonymous',
@@ -197,6 +184,18 @@ export default function CreatePage() {
 
   // Success state
   if (submitted && newCompanyId) {
+    const shareUrl = buildShareUrl(newCompanyId)
+    
+    const handleCopyLink = async () => {
+      try {
+        await copyToClipboard(shareUrl)
+        setCopySuccess(true)
+        setTimeout(() => setCopySuccess(false), 2000)
+      } catch (err) {
+        console.error('Failed to copy:', err)
+      }
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
@@ -204,22 +203,28 @@ export default function CreatePage() {
             <HiCheck className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            🎉 Annonsen skapad!
+            🎉 Annonsen publicerad!
           </h1>
-          <p className="text-gray-600 mb-2">
-            Din företagsannons är nu skapad.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            ID: {newCompanyId}
+          <p className="text-gray-600 mb-6">
+            Din företagsannons är nu synlig för alla. Dela länken för att nå fler kunder!
           </p>
           <div className="space-y-3">
             {!newCompanyId.startsWith('local_') && (
-              <Link
-                href={`/foretag/${newCompanyId}`}
-                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-              >
-                Visa din sida
-              </Link>
+              <>
+                <Link
+                  href={`/foretag/${newCompanyId}`}
+                  className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+                >
+                  Visa din sida
+                </Link>
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full bg-blue-50 text-blue-700 py-3 rounded-xl font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
+                >
+                  <HiClipboard className="w-5 h-5" />
+                  {copySuccess ? '✓ Länk kopierad!' : 'Kopiera delningslänk'}
+                </button>
+              </>
             )}
             <Link
               href="/"
@@ -231,6 +236,7 @@ export default function CreatePage() {
               onClick={() => {
                 setSubmitted(false)
                 setNewCompanyId(null)
+                setCopySuccess(false)
                 setStep(1)
                 setName('')
                 setCategory('')
@@ -286,6 +292,19 @@ export default function CreatePage() {
               {s < step ? <HiCheck className="w-5 h-5" /> : s}
             </div>
           ))}
+        </div>
+
+        {/* Step Labels */}
+        <div className="flex justify-center gap-8 mb-8 text-sm">
+          <div className={`text-center ${step === 1 ? 'text-brand font-semibold' : 'text-gray-500'}`}>
+            Grundinfo
+          </div>
+          <div className={`text-center ${step === 2 ? 'text-brand font-semibold' : 'text-gray-500'}`}>
+            Tjänster
+          </div>
+          <div className={`text-center ${step === 3 ? 'text-brand font-semibold' : 'text-gray-500'}`}>
+            Kontakt
+          </div>
         </div>
 
         {/* Error Message */}
@@ -352,7 +371,7 @@ export default function CreatePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Adress
+                    Adress (valfritt)
                   </label>
                   <input
                     type="text"
@@ -372,53 +391,17 @@ export default function CreatePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  placeholder="Berätta om ditt företag..."
+                  placeholder="Berätta om ditt företag och vad som gör er unika..."
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none resize-none"
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefon *
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="08-123 45 67"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    E-post
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="info@example.se"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Hemsida
-                  </label>
-                  <input
-                    type="url"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="www.example.se"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Tips: Beskriv era tjänster, er expertis och varför kunder ska välja er.
+                </p>
               </div>
 
               <button
                 onClick={() => setStep(2)}
-                disabled={!name || !category || !city || !description || !phone}
+                disabled={!name || !category || !city || !description}
                 className="w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Nästa: Tjänster →
@@ -430,7 +413,10 @@ export default function CreatePage() {
           {step === 2 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900">💈 Tjänster & Priser</h2>
-              <p className="text-gray-600 text-sm">Lägg till minst en tjänst som du erbjuder.</p>
+              <p className="text-gray-600 text-sm">
+                Lägg till minst en tjänst. Ange tid om det är en tidsbokad tjänst (t.ex. frisör, massage). 
+                Lämna tid tom för tjänster som utförs på plats (t.ex. städning, bilservice).
+              </p>
 
               {services.map((service, index) => (
                 <div key={service.id} className="p-4 bg-gray-50 rounded-xl space-y-3">
@@ -439,45 +425,53 @@ export default function CreatePage() {
                     {services.length > 1 && (
                       <button
                         onClick={() => removeService(service.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 transition"
                       >
                         <HiTrash className="w-5 h-5" />
                       </button>
                     )}
                   </div>
                   
-                  <input
-                    type="text"
-                    value={service.name}
-                    onChange={(e) => updateService(service.id, 'name', e.target.value)}
-                    placeholder="Namn på tjänsten"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                  />
-                  
-                  <div className="grid grid-cols-2 gap-3">
+                  <div>
                     <input
-                      type="number"
-                      value={service.price}
-                      onChange={(e) => updateService(service.id, 'price', e.target.value)}
-                      placeholder="Pris (SEK)"
-                      className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                    />
-                    <input
-                      type="number"
-                      value={service.duration}
-                      onChange={(e) => updateService(service.id, 'duration', e.target.value)}
-                      placeholder="Tid (min)"
-                      className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                      type="text"
+                      value={service.name}
+                      onChange={(e) => updateService(service.id, 'name', e.target.value)}
+                      placeholder="Namn på tjänsten *"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
                     />
                   </div>
                   
-                  <input
-                    type="text"
-                    value={service.description}
-                    onChange={(e) => updateService(service.id, 'description', e.target.value)}
-                    placeholder="Kort beskrivning (valfritt)"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <input
+                        type="number"
+                        value={service.price}
+                        onChange={(e) => updateService(service.id, 'price', e.target.value)}
+                        placeholder="Pris (SEK) *"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="number"
+                        value={service.duration}
+                        onChange={(e) => updateService(service.id, 'duration', e.target.value)}
+                        placeholder="Tid (min, valfritt)"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <input
+                      type="text"
+                      value={service.description}
+                      onChange={(e) => updateService(service.id, 'description', e.target.value)}
+                      placeholder="Kort beskrivning (valfritt)"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                    />
+                  </div>
                 </div>
               ))}
 
@@ -497,56 +491,79 @@ export default function CreatePage() {
                   ← Tillbaka
                 </button>
                 <button
-                  onClick={() => setStep(3)}
-                  disabled={!services.some(s => s.name && s.price)}
-                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    const hasValidService = services.some(s => s.name && s.price)
+                    if (!hasValidService) {
+                      setError('Lägg till minst en tjänst med namn och pris.')
+                    } else {
+                      setError('')
+                      setStep(3)
+                    }
+                  }}
+                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
                 >
-                  Nästa: Öppettider →
+                  Nästa: Kontakt →
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 3: Opening Hours */}
+          {/* Step 3: Contact & Publish */}
           {step === 3 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">🕐 Öppettider</h2>
+              <h2 className="text-xl font-bold text-gray-900">📞 Kontaktuppgifter</h2>
+              <p className="text-gray-600 text-sm">
+                Lägg till minst en kontaktväg så att kunder kan nå er.
+              </p>
 
-              <div className="space-y-3">
-                {Object.entries(openingHours).map(([day, hours]) => (
-                  <div key={day} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <div className="w-24 font-medium text-gray-700">{dayNames[day]}</div>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={!hours.closed}
-                        onChange={(e) => updateHours(day, 'closed', !e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
-                      />
-                      <span className="text-sm text-gray-600">Öppet</span>
-                    </label>
-                    {!hours.closed && (
-                      <>
-                        <input
-                          type="time"
-                          value={hours.open}
-                          onChange={(e) => updateHours(day, 'open', e.target.value)}
-                          className="px-3 py-1 border border-gray-200 rounded-lg text-sm"
-                        />
-                        <span className="text-gray-400">-</span>
-                        <input
-                          type="time"
-                          value={hours.close}
-                          onChange={(e) => updateHours(day, 'close', e.target.value)}
-                          className="px-3 py-1 border border-gray-200 rounded-lg text-sm"
-                        />
-                      </>
-                    )}
-                    {hours.closed && (
-                      <span className="text-red-500 text-sm">Stängt</span>
-                    )}
-                  </div>
-                ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefon *
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="08-123 45 67 eller 070-123 45 67"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Obligatoriskt för att kunder ska kunna boka</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-post (valfritt)
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="info@example.se"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hemsida (valfritt)
+                </label>
+                <input
+                  type="url"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="https://www.example.se"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">📋 Sammanfattning</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>✓ Företag: {name}</li>
+                  <li>✓ Kategori: {categories.find(c => c.id === category)?.name}</li>
+                  <li>✓ Stad: {city}</li>
+                  <li>✓ Tjänster: {services.filter(s => s.name && s.price).length} st</li>
+                </ul>
               </div>
 
               <div className="flex gap-3">
@@ -558,7 +575,7 @@ export default function CreatePage() {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !phone}
                   className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition disabled:opacity-50"
                 >
                   {isSubmitting ? 'Publicerar...' : '🚀 Publicera annons'}

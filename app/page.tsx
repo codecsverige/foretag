@@ -5,6 +5,7 @@ import CategoryGrid from '@/components/search/CategoryGrid'
 import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
+import { computeMinServicePrice } from '@/lib/utils'
 
 // الفئات
 const categories = [
@@ -62,13 +63,13 @@ async function getCompanies() {
     const premiumCompanies = premiumSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
+      priceFrom: computeMinServicePrice(doc.data().services),
     }))
     
     const latestCompanies = latestSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
+      priceFrom: computeMinServicePrice(doc.data().services),
     }))
     
     return { premiumCompanies, latestCompanies }

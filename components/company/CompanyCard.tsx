@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { HiStar, HiLocationMarker } from 'react-icons/hi'
+import { computeMinServicePrice } from '@/lib/utils'
 
 interface Company {
   id: string
@@ -35,7 +36,9 @@ export default function CompanyCard({ company }: { company: Company }) {
   const city = company.city || 'Sverige'
   const rating = company.rating || 0
   const reviewCount = company.reviewCount || 0
-  const priceFrom = company.priceFrom || company.services?.[0]?.price || 0
+  
+  // Compute price from services array robustly
+  const priceFrom = company.priceFrom || computeMinServicePrice(company.services) || 0
 
   return (
     <Link href={`/foretag/${company.id}`}>

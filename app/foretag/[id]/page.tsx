@@ -1,16 +1,19 @@
-import { Metadata } from 'next'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { HiArrowLeft, HiPhone, HiMail, HiLocationMarker, HiStar, HiShare, HiHeart } from 'react-icons/hi'
+import { HiArrowLeft, HiPhone, HiMail, HiLocationMarker, HiStar, HiShare, HiHeart, HiGlobeAlt } from 'react-icons/hi'
 import BookingForm from '@/components/booking/BookingForm'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
+import { buildShareUrl, copyToClipboard } from '@/lib/utils'
 
 // Types
 interface Service {
   name: string
   price: number
-  duration: number
+  duration?: number
   description?: string
 }
 
@@ -31,87 +34,81 @@ interface Company {
   city: string
   address?: string
   description: string
-  phone: string
+  phone?: string
   email?: string
   website?: string
   rating: number
   reviewCount: number
   services: Service[]
-  openingHours: OpeningHours
+  openingHours?: OpeningHours
 }
 
-// Fetch company from Firestore
-async function getCompany(id: string): Promise<Company | null> {
-  try {
-    // For server-side, we need to initialize Firebase differently
-    const { initializeApp, getApps } = await import('firebase/app')
-    const { getFirestore, doc, getDoc } = await import('firebase/firestore')
-    
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+export default function CompanyPage({ params }: { params: { id: string } }) {
+  const [company, setCompany] = useState<Company | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  useEffect(() => {
+    async function fetchCompany() {
+      try {
+        if (!db) {
+          setLoading(false)
+          return
+        }
+
+        const docRef = doc(db, 'companies', params.id)
+        const docSnap = await getDoc(docRef)
+
+        if (!docSnap.exists()) {
+          setLoading(false)
+          return
+        }
+
+        setCompany({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as Company)
+      } catch (error) {
+        console.error('Error fetching company:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-    
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-    const db = getFirestore(app)
-    
-    const docRef = doc(db, 'companies', id)
-    const docSnap = await getDoc(docRef)
-    
-    if (!docSnap.exists()) {
-      return null
-    }
-    
-    return {
-      id: docSnap.id,
-      ...docSnap.data()
-    } as Company
-  } catch (error) {
-    console.error('Error fetching company:', error)
-    return null
-  }
-}
 
-// Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const company = await getCompany(params.id)
-  
-  if (!company) {
-    return {
-      title: 'Företag hittades inte | BokaNära',
+    fetchCompany()
+  }, [params.id])
+
+  const handleShare = async () => {
+    const shareUrl = buildShareUrl(params.id)
+    try {
+      await copyToClipboard(shareUrl)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
     }
   }
-  
-  return {
-    title: `${company.name} - ${company.categoryName} i ${company.city} | BokaNära`,
-    description: company.description?.substring(0, 150) || `${company.name} i ${company.city}`,
-    openGraph: {
-      title: `${company.name} - ${company.categoryName}`,
-      description: company.description || `${company.name} i ${company.city}`,
-      type: 'website',
-    },
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+      </div>
+    )
   }
-}
-
-const dayNames: { [key: string]: string } = {
-  monday: 'Måndag',
-  tuesday: 'Tisdag',
-  wednesday: 'Onsdag',
-  thursday: 'Torsdag',
-  friday: 'Fredag',
-  saturday: 'Lördag',
-  sunday: 'Söndag',
-}
-
-export default async function CompanyPage({ params }: { params: { id: string } }) {
-  const company = await getCompany(params.id)
 
   if (!company) {
     notFound()
+  }
+
+  const dayNames: { [key: string]: string } = {
+    monday: 'Måndag',
+    tuesday: 'Tisdag',
+    wednesday: 'Onsdag',
+    thursday: 'Torsdag',
+    friday: 'Fredag',
+    saturday: 'Lördag',
+    sunday: 'Söndag',
   }
 
   return (
@@ -124,8 +121,13 @@ export default async function CompanyPage({ params }: { params: { id: string } }
             <span>Tillbaka</span>
           </Link>
           <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+            <button
+              onClick={handleShare}
+              className="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+              title="Dela sida"
+            >
               <HiShare className="w-5 h-5 text-gray-600" />
+              {copySuccess && <span className="text-xs text-green-600">Kopierad!</span>}
             </button>
             <button className="p-2 hover:bg-gray-100 rounded-lg transition">
               <HiHeart className="w-5 h-5 text-gray-600" />
@@ -187,6 +189,17 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                   E-post
                 </a>
               )}
+              {company.website && (
+                <a
+                  href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold transition"
+                >
+                  <HiGlobeAlt className="w-5 h-5" />
+                  Hemsida
+                </a>
+              )}
               {company.address && (
                 <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(company.address + ', ' + company.city)}`}
@@ -218,14 +231,17 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                 <div className="space-y-4">
                   {company.services.map((service, index) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{service.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {service.description && `${service.description} • `}
-                          {service.duration} min
-                        </p>
+                        {(service.description || service.duration) && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            {service.description && service.description}
+                            {service.description && service.duration && ' • '}
+                            {service.duration && `${service.duration} min`}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-4">
                         <span className="font-bold text-lg text-brand">{service.price} kr</span>
                       </div>
                     </div>
@@ -281,7 +297,19 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                   <p className="text-gray-600">📧 {company.email}</p>
                 )}
                 {company.website && (
-                  <p className="text-gray-600">🌐 {company.website}</p>
+                  <p className="text-gray-600">
+                    🌐 <a 
+                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  </p>
+                )}
+                {!company.phone && !company.email && !company.website && (
+                  <p className="text-gray-500 italic">Ingen kontaktinformation tillgänglig</p>
                 )}
               </div>
             </section>

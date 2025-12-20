@@ -10,7 +10,7 @@ import Link from 'next/link'
 interface Service {
   name: string
   price: number
-  duration: number
+  duration?: number
 }
 
 interface BookingFormProps {
@@ -62,7 +62,7 @@ export default function BookingForm({ services, companyName, companyId }: Bookin
         // Service
         service: selectedServiceData?.name || selectedService,
         servicePrice: selectedServiceData?.price || 0,
-        serviceDuration: selectedServiceData?.duration || 30,
+        serviceDuration: selectedServiceData?.duration || null,
         
         // Customer
         customerName: name,
@@ -153,7 +153,8 @@ export default function BookingForm({ services, companyName, companyId }: Bookin
             <option value="">Välj tjänst...</option>
             {services.map((service, index) => (
               <option key={index} value={`${service.name}-${service.price}`}>
-                {service.name} - {service.price} kr ({service.duration} min)
+                {service.name} - {service.price} kr
+                {service.duration && ` (${service.duration} min)`}
               </option>
             ))}
           </select>

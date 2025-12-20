@@ -6,6 +6,7 @@ import { HiSearch, HiFilter, HiX } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import { db } from '@/lib/firebase'
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
+import { computeMinServicePrice } from '@/lib/utils'
 
 // الفئات
 const categories = [
@@ -79,7 +80,7 @@ function SearchContent() {
         let results = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
-          priceFrom: doc.data().services?.[0]?.price || 0,
+          priceFrom: computeMinServicePrice(doc.data().services),
         })) as Company[]
         
         // Client-side filtering (for simplicity)
