@@ -21,12 +21,12 @@ const categories = [
 // Initialize Firebase for server-side
 function getFirebaseDb() {
   const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "bokanara-4797d",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "bokanara-4797d.firebasestorage.app",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "980354990772",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:980354990772:web:d02b0018fad7ef6dc90de1",
   }
   
   const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
@@ -37,6 +37,7 @@ function getFirebaseDb() {
 async function getCompanies() {
   try {
     const db = getFirebaseDb()
+    console.log('🔍 Fetching companies from Firestore...')
     
     // Fetch premium companies
     const premiumQuery = query(
@@ -55,8 +56,14 @@ async function getCompanies() {
     )
     
     const [premiumSnap, latestSnap] = await Promise.all([
-      getDocs(premiumQuery).catch(() => ({ docs: [] })),
-      getDocs(latestQuery).catch(() => ({ docs: [] }))
+      getDocs(premiumQuery).catch((err) => {
+        console.error('❌ Error fetching premium companies:', err.message)
+        return { docs: [] }
+      }),
+      getDocs(latestQuery).catch((err) => {
+        console.error('❌ Error fetching latest companies:', err.message)
+        return { docs: [] }
+      })
     ])
     
     const premiumCompanies = premiumSnap.docs.map(doc => ({
@@ -71,12 +78,17 @@ async function getCompanies() {
       priceFrom: doc.data().services?.[0]?.price || 0,
     }))
     
+    console.log(`✅ Fetched ${premiumCompanies.length} premium and ${latestCompanies.length} latest companies`)
+    
     return { premiumCompanies, latestCompanies }
   } catch (error) {
-    console.error('Error fetching companies:', error)
+    console.error('❌ Error fetching companies:', error)
     return { premiumCompanies: [], latestCompanies: [] }
   }
 }
+
+// Enable revalidation every 60 seconds to show new ads
+export const revalidate = 60
 
 export default async function Home() {
   const { premiumCompanies, latestCompanies } = await getCompanies()
