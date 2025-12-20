@@ -111,6 +111,13 @@ export default function CreatePage() {
     setError('')
     
     try {
+      // Validate required fields
+      if (!name || !category || !city || !description || !phone) {
+        setError('Vänligen fyll i alla obligatoriska fält')
+        setIsSubmitting(false)
+        return
+      }
+
       // Prepare services data
       const validServices = services
         .filter(s => s.name && s.price)
@@ -120,6 +127,13 @@ export default function CreatePage() {
           duration: parseInt(s.duration) || 30,
           description: s.description || '',
         }))
+
+      // Validate at least one service
+      if (validServices.length === 0) {
+        setError('Lägg till minst en tjänst')
+        setIsSubmitting(false)
+        return
+      }
 
       // Create company document
       const companyData = {
@@ -160,37 +174,43 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
+      console.log('📤 Attempting to save company:', { name, category, city })
+
       // Try to save to Firestore
       if (db) {
         try {
           const docRef = await addDoc(collection(db, 'companies'), companyData)
           setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
+          console.log('✅ Successfully saved to Firestore:', docRef.id)
+          setSubmitted(true)
         } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          console.error('❌ Firestore error:', firestoreError)
+          console.error('Error code:', firestoreError.code)
+          console.error('Error message:', firestoreError.message)
+          
+          // Provide specific error messages
+          if (firestoreError.code === 'permission-denied') {
+            setError('Behörighetsproblem: Kontrollera Firestore-regler. Sparar lokalt istället.')
+          } else if (firestoreError.code === 'unavailable') {
+            setError('Firestore är inte tillgänglig. Kontrollera din internetanslutning.')
+          } else {
+            setError(`Firestore-fel: ${firestoreError.message}. Försök igen.`)
+          }
+          
+          // Don't save locally, show error to user
+          setIsSubmitting(false)
+          return
         }
       } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+        console.error('❌ Firestore (db) is not initialized')
+        setError('Firestore är inte konfigurerad. Kontrollera Firebase-inställningarna.')
+        setIsSubmitting(false)
+        return
       }
       
-      setSubmitted(true)
-      
     } catch (err: any) {
-      console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen.')
-    } finally {
+      console.error('❌ Unexpected error creating company:', err)
+      setError(`Oväntat fel: ${err.message || 'Försök igen.'}`)
       setIsSubmitting(false)
     }
   }
