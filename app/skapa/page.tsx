@@ -160,12 +160,12 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Save to Firestore
+      // Check Firebase configuration
       if (!db) {
-        setError('Firebase är inte konfigurerad. Kontakta support.')
-        return
+        throw new Error('Firebase är inte konfigurerad. Kontakta support.')
       }
 
+      // Save to Firestore
       const docRef = await addDoc(collection(db, 'companies'), companyData)
       setNewCompanyId(docRef.id)
       console.log('✅ Company saved to Firestore:', docRef.id)
@@ -174,7 +174,12 @@ export default function CreatePage() {
       
     } catch (err: any) {
       console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen senare.')
+      // Show user-friendly error message
+      if (err.message && err.message.includes('Firebase är inte konfigurerad')) {
+        setError(err.message)
+      } else {
+        setError('Kunde inte skapa annonsen. Försök igen senare.')
+      }
     } finally {
       setIsSubmitting(false)
     }
