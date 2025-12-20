@@ -163,19 +163,43 @@ export default function CreatePage() {
       // Try to save to Firestore
       if (db) {
         try {
+          console.log('📝 Attempting to save to Firestore...')
           const docRef = await addDoc(collection(db, 'companies'), companyData)
           setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
+          console.log('✅ Successfully saved to Firestore with ID:', docRef.id)
+          console.log('Company data:', { name, category, city, status: companyData.status })
         } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          console.error('❌ Firestore error details:', {
+            code: firestoreError.code,
+            message: firestoreError.message,
+            name: firestoreError.name
+          })
+          
+          // Check for common Firebase errors
+          if (firestoreError.code === 'permission-denied') {
+            console.error('Permission denied. Check Firestore security rules.')
+            setError('Behörighet nekad. Kontrollera Firebase-regler.')
+          } else if (firestoreError.code === 'unavailable') {
+            console.error('Firebase service unavailable. Check network connection.')
+            setError('Firebase-tjänsten är inte tillgänglig. Kontrollera anslutningen.')
+          } else {
+            console.warn('⚠️ Firestore error, saving locally as fallback:', firestoreError.message)
+            // Save to localStorage as backup
+            const localId = 'local_' + Date.now()
+            const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+            savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
+            localStorage.setItem('companies', JSON.stringify(savedCompanies))
+            setNewCompanyId(localId)
+            console.log('💾 Saved to localStorage as fallback:', localId)
+          }
+          
+          // Re-throw if it's a permission error to show to user
+          if (firestoreError.code === 'permission-denied' || firestoreError.code === 'unavailable') {
+            throw firestoreError
+          }
         }
       } else {
+        console.warn('⚠️ Firestore not initialized. Saving to localStorage.')
         // Save to localStorage
         const localId = 'local_' + Date.now()
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
