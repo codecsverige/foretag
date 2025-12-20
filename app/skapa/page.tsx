@@ -59,6 +59,29 @@ const dayNames: { [key: string]: string } = {
   sunday: 'Söndag',
 }
 
+// Helper function to handle Firestore errors
+function handleFirestoreError(error: any, setError: (msg: string) => void): { shouldRethrow: boolean; localId?: string } {
+  console.error('❌ Firestore error details:', {
+    code: error.code,
+    message: error.message,
+    name: error.name
+  })
+  
+  // Check for common Firebase errors
+  if (error.code === 'permission-denied') {
+    console.error('Permission denied. Check Firestore security rules.')
+    setError('Behörighet nekad. Kontrollera Firebase-regler.')
+    return { shouldRethrow: true }
+  } else if (error.code === 'unavailable') {
+    console.error('Firebase service unavailable. Check network connection.')
+    setError('Firebase-tjänsten är inte tillgänglig. Kontrollera anslutningen.')
+    return { shouldRethrow: true }
+  } else {
+    console.warn('⚠️ Firestore error, will save locally as fallback:', error.message)
+    return { shouldRethrow: false }
+  }
+}
+
 export default function CreatePage() {
   const router = useRouter()
   
@@ -169,21 +192,11 @@ export default function CreatePage() {
           console.log('✅ Successfully saved to Firestore with ID:', docRef.id)
           console.log('Company data:', { name, category, city, status: companyData.status })
         } catch (firestoreError: any) {
-          console.error('❌ Firestore error details:', {
-            code: firestoreError.code,
-            message: firestoreError.message,
-            name: firestoreError.name
-          })
+          const { shouldRethrow } = handleFirestoreError(firestoreError, setError)
           
-          // Check for common Firebase errors
-          if (firestoreError.code === 'permission-denied') {
-            console.error('Permission denied. Check Firestore security rules.')
-            setError('Behörighet nekad. Kontrollera Firebase-regler.')
-          } else if (firestoreError.code === 'unavailable') {
-            console.error('Firebase service unavailable. Check network connection.')
-            setError('Firebase-tjänsten är inte tillgänglig. Kontrollera anslutningen.')
+          if (shouldRethrow) {
+            throw firestoreError
           } else {
-            console.warn('⚠️ Firestore error, saving locally as fallback:', firestoreError.message)
             // Save to localStorage as backup
             const localId = 'local_' + Date.now()
             const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
@@ -191,11 +204,6 @@ export default function CreatePage() {
             localStorage.setItem('companies', JSON.stringify(savedCompanies))
             setNewCompanyId(localId)
             console.log('💾 Saved to localStorage as fallback:', localId)
-          }
-          
-          // Re-throw if it's a permission error to show to user
-          if (firestoreError.code === 'permission-denied' || firestoreError.code === 'unavailable') {
-            throw firestoreError
           }
         }
       } else {

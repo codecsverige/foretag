@@ -28,9 +28,18 @@ service cloud.firestore {
       // Anyone can read companies (for SEO and public listings)
       allow read: if true;
       
-      // TEMPORARY: Allow anonymous company creation for testing
-      // TODO: Re-enable authentication requirement when auth is fully configured
-      // Original rule: allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      // ⚠️ SECURITY WARNING: TEMPORARY RULE FOR TESTING ONLY
+      // This allows ANY unauthenticated user to create companies
+      // This is a SIGNIFICANT SECURITY RISK and should ONLY be used for testing
+      // 
+      // TODO: Remove this rule and restore authentication requirement:
+      //   allow create: if isSignedIn() 
+      //     && request.resource.data.ownerId == request.auth.uid;
+      // 
+      // Alternative secure temporary solution:
+      //   1. Add a feature flag in Firebase Remote Config
+      //   2. Use Firebase Admin SDK to validate requests
+      //   3. Implement rate limiting for anonymous requests
       allow create: if true;
       
       // Only owner can update their company

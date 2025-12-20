@@ -25,9 +25,20 @@ if ! command -v firebase &> /dev/null; then
     npm install -g firebase-tools
 fi
 
-# Check if user is logged in
-echo "📝 Checking Firebase authentication..."
-firebase login:ci --no-localhost || firebase login
+# Check if running in CI environment
+if [ -n "$CI" ]; then
+    echo "📝 Running in CI environment, using token authentication..."
+    # In CI, use token: firebase deploy --token "$FIREBASE_TOKEN"
+else
+    # Check if user is logged in
+    echo "📝 Checking Firebase authentication..."
+    if ! firebase login:list &> /dev/null; then
+        echo "🔐 Not logged in. Opening browser for authentication..."
+        firebase login
+    else
+        echo "✅ Already logged in to Firebase"
+    fi
+fi
 
 # Check current project
 echo ""
