@@ -1,10 +1,12 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import CategoryGrid from '@/components/search/CategoryGrid'
-import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
-import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { collection, query, orderBy, limit, where, onSnapshot } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 // الفئات
 const categories = [
@@ -18,27 +20,60 @@ const categories = [
   { id: 'utbildning', name: 'Utbildning', emoji: '📚', count: 0 },
 ]
 
-// Initialize Firebase for server-side
-function getFirebaseDb() {
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  }
-  
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-  return getFirestore(app)
+interface Company {
+  id: string
+  name: string
+  category: string
+  categoryName: string
+  emoji: string
+  city: string
+  rating?: number
+  reviewCount?: number
+  priceFrom: number
+  premium?: boolean
+  services?: Array<{ name: string; price: number; duration: number }>
 }
 
-// Fetch companies from Firestore
-async function getCompanies() {
-  try {
-    const db = getFirebaseDb()
+export default function Home() {
+  const [premiumCompanies, setPremiumCompanies] = useState<Company[]>([])
+  const [latestCompanies, setLatestCompanies] = useState<Company[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    // If no Firestore, try localStorage
+    if (!db) {
+      const loadFromLocalStorage = () => {
+        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+        const companiesData = savedCompanies.map((c: any) => ({
+          ...c,
+          priceFrom: c.services?.[0]?.price || 0,
+        }))
+        
+        // Sort by premium and createdAt
+        const premium = companiesData.filter((c: any) => c.premium).slice(0, 6)
+        const latest = companiesData
+          .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0))
+          .slice(0, 6)
+        
+        setPremiumCompanies(premium)
+        setLatestCompanies(latest)
+        setLoading(false)
+      }
+      
+      loadFromLocalStorage()
+      
+      // Listen for localStorage changes
+      const handleStorageChange = () => {
+        loadFromLocalStorage()
+      }
+      
+      window.addEventListener('storage', handleStorageChange)
+      return () => {
+        window.removeEventListener('storage', handleStorageChange)
+      }
+    }
     
-    // Fetch premium companies
+    // Real-time listener for premium companies
     const premiumQuery = query(
       collection(db, 'companies'),
       where('status', '==', 'active'),
@@ -46,7 +81,23 @@ async function getCompanies() {
       limit(6)
     )
     
-    // Fetch latest companies
+    const unsubscribePremium = onSnapshot(
+      premiumQuery,
+      (snapshot) => {
+        const companies = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          priceFrom: doc.data().services?.[0]?.price || 0,
+        })) as Company[]
+        setPremiumCompanies(companies)
+      },
+      (error) => {
+        console.error('Error fetching premium companies:', error)
+        setPremiumCompanies([])
+      }
+    )
+    
+    // Real-time listener for latest companies
     const latestQuery = query(
       collection(db, 'companies'),
       where('status', '==', 'active'),
@@ -54,35 +105,32 @@ async function getCompanies() {
       limit(6)
     )
     
-    const [premiumSnap, latestSnap] = await Promise.all([
-      getDocs(premiumQuery).catch(() => ({ docs: [] })),
-      getDocs(latestQuery).catch(() => ({ docs: [] }))
-    ])
+    const unsubscribeLatest = onSnapshot(
+      latestQuery,
+      (snapshot) => {
+        const companies = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          priceFrom: doc.data().services?.[0]?.price || 0,
+        })) as Company[]
+        setLatestCompanies(companies)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Error fetching latest companies:', error)
+        setLatestCompanies([])
+        setLoading(false)
+      }
+    )
     
-    const premiumCompanies = premiumSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
-    
-    const latestCompanies = latestSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
-    
-    return { premiumCompanies, latestCompanies }
-  } catch (error) {
-    console.error('Error fetching companies:', error)
-    return { premiumCompanies: [], latestCompanies: [] }
-  }
-}
-
-export default async function Home() {
-  const { premiumCompanies, latestCompanies } = await getCompanies()
+    return () => {
+      unsubscribePremium()
+      unsubscribeLatest()
+    }
+  }, [])
   
   // Show placeholder if no companies yet
-  const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0
+  const showPlaceholder = !loading && premiumCompanies.length === 0 && latestCompanies.length === 0
 
   return (
     <div className="min-h-screen">
@@ -147,7 +195,14 @@ export default async function Home() {
       </section>
 
       {/* Featured Companies or Placeholder */}
-      {showPlaceholder ? (
+      {loading ? (
+        <section className="py-12 md:py-16">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto"></div>
+            <p className="text-gray-600 mt-4">Laddar företag...</p>
+          </div>
+        </section>
+      ) : showPlaceholder ? (
         <section className="py-12 md:py-16">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="bg-blue-50 rounded-2xl p-8 md:p-12">

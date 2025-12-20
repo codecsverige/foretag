@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { HiSearch, HiFilter, HiX } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore'
 
 // الفئات
 const categories = [
@@ -56,26 +56,70 @@ function SearchContent() {
   const [sortBy, setSortBy] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Fetch companies from Firestore
+  // Fetch companies from Firestore with real-time listener
   useEffect(() => {
-    async function fetchCompanies() {
-      if (!db) {
-        setCompanies([])
+    if (!db) {
+      const loadFromLocalStorage = () => {
+        // Fallback to localStorage
+        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+        let results = savedCompanies.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          categoryName: c.categoryName,
+          emoji: c.emoji,
+          city: c.city,
+          rating: c.rating || 0,
+          reviewCount: c.reviewCount || 0,
+          priceFrom: c.services?.[0]?.price || 0,
+          premium: c.premium || false,
+        })) as Company[]
+        
+        // Apply filters
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase()
+          results = results.filter(c => 
+            c.name?.toLowerCase().includes(query) ||
+            c.categoryName?.toLowerCase().includes(query)
+          )
+        }
+        
+        if (selectedCategory) {
+          results = results.filter(c => c.category === selectedCategory)
+        }
+        
+        if (selectedCity) {
+          results = results.filter(c => c.city === selectedCity)
+        }
+        
+        setCompanies(results)
         setLoading(false)
-        return
       }
       
-      setLoading(true)
-      try {
-        let q = query(
-          collection(db, 'companies'),
-          where('status', '==', 'active')
-        )
-        
-        // Note: Firestore has limitations on compound queries
-        // For production, you'd want to use Algolia or similar for search
-        
-        const snapshot = await getDocs(q)
+      loadFromLocalStorage()
+      
+      // Listen for localStorage changes
+      const handleStorageChange = () => {
+        loadFromLocalStorage()
+      }
+      
+      window.addEventListener('storage', handleStorageChange)
+      return () => {
+        window.removeEventListener('storage', handleStorageChange)
+      }
+    }
+    
+    setLoading(true)
+    
+    const q = query(
+      collection(db, 'companies'),
+      where('status', '==', 'active')
+    )
+    
+    // Real-time listener
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
         let results = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -119,15 +163,16 @@ function SearchContent() {
         results.sort((a, b) => (b.premium ? 1 : 0) - (a.premium ? 1 : 0))
         
         setCompanies(results)
-      } catch (error) {
+        setLoading(false)
+      },
+      (error) => {
         console.error('Error fetching companies:', error)
         setCompanies([])
-      } finally {
         setLoading(false)
       }
-    }
+    )
     
-    fetchCompanies()
+    return () => unsubscribe()
   }, [searchQuery, selectedCategory, selectedCity, sortBy])
 
   const activeFiltersCount = [selectedCategory, selectedCity].filter(Boolean).length

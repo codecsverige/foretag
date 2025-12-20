@@ -174,15 +174,21 @@ export default function CreatePage() {
           savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
           localStorage.setItem('companies', JSON.stringify(savedCompanies))
           setNewCompanyId(localId)
+          
+          // Trigger storage event for other tabs/windows
+          window.dispatchEvent(new Event('storage'))
         }
       } else {
-        // Save to localStorage
+        // Save to localStorage when no Firestore
         const localId = 'local_' + Date.now()
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
         savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
         localStorage.setItem('companies', JSON.stringify(savedCompanies))
         setNewCompanyId(localId)
         console.log('💾 Saved locally:', localId)
+        
+        // Trigger storage event for other tabs/windows
+        window.dispatchEvent(new Event('storage'))
       }
       
       setSubmitted(true)

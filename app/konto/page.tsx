@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, query, where, getDocs, doc, deleteDoc, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore'
 import { HiPlus, HiPencil, HiTrash, HiClock, HiPhone, HiStar, HiEye } from 'react-icons/hi'
 
 interface Company {
@@ -57,48 +57,79 @@ export default function AccountPage() {
   }, [user, authLoading, router])
 
   useEffect(() => {
-    async function fetchUserData() {
-      if (!user || !db) {
-        setLoading(false)
-        return
+    if (!user || !db) {
+      // Try localStorage fallback
+      if (typeof window !== 'undefined' && !db) {
+        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+        // Filter by anonymous for testing
+        const localCompanies = savedCompanies.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          categoryName: c.categoryName,
+          city: c.city,
+          status: c.status || 'active',
+          createdAt: c.createdAt,
+          viewCount: c.viewCount || 0,
+          bookingCount: c.bookingCount || 0,
+        }))
+        setCompanies(localCompanies)
       }
-      
-      setLoading(true)
-      try {
-        // Fetch user's companies
-        const companiesQuery = query(
-          collection(db, 'companies'),
-          where('ownerId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        )
-        const companiesSnap = await getDocs(companiesQuery)
-        const companiesData = companiesSnap.docs.map(doc => ({
+      setLoading(false)
+      return
+    }
+    
+    setLoading(true)
+    
+    // Real-time listener for user's companies
+    const companiesQuery = query(
+      collection(db, 'companies'),
+      where('ownerId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    )
+    
+    const unsubscribeCompanies = onSnapshot(
+      companiesQuery,
+      (snapshot) => {
+        const companiesData = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Company[]
         setCompanies(companiesData)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Error fetching companies:', error)
+        setCompanies([])
+        setLoading(false)
+      }
+    )
 
-        // Fetch user's bookings
-        const bookingsQuery = query(
-          collection(db, 'bookings'),
-          where('customerId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        )
-        const bookingsSnap = await getDocs(bookingsQuery).catch(() => ({ docs: [] }))
-        const bookingsData = bookingsSnap.docs.map(doc => ({
+    // Real-time listener for user's bookings
+    const bookingsQuery = query(
+      collection(db, 'bookings'),
+      where('customerId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    )
+    
+    const unsubscribeBookings = onSnapshot(
+      bookingsQuery,
+      (snapshot) => {
+        const bookingsData = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Booking[]
         setBookings(bookingsData)
-      } catch (error) {
-        console.error('Error fetching user data:', error)
-      } finally {
-        setLoading(false)
+      },
+      (error) => {
+        console.error('Error fetching bookings:', error)
+        setBookings([])
       }
-    }
+    )
 
-    if (user) {
-      fetchUserData()
+    return () => {
+      unsubscribeCompanies()
+      unsubscribeBookings()
     }
   }, [user])
 
