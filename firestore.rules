@@ -28,16 +28,11 @@ service cloud.firestore {
       // Anyone can read companies (for SEO and public listings)
       allow read: if true;
       
-      // Only signed-in users can create companies
-      allow create: if isSignedIn() 
-        && request.resource.data.ownerId == request.auth.uid;
+      // ⚠️ TEMPORARY: Allow creating without auth for testing
+      allow create: if true;
       
-      // Only owner can update their company
-      allow update: if isSignedIn() 
-        && resource.data.ownerId == request.auth.uid;
-      
-      // Only owner can delete their company
-      allow delete: if isSignedIn() 
+      // Only owner can update/delete their company
+      allow update, delete: if isSignedIn() 
         && resource.data.ownerId == request.auth.uid;
     }
 

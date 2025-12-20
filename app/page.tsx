@@ -3,8 +3,7 @@ import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import CategoryGrid from '@/components/search/CategoryGrid'
 import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
-import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { db as firestoreDb } from '@/lib/firebase'
 
 // الفئات
 const categories = [
@@ -18,19 +17,12 @@ const categories = [
   { id: 'utbildning', name: 'Utbildning', emoji: '📚', count: 0 },
 ]
 
-// Initialize Firebase for server-side
+// استخدام نفس التهيئة من lib/firebase
 function getFirebaseDb() {
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  if (!firestoreDb) {
+    throw new Error('Firestore is not initialized')
   }
-  
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-  return getFirestore(app)
+  return firestoreDb
 }
 
 // Fetch companies from Firestore
@@ -73,7 +65,8 @@ async function getCompanies() {
     
     return { premiumCompanies, latestCompanies }
   } catch (error) {
-    console.error('Error fetching companies:', error)
+    console.error('❌ Error fetching companies:', error)
+    // إرجاع مصفوفات فارغة بدلاً من رمي الخطأ لتجنب كسر الصفحة
     return { premiumCompanies: [], latestCompanies: [] }
   }
 }

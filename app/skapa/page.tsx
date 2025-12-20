@@ -160,31 +160,14 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
-      if (db) {
-        try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
-        }
-      } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+      // حفظ في Firestore - يجب أن ينجح وإلا نعرض خطأ
+      if (!db) {
+        throw new Error('Firebase är inte konfigurerad. Vänligen försök igen eller kontakta support.')
       }
-      
+
+      const docRef = await addDoc(collection(db, 'companies'), companyData)
+      setNewCompanyId(docRef.id)
+      console.log('✅ Företag sparat i Firestore:', docRef.id)
       setSubmitted(true)
       
     } catch (err: any) {
