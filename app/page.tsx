@@ -23,15 +23,19 @@ const categories = [
 export default function Home() {
   const [premiumCompanies, setPremiumCompanies] = useState<any[]>([])
   const [latestCompanies, setLatestCompanies] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loadingPremium, setLoadingPremium] = useState(true)
+  const [loadingLatest, setLoadingLatest] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  const loading = loadingPremium || loadingLatest
   
   // Show placeholder if no companies yet
   const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0 && !loading
 
   useEffect(() => {
     if (!db) {
-      setLoading(false)
+      setLoadingPremium(false)
+      setLoadingLatest(false)
       setError('Firebase not initialized')
       return
     }
@@ -62,12 +66,12 @@ export default function Home() {
           priceFrom: doc.data().services?.[0]?.price || 0,
         }))
         setPremiumCompanies(companies)
-        setLoading(false)
+        setLoadingPremium(false)
       },
       (err) => {
         console.error('Error fetching premium companies:', err)
         setError('Failed to load premium companies')
-        setLoading(false)
+        setLoadingPremium(false)
       }
     )
 
@@ -80,12 +84,12 @@ export default function Home() {
           priceFrom: doc.data().services?.[0]?.price || 0,
         }))
         setLatestCompanies(companies)
-        setLoading(false)
+        setLoadingLatest(false)
       },
       (err) => {
         console.error('Error fetching latest companies:', err)
         setError('Failed to load latest companies')
-        setLoading(false)
+        setLoadingLatest(false)
       }
     )
 
