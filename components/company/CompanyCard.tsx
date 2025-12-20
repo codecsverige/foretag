@@ -1,20 +1,6 @@
 import Link from 'next/link'
 import { HiStar, HiLocationMarker } from 'react-icons/hi'
-
-interface Company {
-  id: string
-  name: string
-  category?: string
-  categoryName?: string
-  emoji?: string
-  city?: string
-  rating?: number
-  reviewCount?: number
-  image?: string
-  priceFrom?: number
-  premium?: boolean
-  services?: Array<{ price?: number }>
-}
+import { Company } from '@/lib/types'
 
 // Map category to emoji
 const categoryEmojis: Record<string, string> = {

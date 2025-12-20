@@ -3,22 +3,8 @@
 import { useState, useEffect } from 'react'
 import { collection, query, where, orderBy, limit, onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { Company } from '@/lib/types'
 import CompanyCard from './CompanyCard'
-
-interface Company {
-  id: string
-  name: string
-  category?: string
-  categoryName?: string
-  emoji?: string
-  city?: string
-  rating?: number
-  reviewCount?: number
-  image?: string
-  priceFrom?: number
-  premium?: boolean
-  services?: Array<{ price?: number }>
-}
 
 interface CompanyListProps {
   type: 'premium' | 'latest'

@@ -11,6 +11,10 @@ import Link from 'next/link'
 // Set to false when Firebase Auth is configured
 const SKIP_AUTH = true
 
+// Retry configuration for Firestore writes
+const MAX_RETRY_ATTEMPTS = 3
+const RETRY_BASE_DELAY_MS = 1000
+
 const categories = [
   { id: 'frisor', name: 'Frisör', emoji: '💇' },
   { id: 'massage', name: 'Massage', emoji: '💆' },
@@ -203,9 +207,9 @@ export default function CreatePage() {
         let success = false
         let lastError: any = null
         
-        while (attempts < 3 && !success) {
+        while (attempts < MAX_RETRY_ATTEMPTS && !success) {
           try {
-            console.log(`🔄 Attempt ${attempts + 1}/3 to save to Firestore...`)
+            console.log(`🔄 Attempt ${attempts + 1}/${MAX_RETRY_ATTEMPTS} to save to Firestore...`)
             const docRef = await addDoc(collection(db, 'companies'), companyData)
             setNewCompanyId(docRef.id)
             console.log('✅ Saved to Firestore:', docRef.id)
@@ -213,11 +217,11 @@ export default function CreatePage() {
           } catch (firestoreError: any) {
             lastError = firestoreError
             attempts++
-            console.warn(`⚠️ Firestore error (attempt ${attempts}/3):`, firestoreError.message)
+            console.warn(`⚠️ Firestore error (attempt ${attempts}/${MAX_RETRY_ATTEMPTS}):`, firestoreError.message)
             
-            if (attempts < 3) {
+            if (attempts < MAX_RETRY_ATTEMPTS) {
               // Exponential backoff: wait 1s, then 2s, then 4s
-              const waitTime = 1000 * Math.pow(2, attempts - 1)
+              const waitTime = RETRY_BASE_DELAY_MS * Math.pow(2, attempts - 1)
               console.log(`⏳ Waiting ${waitTime}ms before retry...`)
               await new Promise(resolve => setTimeout(resolve, waitTime))
             }
