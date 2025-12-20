@@ -155,7 +155,8 @@ export default function CreatePage() {
         services: validServices,
         openingHours,
         
-        // Metadata - temporary anonymous
+        // Metadata - temporary anonymous (TODO: Replace with proper authentication)
+        // This allows testing without login. Should be replaced with real user auth before production.
         ownerId: 'anonymous',
         ownerName: 'Anonymous',
         ownerEmail: email || '',
@@ -190,7 +191,7 @@ export default function CreatePage() {
           
           // Provide specific error messages
           if (firestoreError.code === 'permission-denied') {
-            setError('Behörighetsproblem: Kontrollera Firestore-regler. Sparar lokalt istället.')
+            setError('Behörighetsproblem: Kontrollera Firestore-regler eller logga in.')
           } else if (firestoreError.code === 'unavailable') {
             setError('Firestore är inte tillgänglig. Kontrollera din internetanslutning.')
           } else {

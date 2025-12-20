@@ -29,11 +29,14 @@ service cloud.firestore {
       allow read: if true;
       
       // Allow create for authenticated users OR temporary anonymous creates
+      // ⚠️ WARNING: Anonymous creation is for TESTING ONLY
+      // TODO: Remove anonymous creation before production or add rate limiting
       // (anonymous creates have ownerId: 'anonymous' for testing)
       allow create: if (isSignedIn() && request.resource.data.ownerId == request.auth.uid)
         || (!isSignedIn() && request.resource.data.ownerId == 'anonymous');
       
       // Only owner can update their company (or anonymous in test mode)
+      // ⚠️ WARNING: Anonymous updates should be removed before production
       allow update: if (isSignedIn() && resource.data.ownerId == request.auth.uid)
         || (resource.data.ownerId == 'anonymous');
       
