@@ -160,29 +160,45 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
+      // Try to save to Firestore with retry logic
       if (db) {
-        try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+        let attempts = 0
+        let success = false
+        
+        while (attempts < 3 && !success) {
+          try {
+            const docRef = await addDoc(collection(db, 'companies'), companyData)
+            setNewCompanyId(docRef.id)
+            console.log(`✅ Ad created successfully on attempt ${attempts + 1}:`, docRef.id)
+            success = true
+          } catch (firestoreError: any) {
+            attempts++
+            console.error(`❌ Try ${attempts}: Failed to create ad`, firestoreError)
+            
+            if (attempts >= 3) {
+              console.warn('⚠️ Failed to create ad after 3 attempts, saving locally')
+              // Save to localStorage as backup
+              const localId = 'local_' + Date.now()
+              const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+              savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
+              localStorage.setItem('companies', JSON.stringify(savedCompanies))
+              setNewCompanyId(localId)
+              setError('Annonsen sparades lokalt. Kontrollera din internetanslutning.')
+            } else {
+              // Wait before retry with exponential backoff
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempts))
+            }
+          }
         }
       } else {
+        console.warn('⚠️ Firebase not initialized, saving locally')
         // Save to localStorage
         const localId = 'local_' + Date.now()
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
         savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
         localStorage.setItem('companies', JSON.stringify(savedCompanies))
         setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+        setError('Firebase är inte konfigurerad. Annonsen sparades lokalt.')
       }
       
       setSubmitted(true)

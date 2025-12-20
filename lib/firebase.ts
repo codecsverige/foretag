@@ -19,12 +19,24 @@ import { getStorage, FirebaseStorage } from 'firebase/storage'
 
 /* قيم البيئة - نفس الإعدادات من المشروع القديم */
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBogjhVj-jDGKJHwJEh3DmZHR-JnT7cduo",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "bokanara-4797d.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "bokanara-4797d",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "bokanara-4797d.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "980354990772",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:980354990772:web:d02b0018fad7ef6dc90de1",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+}
+
+// Validate Firebase configuration
+if (!firebaseConfig.projectId) {
+  console.error('❌ Invalid Firebase configuration. Please check your environment variables.')
+  throw new Error('Firebase configuration is missing or invalid')
+}
+
+// Validate we're using the correct project
+if (firebaseConfig.projectId !== 'bokanara-4797d') {
+  console.warn('⚠️ Warning: Using Firebase project:', firebaseConfig.projectId)
+  console.warn('⚠️ Expected project: bokanara-4797d')
 }
 
 /* Initialize Firebase */
