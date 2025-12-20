@@ -143,6 +143,20 @@ firebase deploy --only firestore:rules
 firebase deploy --only firestore:indexes
 ```
 
+### 4. ✅ Validera Firebase-integration | Validate Firebase Integration
+
+**Snabbtest:**
+```bash
+npm run test:firebase
+```
+
+**Fullständig validering:**
+```bash
+npm run validate:firebase
+```
+
+Se [FIREBASE_TESTING.md](./FIREBASE_TESTING.md) för detaljerad testguide.
+
 ---
 
 ## 📊 قاعدة البيانات | Databasstruktur
@@ -301,6 +315,11 @@ firebase deploy --only functions
 npm run dev          # Starta dev server
 npm run build        # Bygg för produktion
 npm run start        # Kör produktionsbygge
+npm run lint         # Kör linter
+
+# Firebase Testing
+npm run test:firebase      # Snabb Firebase-anslutningstest
+npm run validate:firebase  # Fullständig Firebase-validering
 
 # Firebase
 firebase deploy --only firestore:rules
@@ -311,6 +330,40 @@ firebase emulators:start
 vercel dev           # Lokal Vercel dev
 vercel --prod        # Deploy till produktion
 ```
+
+---
+
+## 🧪 Testing & Validering | Testing & Validation
+
+### Testdokumentation
+
+- **[FIREBASE_TESTING.md](./FIREBASE_TESTING.md)** - Fullständig guide för Firebase-integration testing
+- **[MANUAL_TESTING_WORKFLOW.md](./MANUAL_TESTING_WORKFLOW.md)** - Steg-för-steg manuell testning av annonsering
+- **[CI_CD_TESTING.md](./CI_CD_TESTING.md)** - CI/CD miljötestning (GitHub Actions & Vercel)
+
+### Snabbtester
+
+```bash
+# Testa Firebase-anslutning
+npm run test:firebase
+
+# Fullständig Firebase-validering
+npm run validate:firebase
+
+# Bygg och verifiera produktion lokalt
+npm run build
+npm run start
+```
+
+### Testscenarier
+
+1. ✅ Firebase SDK initialiseras korrekt
+2. ✅ Firestore anslutning fungerar
+3. ✅ Skapa annons via `/skapa`
+4. ✅ Annons sparas med status='active'
+5. ✅ Annons visas på startsidan
+6. ✅ Företagssida visar korrekt data
+7. ✅ Felhantering för nätverksproblem
 
 ---
 
