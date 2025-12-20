@@ -28,15 +28,17 @@ service cloud.firestore {
       // Anyone can read companies (for SEO and public listings)
       allow read: if true;
       
-      // Only signed-in users can create companies
-      allow create: if isSignedIn() 
-        && request.resource.data.ownerId == request.auth.uid;
+      // Allow creation for:
+      // 1. Authenticated users (production mode) - ownerId must match auth.uid
+      // 2. Anonymous/test mode - ownerId must be 'anonymous'
+      allow create: if (isSignedIn() && request.resource.data.ownerId == request.auth.uid)
+        || request.resource.data.ownerId == 'anonymous';
       
-      // Only owner can update their company
+      // Only owner can update their company (authenticated users only)
       allow update: if isSignedIn() 
         && resource.data.ownerId == request.auth.uid;
       
-      // Only owner can delete their company
+      // Only owner can delete their company (authenticated users only)
       allow delete: if isSignedIn() 
         && resource.data.ownerId == request.auth.uid;
     }
