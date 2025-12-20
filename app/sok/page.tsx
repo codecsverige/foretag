@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { HiSearch, HiFilter, HiX } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
+import { Company } from '@/lib/types'
 import { db } from '@/lib/firebase'
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 
@@ -31,19 +32,6 @@ const cities = [
   { id: 'Linköping', name: 'Linköping' },
   { id: 'Helsingborg', name: 'Helsingborg' },
 ]
-
-interface Company {
-  id: string
-  name: string
-  category: string
-  categoryName: string
-  emoji: string
-  city: string
-  rating: number
-  reviewCount: number
-  priceFrom: number
-  premium?: boolean
-}
 
 function SearchContent() {
   const searchParams = useSearchParams()
