@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
+import AdCard from '@/components/ad/AdCard'
 import CategoryGrid from '@/components/search/CategoryGrid'
 import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import { initializeApp, getApps } from 'firebase/app'
@@ -33,8 +34,8 @@ function getFirebaseDb() {
   return getFirestore(app)
 }
 
-// Fetch companies from Firestore
-async function getCompanies() {
+// Fetch companies and ads from Firestore
+async function getCompaniesAndAds() {
   try {
     const db = getFirebaseDb()
     
@@ -54,9 +55,18 @@ async function getCompanies() {
       limit(6)
     )
     
-    const [premiumSnap, latestSnap] = await Promise.all([
+    // Fetch published ads
+    const adsQuery = query(
+      collection(db, 'ads'),
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc'),
+      limit(6)
+    )
+    
+    const [premiumSnap, latestSnap, adsSnap] = await Promise.all([
       getDocs(premiumQuery).catch(() => ({ docs: [] })),
-      getDocs(latestQuery).catch(() => ({ docs: [] }))
+      getDocs(latestQuery).catch(() => ({ docs: [] })),
+      getDocs(adsQuery).catch(() => ({ docs: [] }))
     ])
     
     const premiumCompanies = premiumSnap.docs.map(doc => ({
@@ -71,18 +81,23 @@ async function getCompanies() {
       priceFrom: doc.data().services?.[0]?.price || 0,
     }))
     
-    return { premiumCompanies, latestCompanies }
+    const ads = adsSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+    
+    return { premiumCompanies, latestCompanies, ads }
   } catch (error) {
-    console.error('Error fetching companies:', error)
-    return { premiumCompanies: [], latestCompanies: [] }
+    console.error('Error fetching data:', error)
+    return { premiumCompanies: [], latestCompanies: [], ads: [] }
   }
 }
 
 export default async function Home() {
-  const { premiumCompanies, latestCompanies } = await getCompanies()
+  const { premiumCompanies, latestCompanies, ads } = await getCompaniesAndAds()
   
-  // Show placeholder if no companies yet
-  const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0
+  // Show placeholder if no companies or ads yet
+  const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0 && ads.length === 0
 
   return (
     <div className="min-h-screen">
@@ -158,13 +173,22 @@ export default async function Home() {
               <p className="text-gray-600 mb-6 max-w-xl mx-auto">
                 Inga företag har registrerats ännu. Bli den första och nå tusentals potentiella kunder.
               </p>
-              <Link
-                href="/skapa"
-                className="inline-flex items-center gap-2 bg-brand text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-dark transition"
-              >
-                Skapa annons gratis
-                <HiArrowRight className="w-5 h-5" />
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/skapa"
+                  className="inline-flex items-center gap-2 bg-brand text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-dark transition"
+                >
+                  Skapa företagsprofil
+                  <HiArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/skapa-annons"
+                  className="inline-flex items-center gap-2 bg-purple-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition"
+                >
+                  📢 Skapa annons
+                  <HiArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -211,6 +235,24 @@ export default async function Home() {
               </div>
             </section>
           )}
+
+          {/* Ads Section */}
+          {ads.length > 0 && (
+            <section className="py-12 md:py-16">
+              <div className="max-w-7xl mx-auto px-4">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    📢 Senaste annonserna
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {ads.map((ad: any) => (
+                    <AdCard key={ad.id} ad={ad} />
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
         </>
       )}
 
@@ -223,13 +265,22 @@ export default async function Home() {
           <p className="text-xl text-indigo-100 mb-8">
             Skapa din gratis annons och nå tusentals nya kunder. Få bokningar direkt och SMS-påminnelser för att minska no-shows.
           </p>
-          <Link
-            href="/skapa"
-            className="inline-flex items-center gap-2 bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-50 transition shadow-lg"
-          >
-            Skapa annons gratis
-            <HiArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/skapa"
+              className="inline-flex items-center justify-center gap-2 bg-white text-indigo-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-50 transition shadow-lg"
+            >
+              Skapa företagsprofil
+              <HiArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/skapa-annons"
+              className="inline-flex items-center justify-center gap-2 bg-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-purple-800 transition shadow-lg border-2 border-white"
+            >
+              📢 Skapa annons
+              <HiArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </section>
 
