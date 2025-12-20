@@ -51,3 +51,4 @@ ui-debug.log
 
 # OS
 Thumbs.db
+.eslintrc.json

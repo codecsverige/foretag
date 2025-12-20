@@ -111,6 +111,13 @@ export default function CreatePage() {
     setError('')
     
     try {
+      // Check if Firestore is available
+      if (!db) {
+        setError('Firestore är inte tillgänglig. Kontrollera din internetanslutning och försök igen.')
+        setIsSubmitting(false)
+        return
+      }
+
       // Prepare services data
       const validServices = services
         .filter(s => s.name && s.price)
@@ -151,7 +158,7 @@ export default function CreatePage() {
         reviewCount: 0,
         views: 0,
         
-        // Status
+        // Status - always active for immediate visibility
         status: 'active',
         premium: false,
         
@@ -160,36 +167,16 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
-      if (db) {
-        try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
-        }
-      } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
-      }
+      // Save to Firestore - no fallback to localStorage
+      const docRef = await addDoc(collection(db, 'companies'), companyData)
+      setNewCompanyId(docRef.id)
+      console.log('✅ Company created successfully in Firestore:', docRef.id)
       
       setSubmitted(true)
       
     } catch (err: any) {
       console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen.')
+      setError('Kunde inte skapa annonsen. Kontrollera din internetanslutning och försök igen.')
     } finally {
       setIsSubmitting(false)
     }
@@ -204,23 +191,21 @@ export default function CreatePage() {
             <HiCheck className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            🎉 Annonsen skapad!
+            🎉 Annonsen publicerad!
           </h1>
           <p className="text-gray-600 mb-2">
-            Din företagsannons är nu skapad.
+            Din företagsannons är nu skapad och synlig för alla användare.
           </p>
           <p className="text-sm text-gray-500 mb-6">
             ID: {newCompanyId}
           </p>
           <div className="space-y-3">
-            {!newCompanyId.startsWith('local_') && (
-              <Link
-                href={`/foretag/${newCompanyId}`}
-                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-              >
-                Visa din sida
-              </Link>
-            )}
+            <Link
+              href={`/foretag/${newCompanyId}`}
+              className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+            >
+              Visa din sida
+            </Link>
             <Link
               href="/"
               className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"

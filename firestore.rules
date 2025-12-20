@@ -2,169 +2,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
-    function isSignedIn() { 
-      return request.auth != null; 
-    }
+    // ⚠️ WARNING: INSECURE RULES - OPEN READ/WRITE ACCESS ⚠️
+    // These rules allow anyone to read and write all data in Firestore.
+    // This is NOT recommended for production use as it exposes your data
+    // to unauthorized access, modification, and potential abuse.
+    // 
+    // USE THESE RULES ONLY FOR:
+    // - Development/testing environments
+    // - Prototypes and demos
+    // - Applications where data security is not a concern
+    //
+    // For production, implement proper authentication and authorization rules.
+    // ⚠️ WARNING: INSECURE RULES - OPEN READ/WRITE ACCESS ⚠️
     
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // ========================================
-    // USERS - معلومات المستخدمين
-    // ========================================
-    match /users/{userId} {
-      allow read: if true;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if false;
-    }
-
-    // ========================================
-    // COMPANIES - الشركات والخدمات
-    // ========================================
-    match /companies/{companyId} {
-      // Anyone can read companies (for SEO and public listings)
-      allow read: if true;
-      
-      // Only signed-in users can create companies
-      allow create: if isSignedIn() 
-        && request.resource.data.ownerId == request.auth.uid;
-      
-      // Only owner can update their company
-      allow update: if isSignedIn() 
-        && resource.data.ownerId == request.auth.uid;
-      
-      // Only owner can delete their company
-      allow delete: if isSignedIn() 
-        && resource.data.ownerId == request.auth.uid;
-    }
-
-    // ========================================
-    // BOOKINGS - الحجوزات
-    // ========================================
-    match /bookings/{bookingId} {
-      // Customers and business owners can read their bookings
-      allow read: if isSignedIn() && (
-        resource.data.customerId == request.auth.uid ||
-        resource.data.companyOwnerId == request.auth.uid
-      );
-      
-      // Anyone signed in can create a booking
-      allow create: if isSignedIn();
-      
-      // Only parties can update booking status
-      allow update: if isSignedIn() && (
-        resource.data.customerId == request.auth.uid ||
-        resource.data.companyOwnerId == request.auth.uid
-      );
-      
-      // No deletion allowed - use status field instead
-      allow delete: if false;
-    }
-
-    // ========================================
-    // REVIEWS - التقييمات
-    // ========================================
-    match /reviews/{reviewId} {
-      // Anyone can read reviews
-      allow read: if true;
-      
-      // Only signed-in users can create reviews
-      allow create: if isSignedIn() 
-        && request.resource.data.userId == request.auth.uid;
-      
-      // Only the author can update their review
-      allow update: if isSignedIn() 
-        && resource.data.userId == request.auth.uid;
-      
-      // No deletion allowed
-      allow delete: if false;
-    }
-
-    // ========================================
-    // NOTIFICATIONS - الإشعارات
-    // ========================================
-    match /notifications/{notificationId} {
-      // Users can read their own notifications
-      allow read: if isSignedIn();
-      
-      // System creates notifications (via Cloud Functions)
-      allow create: if isSignedIn();
-      
-      // Users can mark as read
-      allow update: if isSignedIn();
-      
-      // Users can delete their notifications
-      allow delete: if isSignedIn();
-    }
-
-    // ========================================
-    // REMINDERS - تذكيرات SMS
-    // ========================================
-    match /reminders/{reminderId} {
-      // Only Cloud Functions should read/write reminders
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if false; // Only via Cloud Functions
-      allow delete: if false;
-    }
-
-    // ========================================
-    // REPORTS - التقارير والشكاوى
-    // ========================================
-    match /reports/{reportId} {
-      // Reports are private
-      allow read: if false;
-      
-      // Anyone signed in can submit a report
-      allow create: if isSignedIn();
-      
-      // No updates or deletes
-      allow update, delete: if false;
-    }
-
-    // ========================================
-    // OTP_LIMITS - حدود التحقق
-    // ========================================
-    match /otp_limits/{userId} {
-      allow read: if isOwner(userId);
-      allow write: if false; // Only via Cloud Functions
-    }
-
-    // ========================================
-    // USER_FCM_BY_EMAIL - توكنات الإشعارات
-    // ========================================
-    match /user_fcm_by_email/{email} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // ========================================
-    // ARCHIVE - أرشيف البيانات
-    // ========================================
-    match /archive/{docId} {
-      allow read, write: if false; // Only via Cloud Functions
-    }
-
-    // ========================================
-    // ERASURE_LOGS - سجلات الحذف (GDPR)
-    // ========================================
-    match /erasure_logs/{logId} {
-      allow read, write: if false; // Only via Cloud Functions
-    }
-
-    // ========================================
-    // SETTLEMENTS_LOG - سجلات التسوية
-    // ========================================
-    match /settlements_log/{logId} {
-      allow read, write: if false; // Only via Cloud Functions
-    }
-
-    // Deny everything else
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
