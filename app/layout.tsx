@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-// Temporarily disabled due to network restrictions in build environment
+// TODO: Re-enable Google Fonts when network restrictions are lifted in deployment environment
+// Using Tailwind's font-sans as fallback for now
 // import { Inter } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/layout/Header'

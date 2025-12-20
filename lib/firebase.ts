@@ -30,6 +30,7 @@ const firebaseConfig = {
 // Validate Firebase configuration
 if (!firebaseConfig.projectId) {
   console.error('❌ Invalid Firebase configuration. Please check your environment variables.')
+  console.error('Missing required variables: NEXT_PUBLIC_FIREBASE_PROJECT_ID')
   throw new Error('Firebase configuration is missing or invalid')
 }
 

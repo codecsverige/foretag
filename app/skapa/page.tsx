@@ -11,6 +11,10 @@ import Link from 'next/link'
 // Set to false when Firebase Auth is configured
 const SKIP_AUTH = true
 
+// Retry configuration for ad creation
+const MAX_RETRY_ATTEMPTS = 3
+const RETRY_BACKOFF_MS = 1000
+
 const categories = [
   { id: 'frisor', name: 'Frisör', emoji: '💇' },
   { id: 'massage', name: 'Massage', emoji: '💆' },
@@ -165,7 +169,7 @@ export default function CreatePage() {
         let attempts = 0
         let success = false
         
-        while (attempts < 3 && !success) {
+        while (attempts < MAX_RETRY_ATTEMPTS && !success) {
           try {
             const docRef = await addDoc(collection(db, 'companies'), companyData)
             setNewCompanyId(docRef.id)
@@ -175,18 +179,18 @@ export default function CreatePage() {
             attempts++
             console.error(`❌ Try ${attempts}: Failed to create ad`, firestoreError)
             
-            if (attempts >= 3) {
-              console.warn('⚠️ Failed to create ad after 3 attempts, saving locally')
+            if (attempts >= MAX_RETRY_ATTEMPTS) {
+              console.warn(`⚠️ Failed to create ad after ${MAX_RETRY_ATTEMPTS} attempts, saving locally`)
               // Save to localStorage as backup
               const localId = 'local_' + Date.now()
               const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
               savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
               localStorage.setItem('companies', JSON.stringify(savedCompanies))
               setNewCompanyId(localId)
-              setError('Annonsen sparades lokalt. Kontrollera din internetanslutning.')
+              setError('Kunde inte spara till Firebase. Annonsen sparades lokalt.')
             } else {
               // Wait before retry with exponential backoff
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempts))
+              await new Promise(resolve => setTimeout(resolve, RETRY_BACKOFF_MS * attempts))
             }
           }
         }
