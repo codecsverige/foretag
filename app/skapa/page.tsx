@@ -160,36 +160,21 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
-      if (db) {
-        try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
-        }
-      } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+      // Save to Firestore
+      if (!db) {
+        setError('Firebase är inte konfigurerad. Kontakta support.')
+        return
       }
+
+      const docRef = await addDoc(collection(db, 'companies'), companyData)
+      setNewCompanyId(docRef.id)
+      console.log('✅ Company saved to Firestore:', docRef.id)
       
       setSubmitted(true)
       
     } catch (err: any) {
       console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen.')
+      setError('Kunde inte skapa annonsen. Försök igen senare.')
     } finally {
       setIsSubmitting(false)
     }
@@ -213,14 +198,12 @@ export default function CreatePage() {
             ID: {newCompanyId}
           </p>
           <div className="space-y-3">
-            {!newCompanyId.startsWith('local_') && (
-              <Link
-                href={`/foretag/${newCompanyId}`}
-                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-              >
-                Visa din sida
-              </Link>
-            )}
+            <Link
+              href={`/foretag/${newCompanyId}`}
+              className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+            >
+              Visa din sida
+            </Link>
             <Link
               href="/"
               className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
