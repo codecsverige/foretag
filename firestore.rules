@@ -29,14 +29,15 @@ service cloud.firestore {
       // Anyone can read companies (for SEO and public listings)
       allow read: if true;
       
-      // Allow anonymous creation temporarily (remove when auth is ready)
-      // Only signed-in users can create companies (or anonymous for now)
+      // ⚠️ TEMPORARY: Anonymous access for testing (SKIP_AUTH mode)
+      // TODO: Restore authentication checks when SKIP_AUTH is disabled:
+      // allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      // allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      // allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      //
+      // Current temporary rules (MUST BE CHANGED BEFORE PRODUCTION):
       allow create: if true;
-      
-      // Only owner can update their company (or anyone in anonymous mode)
       allow update: if true;
-      
-      // Only owner can delete their company (or anyone in anonymous mode)
       allow delete: if true;
     }
 

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+// TODO: Re-enable Google Fonts when deploying to environment with internet access
 // import { Inter } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 
+// TODO: Re-enable when Google Fonts import is restored
 // const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -25,6 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sv">
+      {/* TODO: Use inter.className when Google Fonts is restored */}
       <body className="font-sans">
         <div className="min-h-screen flex flex-col">
           <Header />
