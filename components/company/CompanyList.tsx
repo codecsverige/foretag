@@ -19,7 +19,7 @@ interface Company {
   premium?: boolean
   services?: Array<{ price?: number }>
   status?: string
-  createdAt?: any
+  createdAt?: Date | string | number
 }
 
 interface CompanyListProps {
@@ -42,9 +42,9 @@ export default function CompanyList({
         try {
           const companies = JSON.parse(savedCompanies)
           // Sort by createdAt (most recent first)
-          const sortedCompanies = companies.sort((a: any, b: any) => {
-            const dateA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt || 0
-            const dateB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt || 0
+          const sortedCompanies = companies.sort((a: Company, b: Company) => {
+            const dateA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as number) || 0
+            const dateB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as number) || 0
             return dateB - dateA
           })
           setLatestCompanies(sortedCompanies.slice(0, 6))
