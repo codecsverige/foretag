@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, query, where, getDocs, doc, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, doc, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore'
 import { HiPlus, HiPencil, HiTrash, HiClock, HiPhone, HiStar, HiEye } from 'react-icons/hi'
 
 interface Company {

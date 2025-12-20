@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { HiSearch, HiFilter, HiX } from 'react-icons/hi'
 import CompanyCard from '@/components/company/CompanyCard'
 import { db } from '@/lib/firebase'
-import { collection, getDocs, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore'
 
 // الفئات
 const categories = [
@@ -59,6 +59,7 @@ function SearchContent() {
   // Fetch companies from Firestore with real-time listener
   useEffect(() => {
     if (!db) {
+      setLoading(true)
       const loadFromLocalStorage = () => {
         // Fallback to localStorage
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
