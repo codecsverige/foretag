@@ -10,5 +10,65 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if true;
     }
+    
+    // ========================================
+    // TODO: Production Security Rules
+    // ========================================
+    // Replace the above rule with these safer baseline rules before production:
+    //
+    // // Ads Collection Rules
+    // match /ads/{adId} {
+    //   // Anyone can read active ads
+    //   allow read: if resource.data.status == 'active';
+    //   
+    //   // Only authenticated users can create ads
+    //   allow create: if request.auth != null
+    //                  && request.resource.data.ownerId == request.auth.uid
+    //                  && request.resource.data.status == 'active'
+    //                  && request.resource.data.createdAt == request.time
+    //                  && request.resource.data.updatedAt == request.time;
+    //   
+    //   // Only owner can update their own ads
+    //   allow update: if request.auth != null
+    //                  && resource.data.ownerId == request.auth.uid
+    //                  && request.resource.data.ownerId == resource.data.ownerId;
+    //   
+    //   // Only owner can delete their own ads
+    //   allow delete: if request.auth != null
+    //                  && resource.data.ownerId == request.auth.uid;
+    // }
+    //
+    // // Companies Collection Rules
+    // match /companies/{companyId} {
+    //   // Anyone can read active companies
+    //   allow read: if resource.data.status == 'active';
+    //   
+    //   // Only authenticated users can create companies
+    //   allow create: if request.auth != null
+    //                  && request.resource.data.ownerId == request.auth.uid;
+    //   
+    //   // Only owner can update their own company
+    //   allow update: if request.auth != null
+    //                  && resource.data.ownerId == request.auth.uid
+    //                  && request.resource.data.ownerId == resource.data.ownerId;
+    //   
+    //   // Only owner can delete their own company
+    //   allow delete: if request.auth != null
+    //                  && resource.data.ownerId == request.auth.uid;
+    // }
+    //
+    // // Users Collection Rules
+    // match /users/{userId} {
+    //   // Users can read their own profile
+    //   allow read: if request.auth != null && request.auth.uid == userId;
+    //   
+    //   // Users can create/update their own profile
+    //   allow create, update: if request.auth != null
+    //                          && request.auth.uid == userId;
+    // }
+    //
+    // // Other collections (bookings, reviews, etc.) should have similar
+    // // owner-based or role-based rules as appropriate.
+    // ========================================
   }
 }

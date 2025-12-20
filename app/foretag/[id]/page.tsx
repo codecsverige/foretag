@@ -40,6 +40,17 @@ interface Company {
   openingHours: OpeningHours
 }
 
+interface Ad {
+  id: string
+  title: string
+  description: string
+  category?: string
+  location?: string
+  price?: string
+  contactEmail?: string
+  createdAt: any
+}
+
 // Fetch company from Firestore
 async function getCompany(id: string): Promise<Company | null> {
   try {
@@ -73,6 +84,39 @@ async function getCompany(id: string): Promise<Company | null> {
   } catch (error) {
     console.error('Error fetching company:', error)
     return null
+  }
+}
+
+// Fetch company's active ads
+async function getCompanyAds(companyId: string): Promise<Ad[]> {
+  try {
+    const { initializeApp, getApps } = await import('firebase/app')
+    const { getFirestore, collection, query, where, orderBy, getDocs } = await import('firebase/firestore')
+    
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    }
+    
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+    const db = getFirestore(app)
+    
+    const q = query(
+      collection(db, 'ads'),
+      where('companyId', '==', companyId),
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc')
+    )
+    
+    const snap = await getDocs(q)
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ad))
+  } catch (error) {
+    console.error('Error fetching company ads:', error)
+    return []
   }
 }
 
@@ -113,6 +157,9 @@ export default async function CompanyPage({ params }: { params: { id: string } }
   if (!company) {
     notFound()
   }
+
+  // Fetch company's ads
+  const ads = await getCompanyAds(params.id)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -284,6 +331,49 @@ export default async function CompanyPage({ params }: { params: { id: string } }
                   <p className="text-gray-600">🌐 {company.website}</p>
                 )}
               </div>
+            </section>
+
+            {/* Annonser (Ads) Section */}
+            <section className="bg-white rounded-xl p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">📢 Annonser</h2>
+              {ads.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <p className="text-gray-600">Inga annonser hittades för detta företag än.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {ads.map((ad) => (
+                    <div
+                      key={ad.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                    >
+                      <h3 className="font-semibold text-lg text-gray-900 mb-2">{ad.title}</h3>
+                      {ad.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {ad.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {ad.category && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                            {ad.category}
+                          </span>
+                        )}
+                        {ad.location && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                            📍 {ad.location}
+                          </span>
+                        )}
+                        {ad.price && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
+                            {ad.price} SEK
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
 

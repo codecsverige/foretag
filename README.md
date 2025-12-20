@@ -178,6 +178,20 @@ firebase deploy --only firestore:indexes
        ├── reviewCount?: number
        └── createdAt: timestamp
 
+📁 ads/
+   └── {adId}
+       ├── title: string (required)
+       ├── description: string (required)
+       ├── category?: string
+       ├── companyId?: string (links to companies collection)
+       ├── location?: string
+       ├── price?: string
+       ├── contactEmail?: string
+       ├── ownerId: string (userId, required)
+       ├── status: "active" (required)
+       ├── createdAt: timestamp (required)
+       └── updatedAt: timestamp (required)
+
 📁 bookings/
    └── {bookingId}
        ├── companyId: string
@@ -219,6 +233,26 @@ firebase deploy --only firestore:indexes
        ├── status: "pending" | "sent" | "failed"
        └── attempts: number
 ```
+
+### How Ads Work
+
+**Creating an Ad:**
+- User must be authenticated (logged in)
+- Navigate to `/annonser/ny`
+- Fill in at least title and description (required)
+- Optionally link to a company by selecting from user's companies
+- Ad is created with `status: 'active'`, `createdAt` and `updatedAt` timestamps
+
+**Where Ads Appear:**
+- **Home page (`/`)**: Shows all active ads ordered by creation date (newest first)
+- **Search page (`/sok`)**: Shows all active ads filtered by search term
+- **Company page (`/foretag/[id]`)**: Shows only that company's active ads (requires `companyId` to be set when creating the ad)
+
+**Required Fields:**
+- `title`, `description`, `ownerId`, `status`, `createdAt`, `updatedAt`
+
+**Optional Fields:**
+- `category`, `companyId`, `location`, `price`, `contactEmail`
 
 ---
 
