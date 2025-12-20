@@ -6,9 +6,10 @@ import { db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { HiPlus, HiTrash, HiCheck, HiExclamationCircle } from 'react-icons/hi'
 import Link from 'next/link'
+import { useAuth } from '@/context/AuthContext'
 
-// ⚠️ TEMPORARY: Allow creating without login
-// Set to false when Firebase Auth is configured
+// ⚠️ TEMPORARY: Allow creating without login for testing
+// Set to false to require authentication
 const SKIP_AUTH = true
 
 const categories = [
@@ -61,6 +62,18 @@ const dayNames: { [key: string]: string } = {
 
 export default function CreatePage() {
   const router = useRouter()
+  
+  // Get auth context - with fallback for when auth is not ready
+  let user: any = null
+  let loading = false
+  try {
+    const auth = useAuth()
+    user = auth.user
+    loading = auth.loading
+  } catch (error) {
+    // AuthContext not available, continue without auth
+    console.warn('Auth context not available')
+  }
   
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -141,10 +154,10 @@ export default function CreatePage() {
         services: validServices,
         openingHours,
         
-        // Metadata - temporary anonymous
-        ownerId: 'anonymous',
-        ownerName: 'Anonymous',
-        ownerEmail: email || '',
+        // Metadata - use authenticated user if available
+        ownerId: user?.uid || 'anonymous',
+        ownerName: user?.displayName || 'Anonymous',
+        ownerEmail: user?.email || email || '',
         
         // Stats (initial)
         rating: 0,

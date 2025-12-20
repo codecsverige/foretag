@@ -2,11 +2,23 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { HiMenu, HiX, HiPlus, HiSearch } from 'react-icons/hi'
+import { HiMenu, HiX, HiPlus, HiSearch, HiUser, HiLogin } from 'react-icons/hi'
+import { useAuth } from '@/context/AuthContext'
 
-// ⚠️ TEMPORARY: No auth required
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
+  
+  // Get auth context - with fallback
+  let user: any = null
+  let loading = false
+  try {
+    const auth = useAuth()
+    user = auth.user
+    loading = auth.loading
+  } catch (error) {
+    // AuthContext not available
+    loading = false
+  }
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -29,6 +41,22 @@ export default function Header() {
               <HiPlus className="w-5 h-5" />
               Skapa annons
             </Link>
+            
+            {loading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+            ) : user ? (
+              <Link href="/konto" className="flex items-center gap-2 text-gray-600 hover:text-brand transition">
+                <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  {user.displayName?.charAt(0) || user.email?.charAt(0) || '?'}
+                </div>
+                <span className="hidden lg:inline">Konto</span>
+              </Link>
+            ) : (
+              <Link href="/login" className="flex items-center gap-1 text-gray-600 hover:text-brand transition">
+                <HiLogin className="w-5 h-5" />
+                Logga in
+              </Link>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -61,6 +89,28 @@ export default function Header() {
                 <HiPlus className="w-5 h-5" />
                 Skapa annons
               </Link>
+              
+              {loading ? (
+                <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+              ) : user ? (
+                <Link
+                  href="/konto"
+                  className="flex items-center gap-2 text-gray-600 hover:text-brand transition"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <HiUser className="w-5 h-5" />
+                  Konto
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 text-gray-600 hover:text-brand transition"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <HiLogin className="w-5 h-5" />
+                  Logga in
+                </Link>
+              )}
             </div>
           </nav>
         )}

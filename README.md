@@ -112,6 +112,31 @@ npm run dev
 
 ## 🔥 إعداد Firebase | Firebase Setup
 
+### 📋 Firebase Console Requirements
+
+**IMPORTANT:** Before running the application, ensure the following are configured in your Firebase Console:
+
+#### 1. Authentication Providers ✅
+- **Google Sign-In:** Must be enabled
+  - Go to Firebase Console → Authentication → Sign-in method
+  - Enable "Google" provider
+  - Add authorized domains (localhost, your production domain)
+  
+- **Email/Password:** Must be enabled
+  - Go to Firebase Console → Authentication → Sign-in method
+  - Enable "Email/Password" provider
+
+#### 2. Firestore Database ✅
+- **Database Mode:** Production mode (with custom rules)
+- **Location:** Choose appropriate region (e.g., europe-west3)
+- **Rules:** Deploy using `firebase deploy --only firestore:rules`
+
+#### 3. Authorized Domains ✅
+Add the following domains to Firebase Console → Authentication → Settings → Authorized domains:
+- `localhost` (for development)
+- Your Vercel deployment domain (e.g., `bokanara.vercel.app`)
+- Your custom domain (if any)
+
 ### 1. إنشاء مشروع | Skapa projekt
 
 1. Gå till [Firebase Console](https://console.firebase.google.com/)
