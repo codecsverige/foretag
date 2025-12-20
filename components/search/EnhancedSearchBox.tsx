@@ -6,6 +6,9 @@ import { HiSearch, HiLocationMarker } from 'react-icons/hi'
 import { db } from '@/lib/firebase'
 import { collection, query, limit, getDocs } from 'firebase/firestore'
 
+// Constants
+const INITIAL_COMPANY_LOAD_LIMIT = 100
+
 interface Suggestion {
   type: 'category' | 'company' | 'city'
   text: string
