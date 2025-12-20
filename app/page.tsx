@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
-import CompanyCard from '@/components/company/CompanyCard'
+import CompanyList from '@/components/company/CompanyList'
 import CategoryGrid from '@/components/search/CategoryGrid'
 import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import { initializeApp, getApps } from 'firebase/app'
@@ -63,13 +63,13 @@ async function getCompanies() {
       id: doc.id,
       ...doc.data(),
       priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
+    })) as any[]
     
     const latestCompanies = latestSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
+    })) as any[]
     
     return { premiumCompanies, latestCompanies }
   } catch (error) {
@@ -77,6 +77,9 @@ async function getCompanies() {
     return { premiumCompanies: [], latestCompanies: [] }
   }
 }
+
+// Revalidate every 60 seconds to fetch fresh data
+export const revalidate = 60
 
 export default async function Home() {
   const { premiumCompanies, latestCompanies } = await getCompanies()
@@ -169,49 +172,10 @@ export default async function Home() {
           </div>
         </section>
       ) : (
-        <>
-          {/* Premium Companies */}
-          {premiumCompanies.length > 0 && (
-            <section className="py-12 md:py-16">
-              <div className="max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    ⭐ Utvalda företag
-                  </h2>
-                  <Link href="/sok?premium=true" className="text-brand hover:text-brand-dark flex items-center gap-1">
-                    Visa alla <HiArrowRight />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {premiumCompanies.map((company: any) => (
-                    <CompanyCard key={company.id} company={company} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Latest Companies */}
-          {latestCompanies.length > 0 && (
-            <section className="py-12 md:py-16 bg-gray-50">
-              <div className="max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    🆕 Nya företag
-                  </h2>
-                  <Link href="/sok?sort=newest" className="text-brand hover:text-brand-dark flex items-center gap-1">
-                    Visa alla <HiArrowRight />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {latestCompanies.map((company: any) => (
-                    <CompanyCard key={company.id} company={company} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-        </>
+        <CompanyList 
+          initialPremiumCompanies={premiumCompanies}
+          initialLatestCompanies={latestCompanies}
+        />
       )}
 
       {/* CTA Section */}

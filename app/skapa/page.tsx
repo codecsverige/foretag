@@ -121,6 +121,13 @@ export default function CreatePage() {
           description: s.description || '',
         }))
 
+      // Validate we have at least one service
+      if (validServices.length === 0) {
+        setError('Lägg till minst en tjänst med namn och pris.')
+        setIsSubmitting(false)
+        return
+      }
+
       // Create company document
       const companyData = {
         // Basic info
@@ -160,36 +167,85 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
+      let savedId: string | null = null
+      let savedToFirestore = false
+
+      // Try to save to Firestore with retry mechanism
       if (db) {
+        let attempts = 0
+        const maxAttempts = 3
+        
+        while (attempts < maxAttempts && !savedToFirestore) {
+          try {
+            attempts++
+            console.log(`📝 Attempt ${attempts}/${maxAttempts} to save to Firestore...`)
+            
+            const docRef = await addDoc(collection(db, 'companies'), companyData)
+            savedId = docRef.id
+            savedToFirestore = true
+            
+            console.log('✅ Saved to Firestore:', docRef.id)
+            
+            // Also save to localStorage as cache for immediate display
+            const localCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+            const companyWithId = {
+              id: docRef.id,
+              ...companyData,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+            localCompanies.push(companyWithId)
+            localStorage.setItem('companies', JSON.stringify(localCompanies))
+            console.log('💾 Also cached locally for immediate display')
+            
+          } catch (firestoreError: any) {
+            console.warn(`⚠️ Firestore attempt ${attempts} failed:`, firestoreError.message)
+            
+            if (attempts >= maxAttempts) {
+              console.warn('⚠️ Max Firestore attempts reached, falling back to localStorage')
+              // Fall back to localStorage only
+              savedToFirestore = false
+            } else {
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempts))
+            }
+          }
+        }
+      }
+
+      // If Firestore failed or not available, save to localStorage
+      if (!savedToFirestore) {
         try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
           const localId = 'local_' + Date.now()
           const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
+          const companyWithId = {
+            id: localId,
+            ...companyData,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+          savedCompanies.push(companyWithId)
           localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          savedId = localId
+          console.log('💾 Saved locally:', localId)
+        } catch (localStorageError: any) {
+          console.error('❌ Failed to save to localStorage:', localStorageError)
+          throw new Error('Kunde inte spara annonsen. Kontrollera att din webbläsare tillåter localStorage.')
         }
-      } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
       }
-      
+
+      // Verify we have a saved ID before showing success
+      if (!savedId) {
+        throw new Error('Kunde inte spara annonsen. Inget ID returnerades.')
+      }
+
+      setNewCompanyId(savedId)
       setSubmitted(true)
+      console.log('🎉 Company created successfully with ID:', savedId)
       
     } catch (err: any) {
-      console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen.')
+      console.error('❌ Error creating company:', err)
+      setError(err.message || 'Kunde inte skapa annonsen. Försök igen.')
     } finally {
       setIsSubmitting(false)
     }
