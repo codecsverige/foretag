@@ -80,7 +80,7 @@ export default function EnhancedSearchBox({
 
   const loadCompanies = async () => {
     try {
-      const q = query(collection(db!, 'companies'), limit(100))
+      const q = query(collection(db!, 'companies'), limit(INITIAL_COMPANY_LOAD_LIMIT))
       const snapshot = await getDocs(q)
       const companiesData = snapshot.docs.map(doc => ({
         id: doc.id,

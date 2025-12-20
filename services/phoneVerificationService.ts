@@ -5,7 +5,7 @@
  */
 
 import { db } from '@/lib/firebase'
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, query, where, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore'
 
 interface VerificationCode {
   id: string
@@ -156,7 +156,6 @@ export async function verifyCode(
     }
 
     // Mark as verified
-    const { updateDoc } = await import('firebase/firestore')
     await updateDoc(doc.ref, {
       verified: true,
       verifiedAt: Date.now()

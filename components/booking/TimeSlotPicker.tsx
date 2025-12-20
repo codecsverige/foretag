@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { HiClock, HiCalendar } from 'react-icons/hi'
 
+// Constants for time slot picker
+const MAX_ADVANCE_DAYS = 90 // Maximum days in advance for bookings
+
 interface TimeSlot {
   time: string
   available: boolean
@@ -123,7 +126,7 @@ export default function TimeSlotPicker({
 
   const getMaxDate = () => {
     const maxDate = new Date()
-    maxDate.setDate(maxDate.getDate() + 90) // 90 days in advance
+    maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS)
     return maxDate.toISOString().split('T')[0]
   }
 
