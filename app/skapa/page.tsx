@@ -64,8 +64,6 @@ export default function CreatePage() {
   
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [newCompanyId, setNewCompanyId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   // Form data
@@ -164,8 +162,11 @@ export default function CreatePage() {
       if (db) {
         try {
           const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
+          console.log('✅ Ad Created:', docRef.id)
+          
+          // Redirect to /home after successful creation (like Vägvänner)
+          router.push('/home')
+          return
         } catch (firestoreError: any) {
           console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
           // Save to localStorage as backup
@@ -173,7 +174,9 @@ export default function CreatePage() {
           const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
           savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
           localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          console.log('💾 Saved locally:', localId)
+          router.push('/home')
+          return
         }
       } else {
         // Save to localStorage
@@ -181,11 +184,10 @@ export default function CreatePage() {
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
         savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
         localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
         console.log('💾 Saved locally:', localId)
+        router.push('/home')
+        return
       }
-      
-      setSubmitted(true)
       
     } catch (err: any) {
       console.error('Error creating company:', err)
@@ -193,63 +195,6 @@ export default function CreatePage() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  // Success state
-  if (submitted && newCompanyId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <HiCheck className="w-10 h-10 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            🎉 Annonsen skapad!
-          </h1>
-          <p className="text-gray-600 mb-2">
-            Din företagsannons är nu skapad.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            ID: {newCompanyId}
-          </p>
-          <div className="space-y-3">
-            {!newCompanyId.startsWith('local_') && (
-              <Link
-                href={`/foretag/${newCompanyId}`}
-                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-              >
-                Visa din sida
-              </Link>
-            )}
-            <Link
-              href="/"
-              className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-            >
-              Tillbaka till startsidan
-            </Link>
-            <button
-              onClick={() => {
-                setSubmitted(false)
-                setNewCompanyId(null)
-                setStep(1)
-                setName('')
-                setCategory('')
-                setCity('')
-                setAddress('')
-                setDescription('')
-                setPhone('')
-                setEmail('')
-                setWebsite('')
-                setServices([{ id: '1', name: '', price: '', duration: '', description: '' }])
-              }}
-              className="block w-full text-brand hover:underline py-2"
-            >
-              Skapa en till annons
-            </button>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
