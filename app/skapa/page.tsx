@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { HiPlus, HiTrash, HiCheck, HiExclamationCircle } from 'react-icons/hi'
 import Link from 'next/link'
+import { retryFirestoreOperation, validateCompanyData } from '@/lib/firebaseUtils'
 
 // ⚠️ TEMPORARY: Allow creating without login
 // Set to false when Firebase Auth is configured
@@ -160,36 +161,41 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
-      if (db) {
-        try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
-        }
-      } else {
-        // Save to localStorage
-        const localId = 'local_' + Date.now()
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-        localStorage.setItem('companies', JSON.stringify(savedCompanies))
-        setNewCompanyId(localId)
-        console.log('💾 Saved locally:', localId)
+      // Validate company data
+      const validation = validateCompanyData(companyData)
+      if (!validation.valid) {
+        setError('Valideringsfel: ' + validation.errors.join(', '))
+        setIsSubmitting(false)
+        return
+      }
+
+      // Try to save to Firestore with retry logic
+      if (!db) {
+        setError('Firebase är inte korrekt konfigurerad. Kontakta support.')
+        setIsSubmitting(false)
+        return
+      }
+
+      try {
+        const docRef = await retryFirestoreOperation(
+          async () => await addDoc(collection(db!, 'companies'), companyData),
+          3, // max retries
+          1000 // base delay in ms
+        )
+        setNewCompanyId(docRef.id)
+        console.log('✅ Company saved to Firestore:', docRef.id)
+      } catch (firestoreError: any) {
+        console.error('❌ Firestore error after retries:', firestoreError)
+        setError(`Kunde inte spara till databasen: ${firestoreError.message}. Försök igen.`)
+        setIsSubmitting(false)
+        return
       }
       
       setSubmitted(true)
       
     } catch (err: any) {
       console.error('Error creating company:', err)
-      setError('Kunde inte skapa annonsen. Försök igen.')
+      setError(`Kunde inte skapa annonsen: ${err.message}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -213,14 +219,12 @@ export default function CreatePage() {
             ID: {newCompanyId}
           </p>
           <div className="space-y-3">
-            {!newCompanyId.startsWith('local_') && (
-              <Link
-                href={`/foretag/${newCompanyId}`}
-                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-              >
-                Visa din sida
-              </Link>
-            )}
+            <Link
+              href={`/foretag/${newCompanyId}`}
+              className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+            >
+              Visa din sida
+            </Link>
             <Link
               href="/"
               className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"

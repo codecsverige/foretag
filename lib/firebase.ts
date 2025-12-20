@@ -16,6 +16,7 @@ import {
   Firestore
 } from 'firebase/firestore'
 import { getStorage, FirebaseStorage } from 'firebase/storage'
+import { validateFirebaseConfig } from './firebaseUtils'
 
 /* قيم البيئة - نفس الإعدادات من المشروع القديم */
 const firebaseConfig = {
@@ -36,6 +37,9 @@ let storage: FirebaseStorage | undefined
 // Only initialize on client side
 if (typeof window !== 'undefined') {
   try {
+    // Validate configuration
+    validateFirebaseConfig()
+    
     // Initialize app
     if (getApps().length === 0) {
       app = initializeApp(firebaseConfig)
