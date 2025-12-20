@@ -214,20 +214,18 @@ export default function CreatePage() {
             🎉 Annonsen skapad!
           </h1>
           <p className="text-gray-600 mb-2">
-            Din företagsannons är nu skapad.
+            Din företagsannons är nu publicerad och visas på hemsidan.
           </p>
           <p className="text-sm text-gray-500 mb-6">
             ID: {newCompanyId}
           </p>
           <div className="space-y-3">
-            {!newCompanyId.startsWith('local_') && (
-              <Link
-                href={`/foretag/${newCompanyId}`}
-                className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
-              >
-                Visa din sida
-              </Link>
-            )}
+            <Link
+              href={`/foretag/${newCompanyId}`}
+              className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+            >
+              Visa din sida
+            </Link>
             <Link
               href="/"
               className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
