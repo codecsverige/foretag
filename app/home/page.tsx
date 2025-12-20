@@ -44,6 +44,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!db) {
       setIsLoading(false)
+      setError('Firebase är inte tillgänglig. Kontrollera din anslutning.')
       return
     }
 

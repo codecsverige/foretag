@@ -166,7 +166,6 @@ export default function CreatePage() {
           
           // Redirect to /home after successful creation (like Vägvänner)
           router.push('/home')
-          return
         } catch (firestoreError: any) {
           console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
           // Save to localStorage as backup
@@ -176,7 +175,6 @@ export default function CreatePage() {
           localStorage.setItem('companies', JSON.stringify(savedCompanies))
           console.log('💾 Saved locally:', localId)
           router.push('/home')
-          return
         }
       } else {
         // Save to localStorage
@@ -186,7 +184,6 @@ export default function CreatePage() {
         localStorage.setItem('companies', JSON.stringify(savedCompanies))
         console.log('💾 Saved locally:', localId)
         router.push('/home')
-        return
       }
       
     } catch (err: any) {
