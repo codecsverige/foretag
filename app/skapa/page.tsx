@@ -160,26 +160,30 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
-      if (db) {
+      // Try to save to Firestore first
+      let savedToFirestore = false
+      if (db && !SKIP_AUTH) {
         try {
           const docRef = await addDoc(collection(db, 'companies'), companyData)
           setNewCompanyId(docRef.id)
+          savedToFirestore = true
           console.log('✅ Saved to Firestore:', docRef.id)
         } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
-          const localId = 'local_' + Date.now()
-          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-          savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
-          localStorage.setItem('companies', JSON.stringify(savedCompanies))
-          setNewCompanyId(localId)
+          console.warn('⚠️ Firestore error:', firestoreError.message)
+          // Will fall through to localStorage backup
         }
-      } else {
-        // Save to localStorage
+      }
+
+      // Save to localStorage as backup or primary in SKIP_AUTH mode
+      if (!savedToFirestore) {
         const localId = 'local_' + Date.now()
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
+        const localCompanyData = {
+          ...companyData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        savedCompanies.push({ id: localId, ...localCompanyData })
         localStorage.setItem('companies', JSON.stringify(savedCompanies))
         setNewCompanyId(localId)
         console.log('💾 Saved locally:', localId)
