@@ -111,6 +111,37 @@ export default function CreatePage() {
     setError('')
     
     try {
+      // VALIDATION: Validate key fields before attempting write
+      if (!name || !name.trim()) {
+        setError('Företagsnamn är obligatoriskt')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!description || !description.trim()) {
+        setError('Beskrivning är obligatorisk')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!category) {
+        setError('Kategori är obligatorisk')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!city) {
+        setError('Stad är obligatorisk')
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!phone || !phone.trim()) {
+        setError('Telefonnummer är obligatoriskt')
+        setIsSubmitting(false)
+        return
+      }
+
       // Prepare services data
       const validServices = services
         .filter(s => s.name && s.price)
@@ -121,21 +152,27 @@ export default function CreatePage() {
           description: s.description || '',
         }))
 
+      if (validServices.length === 0) {
+        setError('Minst en tjänst med namn och pris krävs')
+        setIsSubmitting(false)
+        return
+      }
+
       // Create company document
       const companyData = {
         // Basic info
-        name,
+        name: name.trim(),
         category,
         categoryName: categories.find(c => c.id === category)?.name || category,
         emoji: categories.find(c => c.id === category)?.emoji || '📋',
         city,
-        address,
-        description,
+        address: address.trim(),
+        description: description.trim(),
         
         // Contact
-        phone,
-        email: email || '',
-        website,
+        phone: phone.trim(),
+        email: email.trim() || '',
+        website: website.trim(),
         
         // Services & Hours
         services: validServices,
@@ -144,7 +181,7 @@ export default function CreatePage() {
         // Metadata - temporary anonymous
         ownerId: 'anonymous',
         ownerName: 'Anonymous',
-        ownerEmail: email || '',
+        ownerEmail: email.trim() || '',
         
         // Stats (initial)
         rating: 0,
@@ -160,15 +197,36 @@ export default function CreatePage() {
         updatedAt: serverTimestamp(),
       }
 
-      // Try to save to Firestore
+      // RETRY LOGIC: Try to save to Firestore with exponential backoff
       if (db) {
-        try {
-          const docRef = await addDoc(collection(db, 'companies'), companyData)
-          setNewCompanyId(docRef.id)
-          console.log('✅ Saved to Firestore:', docRef.id)
-        } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
-          // Save to localStorage as backup
+        let attempts = 0
+        let success = false
+        let lastError: any = null
+        
+        while (attempts < 3 && !success) {
+          try {
+            console.log(`🔄 Attempt ${attempts + 1}/3 to save to Firestore...`)
+            const docRef = await addDoc(collection(db, 'companies'), companyData)
+            setNewCompanyId(docRef.id)
+            console.log('✅ Saved to Firestore:', docRef.id)
+            success = true
+          } catch (firestoreError: any) {
+            lastError = firestoreError
+            attempts++
+            console.warn(`⚠️ Firestore error (attempt ${attempts}/3):`, firestoreError.message)
+            
+            if (attempts < 3) {
+              // Exponential backoff: wait 1s, then 2s, then 4s
+              const waitTime = 1000 * Math.pow(2, attempts - 1)
+              console.log(`⏳ Waiting ${waitTime}ms before retry...`)
+              await new Promise(resolve => setTimeout(resolve, waitTime))
+            }
+          }
+        }
+        
+        // If all retries failed, fall back to localStorage
+        if (!success) {
+          console.error('❌ All Firestore attempts failed, saving locally:', lastError?.message)
           const localId = 'local_' + Date.now()
           const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
           savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })

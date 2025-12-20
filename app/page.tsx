@@ -1,10 +1,7 @@
 import Link from 'next/link'
 import { HiSearch, HiLocationMarker, HiArrowRight } from 'react-icons/hi'
-import CompanyCard from '@/components/company/CompanyCard'
+import CompanyList from '@/components/company/CompanyList'
 import CategoryGrid from '@/components/search/CategoryGrid'
-import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
-import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
 
 // الفئات
 const categories = [
@@ -18,71 +15,7 @@ const categories = [
   { id: 'utbildning', name: 'Utbildning', emoji: '📚', count: 0 },
 ]
 
-// Initialize Firebase for server-side
-function getFirebaseDb() {
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  }
-  
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-  return getFirestore(app)
-}
-
-// Fetch companies from Firestore
-async function getCompanies() {
-  try {
-    const db = getFirebaseDb()
-    
-    // Fetch premium companies
-    const premiumQuery = query(
-      collection(db, 'companies'),
-      where('status', '==', 'active'),
-      where('premium', '==', true),
-      limit(6)
-    )
-    
-    // Fetch latest companies
-    const latestQuery = query(
-      collection(db, 'companies'),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
-      limit(6)
-    )
-    
-    const [premiumSnap, latestSnap] = await Promise.all([
-      getDocs(premiumQuery).catch(() => ({ docs: [] })),
-      getDocs(latestQuery).catch(() => ({ docs: [] }))
-    ])
-    
-    const premiumCompanies = premiumSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
-    
-    const latestCompanies = latestSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    }))
-    
-    return { premiumCompanies, latestCompanies }
-  } catch (error) {
-    console.error('Error fetching companies:', error)
-    return { premiumCompanies: [], latestCompanies: [] }
-  }
-}
-
-export default async function Home() {
-  const { premiumCompanies, latestCompanies } = await getCompanies()
-  
-  // Show placeholder if no companies yet
-  const showPlaceholder = premiumCompanies.length === 0 && latestCompanies.length === 0
+export default function Home() {
 
   return (
     <div className="min-h-screen">
@@ -146,73 +79,35 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Featured Companies or Placeholder */}
-      {showPlaceholder ? (
-        <section className="py-12 md:py-16">
-          <div className="max-w-7xl mx-auto px-4 text-center">
-            <div className="bg-blue-50 rounded-2xl p-8 md:p-12">
-              <div className="text-6xl mb-4">🏢</div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-                Var först med att lista ditt företag!
-              </h2>
-              <p className="text-gray-600 mb-6 max-w-xl mx-auto">
-                Inga företag har registrerats ännu. Bli den första och nå tusentals potentiella kunder.
-              </p>
-              <Link
-                href="/skapa"
-                className="inline-flex items-center gap-2 bg-brand text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-dark transition"
-              >
-                Skapa annons gratis
-                <HiArrowRight className="w-5 h-5" />
-              </Link>
-            </div>
+      {/* Featured Companies with Real-Time Updates */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              ⭐ Utvalda företag
+            </h2>
+            <Link href="/sok?premium=true" className="text-brand hover:text-brand-dark flex items-center gap-1">
+              Visa alla <HiArrowRight />
+            </Link>
           </div>
-        </section>
-      ) : (
-        <>
-          {/* Premium Companies */}
-          {premiumCompanies.length > 0 && (
-            <section className="py-12 md:py-16">
-              <div className="max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    ⭐ Utvalda företag
-                  </h2>
-                  <Link href="/sok?premium=true" className="text-brand hover:text-brand-dark flex items-center gap-1">
-                    Visa alla <HiArrowRight />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {premiumCompanies.map((company: any) => (
-                    <CompanyCard key={company.id} company={company} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
+          <CompanyList type="premium" maxItems={6} />
+        </div>
+      </section>
 
-          {/* Latest Companies */}
-          {latestCompanies.length > 0 && (
-            <section className="py-12 md:py-16 bg-gray-50">
-              <div className="max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    🆕 Nya företag
-                  </h2>
-                  <Link href="/sok?sort=newest" className="text-brand hover:text-brand-dark flex items-center gap-1">
-                    Visa alla <HiArrowRight />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {latestCompanies.map((company: any) => (
-                    <CompanyCard key={company.id} company={company} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-        </>
-      )}
+      {/* Latest Companies with Real-Time Updates */}
+      <section className="py-12 md:py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              🆕 Nya företag
+            </h2>
+            <Link href="/sok?sort=newest" className="text-brand hover:text-brand-dark flex items-center gap-1">
+              Visa alla <HiArrowRight />
+            </Link>
+          </div>
+          <CompanyList type="latest" maxItems={6} />
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
