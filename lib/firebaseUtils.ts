@@ -54,17 +54,18 @@ export async function retryFirestoreOperation<T>(
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await operation()
-    } catch (error: any) {
-      lastError = error
-      console.warn(`Firestore operation failed (attempt ${attempt + 1}/${maxRetries}):`, error.message)
+    } catch (error: unknown) {
+      const err = error as Error & { code?: string }
+      lastError = err
+      console.warn(`Firestore operation failed (attempt ${attempt + 1}/${maxRetries}):`, err.message)
       
       // Don't retry on certain errors
       if (
-        error.code === 'permission-denied' ||
-        error.code === 'invalid-argument' ||
-        error.code === 'unauthenticated'
+        err.code === 'permission-denied' ||
+        err.code === 'invalid-argument' ||
+        err.code === 'unauthenticated'
       ) {
-        throw error
+        throw err
       }
       
       // Wait before retrying (exponential backoff)
@@ -79,9 +80,28 @@ export async function retryFirestoreOperation<T>(
 }
 
 /**
+ * Company/Ad data structure for validation
+ */
+export interface CompanyData {
+  name: string
+  category: string
+  city: string
+  description: string
+  phone: string
+  status: string
+  services: Array<{
+    name: string
+    price: number
+    duration?: number
+    description?: string
+  }>
+  [key: string]: any // Allow additional fields
+}
+
+/**
  * Validate required fields for a company/ad document
  */
-export function validateCompanyData(data: any): { valid: boolean; errors: string[] } {
+export function validateCompanyData(data: CompanyData): { valid: boolean; errors: string[] } {
   const errors: string[] = []
   
   // Required fields

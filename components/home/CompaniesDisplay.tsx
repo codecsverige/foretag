@@ -94,7 +94,7 @@ export default function CompaniesDisplay() {
         unsubscribePremium()
         unsubscribeLatest()
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error setting up Firestore listeners:', err)
       setError('Kunde inte ansluta till databasen')
       setLoading(false)

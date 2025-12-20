@@ -171,7 +171,8 @@ export default function CreatePage() {
 
       // Try to save to Firestore with retry logic
       if (!db) {
-        setError('Firebase är inte korrekt konfigurerad. Kontakta support.')
+        console.error('Firebase Firestore is not initialized. Check environment variables.')
+        setError('Firebase är inte korrekt konfigurerad. Kontrollera att alla NEXT_PUBLIC_FIREBASE_* miljövariabler är inställda.')
         setIsSubmitting(false)
         return
       }
@@ -184,18 +185,20 @@ export default function CreatePage() {
         )
         setNewCompanyId(docRef.id)
         console.log('✅ Company saved to Firestore:', docRef.id)
-      } catch (firestoreError: any) {
-        console.error('❌ Firestore error after retries:', firestoreError)
-        setError(`Kunde inte spara till databasen: ${firestoreError.message}. Försök igen.`)
+      } catch (firestoreError: unknown) {
+        const error = firestoreError as Error & { message: string }
+        console.error('❌ Firestore error after retries:', error)
+        setError(`Kunde inte spara till databasen: ${error.message}. Försök igen.`)
         setIsSubmitting(false)
         return
       }
       
       setSubmitted(true)
       
-    } catch (err: any) {
-      console.error('Error creating company:', err)
-      setError(`Kunde inte skapa annonsen: ${err.message}`)
+    } catch (err: unknown) {
+      const error = err as Error
+      console.error('Error creating company:', error)
+      setError(`Kunde inte skapa annonsen: ${error.message}`)
     } finally {
       setIsSubmitting(false)
     }
