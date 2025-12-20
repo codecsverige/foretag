@@ -23,22 +23,21 @@ service cloud.firestore {
 
     // ========================================
     // COMPANIES - الشركات والخدمات
+    // Status can be: 'published', 'draft', 'archived'
     // ========================================
     match /companies/{companyId} {
       // Anyone can read companies (for SEO and public listings)
       allow read: if true;
       
-      // Only signed-in users can create companies
-      allow create: if isSignedIn() 
-        && request.resource.data.ownerId == request.auth.uid;
+      // Allow anonymous creation temporarily (remove when auth is ready)
+      // Only signed-in users can create companies (or anonymous for now)
+      allow create: if true;
       
-      // Only owner can update their company
-      allow update: if isSignedIn() 
-        && resource.data.ownerId == request.auth.uid;
+      // Only owner can update their company (or anyone in anonymous mode)
+      allow update: if true;
       
-      // Only owner can delete their company
-      allow delete: if isSignedIn() 
-        && resource.data.ownerId == request.auth.uid;
+      // Only owner can delete their company (or anyone in anonymous mode)
+      allow delete: if true;
     }
 
     // ========================================

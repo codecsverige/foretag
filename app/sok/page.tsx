@@ -69,7 +69,7 @@ function SearchContent() {
       try {
         let q = query(
           collection(db, 'companies'),
-          where('status', '==', 'active')
+          where('status', '==', 'published')
         )
         
         // Note: Firestore has limitations on compound queries

@@ -152,7 +152,7 @@ export default function CreatePage() {
         views: 0,
         
         // Status
-        status: 'active',
+        status: 'published',
         premium: false,
         
         // Timestamps
@@ -163,19 +163,26 @@ export default function CreatePage() {
       // Try to save to Firestore
       if (db) {
         try {
+          console.log('🔥 Attempting to save to Firestore...')
           const docRef = await addDoc(collection(db, 'companies'), companyData)
           setNewCompanyId(docRef.id)
           console.log('✅ Saved to Firestore:', docRef.id)
         } catch (firestoreError: any) {
-          console.warn('⚠️ Firestore error, saving locally:', firestoreError.message)
+          console.error('❌ Firestore error:', {
+            message: firestoreError.message,
+            code: firestoreError.code,
+            details: firestoreError
+          })
           // Save to localStorage as backup
           const localId = 'local_' + Date.now()
           const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
           savedCompanies.push({ id: localId, ...companyData, createdAt: Date.now() })
           localStorage.setItem('companies', JSON.stringify(savedCompanies))
           setNewCompanyId(localId)
+          console.warn('⚠️ Fallback: Saved locally instead:', localId)
         }
       } else {
+        console.warn('⚠️ Firestore db not initialized, saving locally')
         // Save to localStorage
         const localId = 'local_' + Date.now()
         const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
