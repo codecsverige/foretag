@@ -59,42 +59,47 @@ function SearchContent() {
   // Fetch companies from Firestore with real-time listener
   useEffect(() => {
     if (!db) {
-      setLoading(true)
       const loadFromLocalStorage = () => {
-        // Fallback to localStorage
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        let results = savedCompanies.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          category: c.category,
-          categoryName: c.categoryName,
-          emoji: c.emoji,
-          city: c.city,
-          rating: c.rating || 0,
-          reviewCount: c.reviewCount || 0,
-          priceFrom: c.services?.[0]?.price || 0,
-          premium: c.premium || false,
-        })) as Company[]
-        
-        // Apply filters
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase()
-          results = results.filter(c => 
-            c.name?.toLowerCase().includes(query) ||
-            c.categoryName?.toLowerCase().includes(query)
-          )
+        try {
+          // Fallback to localStorage
+          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+          let results = savedCompanies.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            category: c.category,
+            categoryName: c.categoryName,
+            emoji: c.emoji,
+            city: c.city,
+            rating: c.rating || 0,
+            reviewCount: c.reviewCount || 0,
+            priceFrom: c.services?.[0]?.price || 0,
+            premium: c.premium || false,
+          })) as Company[]
+          
+          // Apply filters
+          if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            results = results.filter(c => 
+              c.name?.toLowerCase().includes(query) ||
+              c.categoryName?.toLowerCase().includes(query)
+            )
+          }
+          
+          if (selectedCategory) {
+            results = results.filter(c => c.category === selectedCategory)
+          }
+          
+          if (selectedCity) {
+            results = results.filter(c => c.city === selectedCity)
+          }
+          
+          setCompanies(results)
+          setLoading(false)
+        } catch (error) {
+          console.error('Error loading from localStorage:', error)
+          setCompanies([])
+          setLoading(false)
         }
-        
-        if (selectedCategory) {
-          results = results.filter(c => c.category === selectedCategory)
-        }
-        
-        if (selectedCity) {
-          results = results.filter(c => c.city === selectedCity)
-        }
-        
-        setCompanies(results)
-        setLoading(false)
       }
       
       loadFromLocalStorage()

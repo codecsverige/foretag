@@ -60,20 +60,25 @@ export default function AccountPage() {
     if (!user || !db) {
       // Try localStorage fallback
       if (typeof window !== 'undefined' && !db) {
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        // Filter by anonymous for testing
-        const localCompanies = savedCompanies.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          category: c.category,
-          categoryName: c.categoryName,
-          city: c.city,
-          status: c.status || 'active',
-          createdAt: c.createdAt,
-          viewCount: c.viewCount || 0,
-          bookingCount: c.bookingCount || 0,
-        }))
-        setCompanies(localCompanies)
+        try {
+          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+          // Filter by anonymous for testing
+          const localCompanies = savedCompanies.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            category: c.category,
+            categoryName: c.categoryName,
+            city: c.city,
+            status: c.status || 'active',
+            createdAt: c.createdAt,
+            viewCount: c.viewCount || 0,
+            bookingCount: c.bookingCount || 0,
+          }))
+          setCompanies(localCompanies)
+        } catch (error) {
+          console.error('Error loading from localStorage:', error)
+          setCompanies([])
+        }
       }
       setLoading(false)
       return

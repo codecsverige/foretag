@@ -43,21 +43,28 @@ export default function Home() {
     // If no Firestore, try localStorage
     if (!db) {
       const loadFromLocalStorage = () => {
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
-        const companiesData = savedCompanies.map((c: any) => ({
-          ...c,
-          priceFrom: c.services?.[0]?.price || 0,
-        }))
-        
-        // Sort by premium and createdAt
-        const premium = companiesData.filter((c: any) => c.premium).slice(0, 6)
-        const latest = companiesData
-          .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0))
-          .slice(0, 6)
-        
-        setPremiumCompanies(premium)
-        setLatestCompanies(latest)
-        setLoading(false)
+        try {
+          const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]')
+          const companiesData = savedCompanies.map((c: any) => ({
+            ...c,
+            priceFrom: c.services?.[0]?.price || 0,
+          }))
+          
+          // Sort by premium and createdAt
+          const premium = companiesData.filter((c: any) => c.premium).slice(0, 6)
+          const latest = companiesData
+            .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0))
+            .slice(0, 6)
+          
+          setPremiumCompanies(premium)
+          setLatestCompanies(latest)
+          setLoading(false)
+        } catch (error) {
+          console.error('Error loading from localStorage:', error)
+          setPremiumCompanies([])
+          setLatestCompanies([])
+          setLoading(false)
+        }
       }
       
       loadFromLocalStorage()
