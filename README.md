@@ -172,7 +172,7 @@ firebase deploy --only firestore:indexes
        ├── services: Array<{name, duration, price}>
        ├── openingHours: Object
        ├── ownerId: string (userId)
-       ├── status: "pending" | "active"
+       ├── status: "drafted" | "published"
        ├── premium: boolean
        ├── rating?: number
        ├── reviewCount?: number

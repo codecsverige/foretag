@@ -205,11 +205,11 @@ export default function AccountPage() {
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold text-gray-900">{company.name}</h3>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                company.status === 'active' 
+                                company.status === 'published' 
                                   ? 'bg-green-100 text-green-700'
                                   : 'bg-yellow-100 text-yellow-700'
                               }`}>
-                                {company.status === 'active' ? 'Aktiv' : 'Granskas'}
+                                {company.status === 'published' ? 'Publicerad' : 'Utkast'}
                               </span>
                             </div>
                             <p className="text-gray-600 text-sm">
