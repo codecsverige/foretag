@@ -2,7 +2,7 @@
 
 /* ────────────────────────────────────────────────
    app/login/page.tsx
-   صفحة تسجيل الدخول - منسوخ من المشروع القديم
+   صفحة تسجيل الدخول - Using GoogleAuth component
 ──────────────────────────────────────────────── */
 
 import { useState, useEffect, Suspense } from 'react'
@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { HiMail, HiLockClosed, HiExclamationCircle } from 'react-icons/hi'
+import GoogleAuth from '@/components/GoogleAuth'
 
 function LoginContent() {
   const router = useRouter()
@@ -21,14 +22,12 @@ function LoginContent() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   
-  let signInWithGoogle = async () => {}
   let signInWithEmail = async (email: string, password: string) => {}
   let user: any = null
   let loading = true
   
   try {
     const auth = useAuth()
-    signInWithGoogle = auth.signInWithGoogle
     signInWithEmail = auth.signInWithEmail
     user = auth.user
     loading = auth.loading
@@ -42,32 +41,6 @@ function LoginContent() {
       router.push(redirect)
     }
   }, [user, loading, router, redirect])
-
-  // Google Sign In - نفس الطريقة من المشروع القديم
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    setError('')
-    
-    try {
-      await signInWithGoogle()
-      router.push(redirect)
-    } catch (err: any) {
-      console.error('Google sign-in error:', err)
-      
-      // Better error messages
-      if (err.code === 'auth/popup-closed-by-user') {
-        setError('تم إغلاق نافذة تسجيل الدخول. حاول مرة أخرى.')
-      } else if (err.code === 'auth/popup-blocked') {
-        setError('تم حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة.')
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError('هذا النطاق غير مُصرّح به. تحقق من إعدادات Firebase.')
-      } else {
-        setError(err.message || 'Kunde inte logga in med Google. Försök igen.')
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,24 +111,12 @@ function LoginContent() {
             </div>
           )}
 
-          {/* Google Sign In - نفس التصميم من المشروع القديم */}
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-xl py-3 hover:bg-gray-100 transition disabled:opacity-50"
-          >
-            {/* Google icon built with Tailwind - من المشروع القديم */}
-            <div className="w-5 h-5 relative">
-              <div className="absolute w-2.5 h-2.5 bg-[#EA4335] rounded top-0 left-0"></div>
-              <div className="absolute w-2.5 h-2.5 bg-[#FBBC04] rounded top-0 right-0"></div>
-              <div className="absolute w-2.5 h-2.5 bg-[#34A853] rounded bottom-0 left-0"></div>
-              <div className="absolute w-2.5 h-2.5 bg-[#4285F4] rounded bottom-0 right-0"></div>
-            </div>
-
-            <span className="text-sm font-medium text-gray-700">
-              {isLoading ? 'Loggar in...' : 'Logga in med Google'}
-            </span>
-          </button>
+          {/* Google Sign In - Using GoogleAuth component */}
+          <GoogleAuth 
+            redirectTo={redirect}
+            buttonText="Logga in med Google"
+            fullWidth
+          />
 
           {/* Divider */}
           <div className="flex items-center gap-4">
