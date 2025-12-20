@@ -6,6 +6,7 @@ import CategoryGrid from '@/components/search/CategoryGrid'
 import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
+import { Ad } from '@/types/ad'
 
 // الفئات
 const categories = [
@@ -84,7 +85,7 @@ async function getCompaniesAndAds() {
     const ads = adsSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-    }))
+    } as Ad))
     
     return { premiumCompanies, latestCompanies, ads }
   } catch (error) {
@@ -246,7 +247,7 @@ export default async function Home() {
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {ads.map((ad: any) => (
+                  {ads.map((ad: Ad) => (
                     <AdCard key={ad.id} ad={ad} />
                   ))}
                 </div>

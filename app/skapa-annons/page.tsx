@@ -9,6 +9,8 @@ import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiPhotograph } from 'rea
 import Link from 'next/link'
 
 // ⚠️ TEMPORARY: Allow creating without login
+// TODO: Implement proper authentication before production
+// This is a temporary measure for development/testing purposes
 const SKIP_AUTH = true
 
 const categories = [
@@ -154,7 +156,8 @@ export default function CreateAdPage() {
         services: validServices,
         images: uploadedUrls,
         
-        // Metadata
+        // Metadata - temporary anonymous
+        // TODO: Replace with actual user data from auth context
         ownerId: 'anonymous',
         ownerName: 'Anonymous',
         ownerEmail: email || '',
