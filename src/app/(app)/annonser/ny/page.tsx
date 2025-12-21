@@ -15,6 +15,10 @@ async function createAdInFirestore(payload: any) {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error('Not authenticated');
 
+  if (!db) {
+    throw new Error('Firebase är inte konfigurerat. Kontakta support.');
+  }
+
   // Create a new doc id up front so we can use it in the UI immediately
   const ref = doc(collection(db, 'ads'));
   const now = serverTimestamp();
