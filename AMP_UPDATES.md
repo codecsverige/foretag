@@ -6,6 +6,19 @@ Ce fichier enregistre toutes les modifications effectuées par Amp sur ce projet
 
 ## 2024-12-24
 
+### Mise à jour 5 - Dashboard Pro & Navigation Intelligente
+- **Fichiers modifiés**:
+  - `components/layout/Header.tsx` - Logo redirige vers /konto si connecté
+  - `app/konto/page.tsx` - Nouveau dashboard professionnel
+- **Améliorations**:
+  - ✅ Clic logo BokaNära → Dashboard si connecté, Accueil sinon
+  - ✅ Dashboard simplifié avec vue des annonces en cards
+  - ✅ Boutons Visa/Redigera/Pausa/Supprimer sur chaque annonce
+  - ✅ Section bokningar en attente avec actions rapides
+  - ✅ Statistiques visuelles (visningar, bokningar, intäkter)
+  - ✅ Quick actions panel
+  - ✅ Design responsive et professionnel
+
 ### Mise à jour 4 - Redirection vers Dashboard après Login
 - **Fichiers modifiés**:
   - `app/login/page.tsx` - Redirect par défaut vers `/konto`

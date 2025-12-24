@@ -30,8 +30,8 @@ export default function Header() {
     <header className={`sticky top-0 z-50 bg-white transition-shadow ${scrolled ? 'shadow-sm' : 'border-b border-gray-200'}`}>
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          {/* Logo - goes to dashboard if logged in, home if not */}
+          <Link href={user ? "/konto" : "/"} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
               <span className="text-white font-bold text-sm">B</span>
             </div>
