@@ -6,6 +6,15 @@ Ce fichier enregistre toutes les modifications effectuées par Amp sur ce projet
 
 ## 2024-12-24
 
+### Mise à jour 4 - Redirection vers Dashboard après Login
+- **Fichiers modifiés**:
+  - `app/login/page.tsx` - Redirect par défaut vers `/konto`
+  - `app/registrera/page.tsx` - Redirect vers `/konto` après inscription
+- **Comportement**:
+  - ✅ Login → Tableau de bord (pas page d'accueil)
+  - ✅ Register → Tableau de bord
+  - ✅ L'utilisateur voit ses propres annonces directement
+
 ### Mise à jour 3 - Correction Failles de Sécurité
 - **Fichiers modifiés**:
   - `app/skapa/page.tsx` - Authentification obligatoire

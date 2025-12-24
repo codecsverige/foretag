@@ -14,7 +14,8 @@ import { HiMail, HiLockClosed, HiExclamationCircle } from 'react-icons/hi'
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/'
+  // Default redirect to dashboard (konto) after login, not homepage
+  const redirect = searchParams.get('redirect') || '/konto'
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

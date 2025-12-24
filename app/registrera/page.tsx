@@ -32,10 +32,10 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Redirect if already logged in
+  // Redirect if already logged in - go to dashboard
   useEffect(() => {
     if (user && !loading) {
-      router.push('/')
+      router.push('/konto')
     }
   }, [user, loading, router])
 
@@ -44,7 +44,7 @@ export default function RegisterPage() {
       setError('')
       setIsLoading(true)
       await signInWithGoogle()
-      router.push('/')
+      router.push('/konto')
     } catch (err: any) {
       setError('Kunde inte registrera med Google. Försök igen.')
       console.error(err)
@@ -75,7 +75,7 @@ export default function RegisterPage() {
       setError('')
       setIsLoading(true)
       await signUpWithEmail(email, password, name)
-      router.push('/')
+      router.push('/konto')
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
         setError('E-postadressen används redan')
