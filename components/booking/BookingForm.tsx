@@ -8,9 +8,9 @@ import { HiCalendar, HiClock, HiUser, HiPhone, HiCheck } from 'react-icons/hi'
 import Link from 'next/link'
 
 interface Service {
-  name: string
-  price: number
-  duration: number
+  name?: string
+  price?: number
+  duration?: number
 }
 
 interface BookingFormProps {
@@ -73,7 +73,7 @@ export default function BookingForm({ services, companyName, companyId, companyP
 
     try {
       const selectedServiceData = services.find(
-        s => `${s.name}-${s.price}` === selectedService
+        s => `${s.name || ''}-${s.price || 0}` === selectedService
       )
 
       const bookingData = {
@@ -197,9 +197,9 @@ export default function BookingForm({ services, companyName, companyId, companyP
             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
           >
             <option value="">Välj tjänst...</option>
-            {services.map((service, index) => (
-              <option key={index} value={`${service.name}-${service.price}`}>
-                {service.name} - {service.price} kr ({service.duration} min)
+            {services.filter(s => s.name).map((service, index) => (
+              <option key={index} value={`${service.name || ''}-${service.price || 0}`}>
+                {service.name} - {service.price || 0} kr ({service.duration || 30} min)
               </option>
             ))}
           </select>

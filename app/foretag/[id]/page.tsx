@@ -15,9 +15,9 @@ import { db } from '@/lib/firebase'
 import { doc, updateDoc, increment } from 'firebase/firestore'
 
 interface Service {
-  name: string
-  price: number
-  duration: number
+  name?: string
+  price?: number
+  duration?: number
   description?: string
 }
 
@@ -164,7 +164,7 @@ export default function CompanyPage() {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
   const todayHours = company.openingHours?.[today]
   const isOpenNow = todayHours && !todayHours.closed
-  const lowestPrice = company.services?.reduce((min, s) => s.price < min ? s.price : min, Infinity) || 0
+  const lowestPrice = company.services?.reduce((min, s) => (s.price || 0) < min ? (s.price || 0) : min, Infinity) || 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -311,7 +311,7 @@ export default function CompanyPage() {
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Tjänster & Priser</h2>
                 <div className="space-y-3">
-                  {company.services.map((service, index) => (
+                  {company.services.filter(s => s.name).map((service, index) => (
                     <div 
                       key={index} 
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -321,14 +321,14 @@ export default function CompanyPage() {
                         <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
                             <HiClock className="w-4 h-4" />
-                            {service.duration} min
+                            {service.duration || 30} min
                           </span>
                           {service.description && (
                             <span>• {service.description}</span>
                           )}
                         </div>
                       </div>
-                      <span className="text-xl font-bold text-gray-900">{service.price} <span className="text-sm font-normal text-gray-500">kr</span></span>
+                      <span className="text-xl font-bold text-gray-900">{service.price || 0} <span className="text-sm font-normal text-gray-500">kr</span></span>
                     </div>
                   ))}
                 </div>
