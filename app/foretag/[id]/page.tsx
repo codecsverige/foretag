@@ -168,8 +168,8 @@ export default function CompanyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Banner - Like a mini website */}
-      <div className="relative h-64 md:h-80 bg-gray-900">
+      {/* Hero Banner - Compact */}
+      <div className="relative h-48 md:h-56 lg:h-64 bg-gray-900">
         <img
           src={images[currentImageIndex]}
           alt={company.name}
@@ -257,10 +257,10 @@ export default function CompanyPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Info */}
-          <div className="lg:col-span-2 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-5 gap-6">
+          {/* Left Column - Info (3/5) */}
+          <div className="lg:col-span-3 space-y-6">
             {/* Quick Actions */}
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <div className="flex flex-wrap gap-3">
@@ -432,8 +432,8 @@ export default function CompanyPage() {
             </div>
           </div>
 
-          {/* Right Column - Booking */}
-          <div className="lg:col-span-1">
+          {/* Right Column - Booking (2/5) */}
+          <div className="lg:col-span-2">
             <div className="sticky top-20">
               <BookingForm 
                 services={company.services || []} 
