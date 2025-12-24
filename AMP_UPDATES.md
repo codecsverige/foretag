@@ -6,6 +6,20 @@ Ce fichier enregistre toutes les modifications effectuées par Amp sur ce projet
 
 ## 2024-12-24
 
+### Mise à jour 3 - Correction Failles de Sécurité
+- **Fichiers modifiés**:
+  - `app/skapa/page.tsx` - Authentification obligatoire
+  - `components/booking/BookingForm.tsx` - Validation téléphone
+- **Failles corrigées**:
+  - ✅ SKIP_AUTH supprimé - login obligatoire pour créer annonce
+  - ✅ ownerId lié à l'utilisateur authentifié
+  - ✅ rating initial = 0 (pas de faux rating)
+  - ✅ premium = false par défaut (pas de premium gratuit)
+  - ✅ verified = false par défaut
+  - ✅ Validation numéro de téléphone suédois
+  - ✅ Validation nom (min 2 caractères)
+  - ✅ Écran de redirection login si non connecté
+
 ### Mise à jour 2 - Design Cards et Page Détail
 - **Fichiers modifiés**:
   - `components/company/CompanyCard.tsx` - Design amélioré, image réduite (h-44), meilleur espacement

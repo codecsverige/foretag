@@ -39,9 +39,30 @@ export default function BookingForm({ services, companyName, companyId, companyP
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  // Validate Swedish phone number
+  const validatePhone = (phone: string): boolean => {
+    const cleaned = phone.replace(/[\s-]/g, '')
+    // Swedish mobile: 07X XXX XX XX or +467X XXX XX XX
+    const mobileRegex = /^(\+46|0)7[0-9]{8}$/
+    return mobileRegex.test(cleaned)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Validate phone number
+    if (!validatePhone(phone)) {
+      setError('Ange ett giltigt svenskt mobilnummer (07X XXX XX XX)')
+      return
+    }
+
+    // Validate name (at least 2 characters)
+    if (name.trim().length < 2) {
+      setError('Ange ditt fullständiga namn')
+      return
+    }
+
     setIsSubmitting(true)
 
     if (!db) {

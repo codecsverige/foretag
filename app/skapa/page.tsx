@@ -1,15 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { HiPlus, HiTrash, HiCheck, HiExclamationCircle } from 'react-icons/hi'
+import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed } from 'react-icons/hi'
 import Link from 'next/link'
-
-// ⚠️ TEMPORARY: Allow creating without login
-// Set to false when Firebase Auth is configured
-const SKIP_AUTH = true
 
 const categories = [
   { id: 'frisor', name: 'Frisör', emoji: '💇' },
@@ -61,6 +58,7 @@ const dayNames: { [key: string]: string } = {
 
 export default function CreatePage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
 
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -81,6 +79,13 @@ export default function CreatePage() {
     { id: '1', name: '', price: '', duration: '', description: '' }
   ])
   const [openingHours, setOpeningHours] = useState(defaultOpeningHours)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?redirect=/skapa')
+    }
+  }, [user, authLoading, router])
 
   const addService = () => {
     setServices([
@@ -107,6 +112,13 @@ export default function CreatePage() {
   }
 
   const handleSubmit = async () => {
+    // Security check - must be logged in
+    if (!user) {
+      setError('Du måste vara inloggad för att skapa en annons.')
+      router.push('/login?redirect=/skapa')
+      return
+    }
+
     setIsSubmitting(true)
     setError('')
 
@@ -141,19 +153,20 @@ export default function CreatePage() {
         services: validServices,
         openingHours,
 
-        // Metadata - temporary anonymous
-        ownerId: 'anonymous',
-        ownerName: 'Anonymous',
-        ownerEmail: email || '',
+        // Metadata - linked to authenticated user
+        ownerId: user?.uid || '',
+        ownerName: user?.displayName || '',
+        ownerEmail: user?.email || email || '',
 
-        // Stats (initial)
-        rating: 5,
-        reviewCount: 1,
+        // Stats (initial - honest values)
+        rating: 0,
+        reviewCount: 0,
         views: 0,
 
         // Status
         status: 'active',
-        premium: true,
+        premium: false,
+        verified: false,
 
         // Timestamps
         createdAt: serverTimestamp(),
@@ -176,6 +189,51 @@ export default function CreatePage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-500">Laddar...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Not logged in state
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
+          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <HiLockClosed className="w-10 h-10 text-blue-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Logga in för att fortsätta
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Du måste vara inloggad för att skapa en företagsannons.
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/login?redirect=/skapa"
+              className="block w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+            >
+              Logga in
+            </Link>
+            <Link
+              href="/registrera"
+              className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+            >
+              Skapa konto
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Success state
@@ -244,9 +302,9 @@ export default function CreatePage() {
           <p className="text-gray-600">
             Gratis! Nå tusentals nya kunder.
           </p>
-          {SKIP_AUTH && (
-            <p className="text-xs text-orange-600 mt-2 bg-orange-50 inline-block px-3 py-1 rounded-full">
-              ⚠️ Testläge: Inget login krävs
+          {user && (
+            <p className="text-xs text-green-600 mt-2 bg-green-50 inline-block px-3 py-1 rounded-full">
+              ✓ Inloggad som {user.displayName || user.email}
             </p>
           )}
         </div>
