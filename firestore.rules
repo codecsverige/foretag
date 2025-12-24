@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ========================================
+    // وضع التطوير - السماح للجميع
+    // Development mode - Allow all access
+    // ⚠️ تحذير: غيّر هذا قبل الإنتاج!
+    // ⚠️ WARNING: Change this before production!
+    // ========================================
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

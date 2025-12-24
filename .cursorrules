@@ -1,0 +1,37 @@
+# BokaNära - Cursor Rules
+
+## Project Overview
+BokaNära is a Swedish platform for local businesses. Customers can search, discover, and book services with SMS reminders.
+
+## Tech Stack
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- Firebase (Auth, Firestore, Storage, Functions)
+- Vercel (Hosting)
+
+## Directory Structure
+- `/app` - Next.js pages and routes
+- `/components` - Reusable React components
+- `/services` - Business logic and API calls
+- `/context` - React Context providers
+- `/lib` - Utilities and configurations
+- `/functions` - Firebase Cloud Functions
+
+## Coding Standards
+- Use TypeScript for all new files
+- Follow Swedish naming conventions for user-facing text
+- Use Tailwind CSS for styling
+- Prefer server components when possible
+- Use 'use client' only when necessary
+
+## Firebase Collections
+- `users` - User profiles
+- `companies` - Business listings
+- `bookings` - Appointment bookings
+- `reviews` - Customer reviews
+- `notifications` - In-app notifications
+- `reminders` - SMS reminder queue
+
+## Environment Variables
+All Firebase config uses `NEXT_PUBLIC_FIREBASE_*` prefix.
