@@ -61,18 +61,28 @@ export default function Home() {
     return () => { mounted = false }
   }, [])
 
+  useEffect(() => {
+    router.prefetch('/sok')
+  }, [router])
+
+  useEffect(() => {
+    if (companies.length > 0) {
+      router.prefetch(`/foretag/${companies[0].id}`)
+    }
+  }, [router, companies])
+
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      router.push(`/sok?q=${encodeURIComponent(searchQuery)}`)
+      router.push(`/sok?q=${encodeURIComponent(searchQuery)}`, { scroll: false })
     }
   }, [searchQuery, router])
 
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
+      <section className="bg-gradient-to-b from-brand/5 via-gray-50 to-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-4 py-12 md:py-16 lg:py-20">
           <div className="text-center max-w-2xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Hitta och boka lokala tjänster
@@ -83,7 +93,7 @@ export default function Home() {
 
             {/* Search */}
             <form onSubmit={handleSearch} className="max-w-xl mx-auto">
-              <div className="flex gap-2 shadow-sm">
+              <div className="flex gap-2 p-2 bg-white border border-gray-200 rounded-2xl shadow-sm transition focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10">
                 <div className="flex-1 relative">
                   <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -91,12 +101,12 @@ export default function Home() {
                     placeholder="Sök företag, tjänst eller stad..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-base"
+                    className="w-full pl-11 pr-3 py-3 rounded-xl outline-none text-base bg-transparent placeholder:text-gray-400"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-lg font-medium transition-colors"
+                  className="bg-brand hover:bg-brand-dark text-white px-6 py-3 rounded-xl font-semibold transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
                 >
                   Sök
                 </button>
@@ -104,16 +114,16 @@ export default function Home() {
             </form>
 
             {/* Trust indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-gray-500">
-              <span className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-8 text-sm text-gray-600">
+              <span className="flex items-center gap-1.5 bg-white/80 border border-gray-200 rounded-full px-3 py-1.5 shadow-sm">
                 <HiBadgeCheck className="w-5 h-5 text-blue-600" />
                 Verifierade företag
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 bg-white/80 border border-gray-200 rounded-full px-3 py-1.5 shadow-sm">
                 <HiStar className="w-5 h-5 text-amber-500" />
                 Äkta kundomdömen
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 bg-white/80 border border-gray-200 rounded-full px-3 py-1.5 shadow-sm">
                 <HiShieldCheck className="w-5 h-5 text-green-600" />
                 Säker bokning
               </span>
@@ -131,7 +141,7 @@ export default function Home() {
               <Link
                 key={cat.id}
                 href={`/sok?kategori=${cat.id}`}
-                className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors text-center"
+                className="px-4 py-3 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-2xl text-sm font-medium text-gray-700 hover:text-gray-900 transition-all text-center shadow-sm hover:shadow"
               >
                 {cat.name}
               </Link>
@@ -147,7 +157,7 @@ export default function Home() {
             <h2 className="text-xl font-semibold text-gray-900">Utvalda företag</h2>
             <Link 
               href="/sok" 
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+              className="text-sm text-brand hover:text-brand-dark font-medium flex items-center gap-1"
             >
               Visa alla <HiArrowRight className="w-4 h-4" />
             </Link>
@@ -156,7 +166,7 @@ export default function Home() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
+                <div key={i} className="bg-white rounded-2xl border border-gray-200 overflow-hidden animate-pulse">
                   <div className="h-48 bg-gray-100"></div>
                   <div className="p-4">
                     <div className="h-3 bg-gray-100 rounded w-1/4 mb-3"></div>
@@ -173,7 +183,7 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
               <p className="text-gray-500 mb-4">Inga företag registrerade ännu.</p>
               <Link 
                 href="/skapa" 
@@ -191,21 +201,21 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-xl font-semibold text-gray-900 mb-8 text-center">Så fungerar det</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center shadow-sm">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
                 1
               </div>
               <h3 className="font-medium text-gray-900 mb-2">Sök tjänst</h3>
               <p className="text-sm text-gray-500">Hitta företag som erbjuder den tjänst du behöver i ditt område.</p>
             </div>
-            <div className="text-center">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center shadow-sm">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
                 2
               </div>
               <h3 className="font-medium text-gray-900 mb-2">Jämför & välj</h3>
               <p className="text-sm text-gray-500">Läs omdömen, jämför priser och välj det företag som passar dig.</p>
             </div>
-            <div className="text-center">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center shadow-sm">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">
                 3
               </div>
@@ -217,7 +227,7 @@ export default function Home() {
       </section>
 
       {/* CTA for businesses */}
-      <section className="py-12 bg-gray-900">
+      <section className="py-12 bg-gradient-to-r from-gray-900 to-gray-950">
         <div className="max-w-5xl mx-auto px-4">
           <div className="md:flex items-center justify-between">
             <div className="mb-6 md:mb-0">
@@ -227,13 +237,13 @@ export default function Home() {
             <div className="flex gap-3">
               <Link
                 href="/skapa"
-                className="bg-white text-gray-900 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="bg-brand hover:bg-brand-dark text-white px-5 py-2.5 rounded-xl font-semibold transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
               >
                 Registrera företag
               </Link>
               <Link
                 href="/login"
-                className="border border-gray-700 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                className="bg-white/10 hover:bg-white/15 border border-white/15 text-white px-5 py-2.5 rounded-xl font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
               >
                 Logga in
               </Link>

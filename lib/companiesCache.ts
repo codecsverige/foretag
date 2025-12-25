@@ -30,10 +30,14 @@ interface Company {
 // Simple in-memory cache
 let companiesCache: Company[] = []
 let lastFetchTime = 0
-const CACHE_DURATION = 60000 // 1 minute
+const CACHE_DURATION = 300000 // 5 minutes (increased from 1 minute)
 
 // Single company cache
 const singleCompanyCache: Map<string, { data: Company; time: number }> = new Map()
+
+// Prefetch flag to prevent duplicate simultaneous requests
+let isFetching = false
+let fetchPromise: Promise<Company[]> | null = null
 
 export async function getCompanies(forceRefresh = false): Promise<Company[]> {
   const now = Date.now()
@@ -43,39 +47,53 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
     return companiesCache
   }
   
+  // If already fetching, return the existing promise
+  if (isFetching && fetchPromise) {
+    return fetchPromise
+  }
+  
   if (!db) {
     return []
   }
 
-  try {
-    const companiesQuery = query(
-      collection(db, 'companies'),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    )
-    
-    const snapshot = await getDocs(companiesQuery)
-    const data = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      priceFrom: doc.data().services?.[0]?.price || 0,
-    })) as Company[]
-    
-    // Update cache
-    companiesCache = data
-    lastFetchTime = now
-    
-    // Also cache individual companies
-    data.forEach(company => {
-      singleCompanyCache.set(company.id, { data: company, time: now })
-    })
-    
-    return data
-  } catch (error) {
-    console.error('Error fetching companies:', error)
-    return companiesCache // Return stale cache on error
-  }
+  // Set fetching flag and create fetch promise
+  isFetching = true
+  fetchPromise = (async () => {
+    try {
+      const companiesQuery = query(
+        collection(db, 'companies'),
+        where('status', '==', 'active'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      )
+      
+      const snapshot = await getDocs(companiesQuery)
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        priceFrom: doc.data().services?.[0]?.price || 0,
+      })) as Company[]
+      
+      // Update cache
+      companiesCache = data
+      lastFetchTime = now
+      
+      // Also cache individual companies
+      data.forEach(company => {
+        singleCompanyCache.set(company.id, { data: company, time: now })
+      })
+      
+      return data
+    } catch (error) {
+      console.error('Error fetching companies:', error)
+      return companiesCache // Return stale cache on error
+    } finally {
+      isFetching = false
+      fetchPromise = null
+    }
+  })()
+  
+  return fetchPromise
 }
 
 export async function getCompanyById(id: string): Promise<Company | null> {

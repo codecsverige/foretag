@@ -66,35 +66,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set user immediately (don't wait for Firestore)
         setUser(fresh)
         
-        // Try to sync with Firestore (with timeout)
+        // Sync with Firestore in background (non-blocking)
         if (db) {
           const ref = doc(db, 'users', fresh.uid)
           
-          // Add timeout to prevent infinite loading
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Firestore timeout')), 5000)
-          )
-          
-          try {
-            const snap = await Promise.race([getDoc(ref), timeoutPromise]) as any
-            
-            if (!snap.exists()) {
-              // Create user document
-              const userData = {
-                uid: fresh.uid,
-                email: fresh.email,
-                displayName: fresh.displayName,
-                photoURL: fresh.photoURL,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
+          // Don't block page load for Firestore operations
+          getDoc(ref)
+            .then(snap => {
+              if (!snap.exists()) {
+                const userData = {
+                  uid: fresh.uid,
+                  email: fresh.email,
+                  displayName: fresh.displayName,
+                  photoURL: fresh.photoURL,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                }
+                setDoc(ref, userData, { merge: true }).catch(console.warn)
               }
-              // Don't wait for setDoc to complete
-              setDoc(ref, userData, { merge: true }).catch(console.warn)
-            }
-          } catch (firestoreError: any) {
-            console.warn('⚠️ Firestore error (continuing with auth data):', firestoreError.message)
-            // Continue with basic user data even if Firestore fails
-          }
+            })
+            .catch((err) => console.warn('⚠️ Firestore sync error:', err.message))
         }
         
         console.log('✅ User set successfully')

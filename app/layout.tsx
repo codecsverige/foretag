@@ -5,7 +5,12 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { AuthProvider } from '@/context/AuthContext'
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' })
+const inter = Inter({ 
+  subsets: ['latin'], 
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial']
+})
 
 export const metadata: Metadata = {
   title: 'BokaNära - Hitta lokala tjänster',

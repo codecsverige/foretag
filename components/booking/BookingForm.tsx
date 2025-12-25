@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore'
 import { HiCalendar, HiClock, HiUser, HiPhone, HiCheck } from 'react-icons/hi'
-import Link from 'next/link'
 
 interface Service {
   name?: string
@@ -18,9 +17,10 @@ interface BookingFormProps {
   companyName: string
   companyId?: string
   companyPhone?: string
+  companyOwnerId?: string
 }
 
-export default function BookingForm({ services, companyName, companyId, companyPhone }: BookingFormProps) {
+export default function BookingForm({ services, companyName, companyId, companyPhone, companyOwnerId }: BookingFormProps) {
   let user = null
   try {
     const auth = useAuth()
@@ -47,9 +47,31 @@ export default function BookingForm({ services, companyName, companyId, companyP
     return mobileRegex.test(cleaned)
   }
 
+  const normalizePhone = (phone: string) => phone.replace(/[\s-]/g, '')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!companyId) {
+      setError('Bokning kan inte skickas just nu. Försök igen om en stund.')
+      return
+    }
+
+    if (!selectedService) {
+      setError('Välj en tjänst')
+      return
+    }
+
+    if (!date) {
+      setError('Välj ett datum')
+      return
+    }
+
+    if (!time) {
+      setError('Välj en tid')
+      return
+    }
 
     // Validate phone number
     if (!validatePhone(phone)) {
@@ -76,19 +98,23 @@ export default function BookingForm({ services, companyName, companyId, companyP
         s => `${s.name || ''}-${s.price || 0}` === selectedService
       )
 
+      const cleanedPhone = normalizePhone(phone)
+
       const bookingData = {
         // Company info
-        companyId: companyId || 'unknown',
+        companyId,
         companyName,
+        companyOwnerId: companyOwnerId || null,
         
         // Service
         service: selectedServiceData?.name || selectedService,
+        serviceName: selectedServiceData?.name || selectedService,
         servicePrice: selectedServiceData?.price || 0,
         serviceDuration: selectedServiceData?.duration || 30,
         
         // Customer
         customerName: name,
-        customerPhone: phone,
+        customerPhone: cleanedPhone,
         customerId: user?.uid || null,
         customerEmail: user?.email || null,
         
@@ -106,6 +132,8 @@ export default function BookingForm({ services, companyName, companyId, companyP
       }
 
       await addDoc(collection(db, 'bookings'), bookingData)
+
+      updateDoc(doc(db, 'companies', companyId), { bookingCount: increment(1) }).catch(() => {})
       setSubmitted(true)
       
     } catch (err: any) {
@@ -118,7 +146,7 @@ export default function BookingForm({ services, companyName, companyId, companyP
 
   if (submitted) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-green-200">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-green-200">
         <div className="text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <HiCheck className="w-8 h-8 text-green-600" />
@@ -129,14 +157,14 @@ export default function BookingForm({ services, companyName, companyId, companyP
           </p>
           {smsReminder && (
             <p className="text-sm text-gray-500 mb-4">
-              📱 Du kommer få en SMS-påminnelse innan din tid.
+              Du kommer få en SMS-påminnelse innan din tid.
             </p>
           )}
           
           {/* Cancellation Info */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-left">
             <h4 className="font-semibold text-orange-800 mb-2">
-              ℹ️ Behöver du avboka eller ändra?
+              Behöver du avboka eller ändra?
             </h4>
             <p className="text-sm text-orange-700 mb-3">
               Kontakta företaget direkt:
@@ -175,8 +203,8 @@ export default function BookingForm({ services, companyName, companyId, companyP
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">📅 Boka tid</h2>
+    <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-200">
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Boka tid</h2>
       
       {error && (
         <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
@@ -194,7 +222,7 @@ export default function BookingForm({ services, companyName, companyId, companyP
             value={selectedService}
             onChange={(e) => setSelectedService(e.target.value)}
             required
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
           >
             <option value="">Välj tjänst...</option>
             {services.filter(s => s.name).map((service, index) => (
@@ -205,72 +233,76 @@ export default function BookingForm({ services, companyName, companyId, companyP
           </select>
         </div>
 
-        {/* Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <HiCalendar className="inline w-4 h-4 mr-1" />
-            Datum *
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            min={new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-          />
+        <div className="grid sm:grid-cols-2 gap-3">
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <HiCalendar className="inline w-4 h-4 mr-1" />
+              Datum *
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+            />
+          </div>
+
+          {/* Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <HiClock className="inline w-4 h-4 mr-1" />
+              Tid *
+            </label>
+            <select
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+            >
+              <option value="">Välj tid...</option>
+              {['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', 
+                '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'].map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <HiClock className="inline w-4 h-4 mr-1" />
-            Tid *
-          </label>
-          <select
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-          >
-            <option value="">Välj tid...</option>
-            {['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', 
-              '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'].map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <HiUser className="inline w-4 h-4 mr-1" />
+              Ditt namn *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="Förnamn Efternamn"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+            />
+          </div>
 
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <HiUser className="inline w-4 h-4 mr-1" />
-            Ditt namn *
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            placeholder="Förnamn Efternamn"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-          />
-        </div>
-
-        {/* Phone */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <HiPhone className="inline w-4 h-4 mr-1" />
-            Telefonnummer *
-          </label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-            placeholder="07X XXX XX XX"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-          />
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <HiPhone className="inline w-4 h-4 mr-1" />
+              Telefonnummer *
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              placeholder="07X XXX XX XX"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+            />
+          </div>
         </div>
 
         {/* SMS Reminder */}
@@ -283,7 +315,7 @@ export default function BookingForm({ services, companyName, companyId, companyP
             className="w-5 h-5 rounded border-gray-300 text-brand focus:ring-brand"
           />
           <label htmlFor="smsReminder" className="text-sm text-gray-700">
-            📱 Skicka mig en SMS-påminnelse innan min tid
+            Skicka mig en SMS-påminnelse innan min tid
           </label>
         </div>
 
@@ -291,9 +323,9 @@ export default function BookingForm({ services, companyName, companyId, companyP
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-brand hover:bg-brand-dark text-white py-4 rounded-xl font-bold text-lg transition disabled:opacity-50"
+          className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-xl font-bold text-base transition disabled:opacity-50"
         >
-          {isSubmitting ? 'Skickar...' : '📅 Skicka bokningsförfrågan'}
+          {isSubmitting ? 'Skickar...' : 'Skicka bokningsförfrågan'}
         </button>
 
         <p className="text-xs text-gray-500 text-center">

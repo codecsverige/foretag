@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, Suspense, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { HiSearch, HiAdjustments, HiX } from 'react-icons/hi'
 import { getCompanies } from '@/lib/companiesCache'
@@ -50,6 +50,8 @@ interface Company {
 
 function SearchContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const prefetched = useRef(false)
   
   const [allCompanies, setAllCompanies] = useState<Company[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
@@ -118,6 +120,15 @@ function SearchContent() {
     setCompanies(results)
   }, [allCompanies, searchQuery, selectedCategory, selectedCity, sortBy])
 
+  useEffect(() => {
+    const top = companies.slice(0, 3)
+    if (top.length === 0 || prefetched.current) return
+    prefetched.current = true
+    top.forEach((c) => {
+      router.prefetch(`/foretag/${c.id}`)
+    })
+  }, [companies, router])
+
   const clearFilters = useCallback(() => {
     setSearchQuery('')
     setSelectedCategory('')
@@ -129,7 +140,7 @@ function SearchContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Search Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-14 z-30">
+      <div className="bg-white border-b border-gray-200 sticky top-16 z-30">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex gap-3">
             {/* Search Input */}
