@@ -32,7 +32,9 @@ const nextConfig = {
   
   // Optimize bundle
   experimental: {
-    optimizePackageImports: ['react-icons'],
+    ...(process.env.NODE_ENV === 'production'
+      ? { optimizePackageImports: ['react-icons'] }
+      : {}),
   },
 }
 
