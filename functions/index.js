@@ -12,9 +12,11 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const cors = require("cors")({ origin: true });
 const validator = require("validator");
+const emailjs = require("@emailjs/nodejs");
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -30,6 +32,10 @@ const SMS_PROVIDER = process.env.SMS_PROVIDER || '';
 const SMS_API_KEY = process.env.SMS_API_KEY || '';
 const SMS_API_SECRET = process.env.SMS_API_SECRET || '';
 const SMS_SENDER = process.env.SMS_SENDER || 'BokaNara';
+const EMAILJS_PUBLIC_KEY = defineSecret('EMAILJS_PUBLIC_KEY');
+const EMAILJS_PRIVATE_KEY = defineSecret('EMAILJS_PRIVATE_KEY');
+const EMAILJS_SERVICE_ID = defineSecret('EMAILJS_SERVICE_ID');
+const EMAILJS_TEMPLATE_ID_BOOKING = defineSecret('EMAILJS_TEMPLATE_ID_BOOKING');
 
 // Lightweight in-memory rate limiter
 function createMemoryLimiter(points, durationSec) {
@@ -146,7 +152,10 @@ async function sendSms({ to, message }) {
 /**
  * Send notification when a new booking is created
  */
-exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (event) => {
+exports.onBookingCreated = onDocumentCreated({
+  document: "bookings/{bookingId}",
+  secrets: [EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID_BOOKING],
+}, async (event) => {
   try {
     const db = admin.firestore();
     const booking = event.data && event.data.data();
@@ -154,22 +163,61 @@ exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (even
 
     const bookingId = event.params.bookingId;
     const companyId = booking.companyId;
+    const bookingDate = booking.date || '';
+    const bookingTime = booking.time || '';
+    const slotId = (booking.slotId || (bookingDate && bookingTime ? `${bookingDate}_${String(bookingTime).replace(':', '-')}` : '')).trim();
     
     // Get company info
     const companySnap = await db.collection('companies').doc(companyId).get();
     if (!companySnap.exists) return null;
     const company = companySnap.data();
     
-    const ownerEmail = company.email || '';
+    const ownerEmail = (company.email || company.ownerEmail || '').trim();
     if (!ownerEmail) return null;
+
+    let cancelledBySlot = false;
+    if (companyId && slotId) {
+      const slotRef = db.collection('companies').doc(companyId).collection('bookingSlots').doc(slotId);
+      const bookingRef = event.data.ref;
+      try {
+        await db.runTransaction(async (tx) => {
+          const slotSnap = await tx.get(slotRef);
+          if (!slotSnap.exists) {
+            tx.set(slotRef, {
+              companyId,
+              date: bookingDate,
+              time: bookingTime,
+              bookingId,
+              createdAt: Date.now(),
+            });
+            return;
+          }
+
+          const existing = slotSnap.data() || {};
+          const existingBookingId = String(existing.bookingId || '');
+          if (existingBookingId && existingBookingId !== bookingId) {
+            tx.set(bookingRef, { status: 'cancelled', updatedAt: Date.now(), cancelReason: 'slot_taken' }, { merge: true });
+            cancelledBySlot = true;
+          } else {
+            tx.set(slotRef, { bookingId }, { merge: true });
+          }
+        });
+      } catch (e) {
+        console.error('slot ensure error:', e);
+      }
+    }
+
+    if (cancelledBySlot || booking.status === 'cancelled' || booking.cancelReason === 'slot_taken') {
+      return null;
+    }
 
     // Create notification for company owner
     const title = '📅 Ny bokning!';
     const body = [
       `${booking.customerName || 'En kund'} har bokat ${booking.serviceName || 'en tjänst'}.`,
       '',
-      `📆 ${booking.date} kl. ${booking.time}`,
-      booking.phone ? `📞 ${booking.phone}` : '',
+      `📆 ${bookingDate} kl. ${bookingTime}`,
+      (booking.customerPhone || booking.phone) ? `📞 ${booking.customerPhone || booking.phone}` : '',
     ].filter(Boolean).join('\n');
 
     await db.collection('notifications').add({
@@ -182,6 +230,96 @@ exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (even
       read: false,
       route: '/konto',
     });
+
+    try {
+      const wantsSms = Boolean(booking.smsReminder);
+      const toPhone = normalizePhone(booking.customerPhone || booking.phone);
+      const appointmentMs = Date.parse(`${bookingDate}T${bookingTime}:00`);
+      if (wantsSms && toPhone && Number.isFinite(appointmentMs)) {
+        const now = Date.now();
+        const reminders = [
+          { kind: 'before_24h', offsetMs: 24 * 60 * 60 * 1000 },
+          { kind: 'before_2h', offsetMs: 2 * 60 * 60 * 1000 },
+        ];
+
+        const batch = db.batch();
+        reminders.forEach(({ kind, offsetMs }) => {
+          const sendAt = appointmentMs - offsetMs;
+          if (sendAt <= now + 60 * 1000) return;
+          const ref = db.collection('reminders').doc(`${bookingId}_${kind}`);
+          const message = kind === 'before_24h'
+            ? `Påminnelse: Du har en bokning hos ${(booking.companyName || company.name || 'företaget')} imorgon kl ${bookingTime}. Tjänst: ${(booking.serviceName || booking.service || 'din tjänst')}. /BokaNära`
+            : `Påminnelse: Din bokning hos ${(booking.companyName || company.name || 'företaget')} börjar om 2 timmar (${bookingTime}). /BokaNära`;
+          batch.set(ref, {
+            channel: 'sms',
+            status: 'pending',
+            kind,
+            companyId,
+            customerId: booking.customerId || null,
+            bookingId,
+            toPhone,
+            message,
+            sendAt,
+            createdAt: now,
+            attempts: 0,
+          }, { merge: true });
+        });
+
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error('create reminders error:', e);
+    }
+
+    const emailjsPublicKey = EMAILJS_PUBLIC_KEY.value();
+    const emailjsPrivateKey = EMAILJS_PRIVATE_KEY.value();
+    const emailjsServiceId = EMAILJS_SERVICE_ID.value();
+    const emailjsTemplateId = EMAILJS_TEMPLATE_ID_BOOKING.value();
+
+    if (emailjsPublicKey && emailjsPrivateKey && emailjsServiceId && emailjsTemplateId) {
+      const customerName = booking.customerName || 'Kund';
+      const customerPhone = booking.customerPhone || booking.phone || '';
+      const customerEmail = booking.customerEmail || '';
+      const serviceName = booking.serviceName || booking.service || 'Tjänst';
+      const servicePrice = Number(booking.servicePrice || 0);
+      const serviceDuration = Number(booking.serviceDuration || 0);
+      const date = booking.date || '';
+      const time = booking.time || '';
+      const customerMessage = booking.customerMessage || '';
+
+      const templateParams = {
+        to_email: ownerEmail,
+        company_name: company.name || '',
+        booking_id: bookingId,
+        company_id: companyId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        customer_email: customerEmail,
+        service_name: serviceName,
+        service_price: servicePrice,
+        service_duration: serviceDuration,
+        booking_date: date,
+        booking_time: time,
+        customer_message: customerMessage,
+        dashboard_url: 'https://bokanara.se/konto?tab=bookings',
+      };
+
+      try {
+        await emailjs.send(
+          emailjsServiceId,
+          emailjsTemplateId,
+          templateParams,
+          {
+            publicKey: emailjsPublicKey,
+            privateKey: emailjsPrivateKey,
+          }
+        );
+      } catch (e) {
+        console.error('EmailJS send error:', e && e.message ? e.message : e);
+      }
+    } else {
+      console.log('[EmailJS] Not configured, skipping email for booking:', bookingId);
+    }
 
     return null;
   } catch (e) {
@@ -198,6 +336,23 @@ exports.createBookingReminders = onDocumentUpdated("bookings/{bookingId}", async
     const db = admin.firestore();
     const before = event.data.before.data();
     const after = event.data.after.data();
+
+    if (before.status !== 'cancelled' && after.status === 'cancelled') {
+      const bookingId = event.params.bookingId;
+      const companyId = after.companyId;
+      const slotId = (after.slotId || (after.date && after.time ? `${after.date}_${String(after.time).replace(':', '-')}` : '')).trim();
+
+      if (companyId && slotId) {
+        await db.collection('companies').doc(companyId).collection('bookingSlots').doc(slotId).delete().catch(() => {});
+      }
+
+      const batch = db.batch();
+      ['before_24h', 'before_2h'].forEach((kind) => {
+        batch.delete(db.collection('reminders').doc(`${bookingId}_${kind}`));
+      });
+      await batch.commit().catch(() => {});
+      return null;
+    }
     
     // Only trigger when status changes to 'confirmed'
     if (before.status === 'confirmed' || after.status !== 'confirmed') {
@@ -235,7 +390,7 @@ exports.createBookingReminders = onDocumentUpdated("bookings/{bookingId}", async
         ? `Påminnelse: Du har en bokning hos ${companyName} imorgon kl ${timeStr}. Tjänst: ${serviceName}. /BokaNära`
         : `Påminnelse: Din bokning hos ${companyName} börjar om 2 timmar (${timeStr}). /BokaNära`;
 
-      const ref = db.collection('reminders').doc();
+      const ref = db.collection('reminders').doc(`${bookingId}_${kind}`);
       batch.set(ref, {
         channel: 'sms',
         status: 'pending',
@@ -248,7 +403,7 @@ exports.createBookingReminders = onDocumentUpdated("bookings/{bookingId}", async
         sendAt,
         createdAt: now,
         attempts: 0,
-      });
+      }, { merge: true });
     });
 
     await batch.commit();

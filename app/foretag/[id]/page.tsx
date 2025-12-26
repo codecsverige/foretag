@@ -36,6 +36,19 @@ interface Company {
   website?: string
   rating?: number
   reviewCount?: number
+  discountPercent?: number
+  discountText?: string
+  discount?: {
+    enabled?: boolean
+    label?: string
+    type?: 'percent' | 'amount'
+    value?: number
+    appliesTo?: 'all' | 'services'
+    serviceNames?: string[]
+    startDate?: string
+    endDate?: string
+    showBadge?: boolean
+  }
   services?: Service[]
   images?: string[]
   image?: string
@@ -207,6 +220,43 @@ export default function CompanyPage() {
   const todayHours = company.openingHours?.[today]
   const isOpenNow = todayHours && !todayHours.closed
   const lowestPrice = company.services?.reduce((min, s) => (s.price || 0) < min ? (s.price || 0) : min, Infinity) || 0
+  const todayIso = new Date().toLocaleDateString('sv-SE')
+  const discountCfg = company.discount
+  const isDiscountCfgActive = Boolean(
+    discountCfg?.enabled &&
+      (discountCfg.showBadge !== false) &&
+      Number(discountCfg.value || 0) > 0 &&
+      (!discountCfg.startDate || todayIso >= discountCfg.startDate) &&
+      (!discountCfg.endDate || todayIso <= discountCfg.endDate)
+  )
+
+  const legacyPercent = Number(company.discountPercent || 0)
+  const hasLegacyDiscount = legacyPercent > 0
+
+  const hasDiscount = isDiscountCfgActive || hasLegacyDiscount
+  const effectiveType: 'percent' | 'amount' = (isDiscountCfgActive ? (discountCfg?.type || 'percent') : 'percent')
+  const effectiveValue = isDiscountCfgActive ? Number(discountCfg?.value || 0) : legacyPercent
+  const effectiveLabel = (isDiscountCfgActive ? (discountCfg?.label || '') : (company.discountText || '')).trim()
+
+  const appliesToServices = Boolean(isDiscountCfgActive && discountCfg?.appliesTo === 'services')
+  const selectedServiceNames = (discountCfg?.serviceNames || []).map(s => String(s || '').trim()).filter(Boolean)
+
+  const applyDiscountToPrice = (original: number, serviceName?: string) => {
+    if (!hasDiscount || original <= 0) return original
+    if (appliesToServices) {
+      if (!serviceName || !selectedServiceNames.includes(serviceName)) return original
+    }
+    if (effectiveType === 'amount') return Math.max(0, Math.round(original - effectiveValue))
+    return Math.max(0, Math.round(original * (100 - effectiveValue) / 100))
+  }
+
+  const discountedLowestPrice = hasDiscount && lowestPrice > 0
+    ? Math.min(
+        ...((company.services || [])
+          .filter(s => (s?.price || 0) > 0)
+          .map(s => applyDiscountToPrice(Number(s.price || 0), String(s.name || '').trim())))
+      )
+    : 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -279,6 +329,11 @@ export default function CompanyPage() {
                   Premium
                 </span>
               )}
+              {hasDiscount && (
+                <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold ring-1 ring-white/20 shadow">
+                  {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}{effectiveLabel ? ` ${effectiveLabel}` : ''}
+                </span>
+              )}
               {isOpenNow && (
                 <span className="bg-green-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-0.5 sm:gap-1">
                   <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
@@ -296,6 +351,12 @@ export default function CompanyPage() {
                 <span className="flex items-center gap-1">
                   <HiStar className="w-4 h-4 text-amber-400" />
                   {company.rating.toFixed(1)} ({company.reviewCount || 0} omdömen)
+                </span>
+              )}
+              {hasDiscount && discountedLowestPrice > 0 && (
+                <span className="flex items-center gap-1">
+                  <span className="font-semibold text-white">Från {discountedLowestPrice} kr</span>
+                  <span className="text-white/70 line-through">{lowestPrice} kr</span>
                 </span>
               )}
             </div>
@@ -429,7 +490,26 @@ export default function CompanyPage() {
                           )}
                         </div>
                       </div>
-                      <span className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">{service.price || 0} <span className="text-xs sm:text-sm font-normal text-gray-500">kr</span></span>
+                      {(() => {
+                        const original = Number(service.price || 0)
+                        const serviceName = String(service.name || '').trim()
+                        const discounted = applyDiscountToPrice(original, serviceName)
+                        const show = hasDiscount && original > 0 && discounted < original
+
+                        return show ? (
+                          <span className="text-right whitespace-nowrap">
+                            <span className="text-lg sm:text-xl font-bold text-white bg-green-600 px-2 py-1 rounded-lg inline-block">
+                              {discounted}
+                              <span className="text-xs sm:text-sm font-normal text-white/90"> kr</span>
+                            </span>
+                            <span className="block text-xs sm:text-sm text-gray-400 line-through font-medium mt-1">
+                              {original} kr
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">{original} <span className="text-xs sm:text-sm font-normal text-gray-500">kr</span></span>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -542,6 +622,9 @@ export default function CompanyPage() {
                 companyId={company.id}
                 companyPhone={company.phone || ''}
                 companyOwnerId={company.ownerId}
+                discount={company.discount}
+                discountPercent={company.discountPercent}
+                discountText={company.discountText}
               />
             </div>
           </div>

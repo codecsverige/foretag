@@ -19,6 +19,19 @@ interface Company {
   image?: string
   images?: string[]
   priceFrom?: number
+  discountPercent?: number
+  discountText?: string
+  discount?: {
+    enabled?: boolean
+    label?: string
+    type?: 'percent' | 'amount'
+    value?: number
+    appliesTo?: 'all' | 'services'
+    serviceNames?: string[]
+    startDate?: string
+    endDate?: string
+    showBadge?: boolean
+  }
   premium?: boolean
   verified?: boolean
   services?: Array<{ price?: number; name?: string }>
@@ -46,6 +59,52 @@ function CompanyCardComponent({ company }: CompanyCardProps) {
   const rating = company.rating || 0
   const reviewCount = company.reviewCount || 0
   const priceFrom = company.priceFrom || company.services?.[0]?.price || 0
+
+  const todayIso = new Date().toLocaleDateString('sv-SE')
+  const discountCfg = company.discount
+  const isDiscountCfgActive = Boolean(
+    discountCfg?.enabled &&
+      (discountCfg.showBadge !== false) &&
+      Number(discountCfg.value || 0) > 0 &&
+      (!discountCfg.startDate || todayIso >= discountCfg.startDate) &&
+      (!discountCfg.endDate || todayIso <= discountCfg.endDate)
+  )
+
+  const legacyPercent = Number(company.discountPercent || 0)
+  const hasLegacyDiscount = legacyPercent > 0
+
+  const hasDiscount = isDiscountCfgActive || hasLegacyDiscount
+  const effectiveType: 'percent' | 'amount' = (isDiscountCfgActive ? (discountCfg?.type || 'percent') : 'percent')
+  const effectiveValue = isDiscountCfgActive ? Number(discountCfg?.value || 0) : legacyPercent
+  const effectiveLabel = (isDiscountCfgActive ? (discountCfg?.label || '') : (company.discountText || '')).trim()
+
+  const applyDiscountToPrice = (original: number, serviceName?: string) => {
+    if (!hasDiscount || original <= 0) return original
+
+    if (isDiscountCfgActive && discountCfg?.appliesTo === 'services') {
+      const list = discountCfg.serviceNames || []
+      if (!serviceName || !list.includes(serviceName)) return original
+    }
+
+    if (effectiveType === 'amount') {
+      return Math.max(0, Math.round(original - effectiveValue))
+    }
+    return Math.max(0, Math.round(original * (100 - effectiveValue) / 100))
+  }
+
+  const servicePrices = (company.services || [])
+    .map(s => ({ name: (s.name || '').trim(), price: Number(s.price || 0) }))
+    .filter(s => s.price > 0)
+
+  const originalFrom = servicePrices.length > 0
+    ? Math.min(...servicePrices.map(s => s.price))
+    : Number(priceFrom || 0)
+
+  const discountedFrom = servicePrices.length > 0
+    ? Math.min(...servicePrices.map(s => applyDiscountToPrice(s.price, s.name)))
+    : applyDiscountToPrice(Number(priceFrom || 0))
+
+  const showStrike = hasDiscount && discountedFrom > 0 && originalFrom > 0 && discountedFrom < originalFrom
   
   const hasOwnImage = company.image || (company.images && company.images.length > 0)
   const imageUrl: string = (company.image || company.images?.[0] || getCategoryImage(company.category))
@@ -84,6 +143,11 @@ function CompanyCardComponent({ company }: CompanyCardProps) {
                 <span className="bg-white text-blue-600 px-2 py-0.5 sm:py-1 rounded text-xs font-medium shadow-md flex items-center gap-0.5 sm:gap-1">
                   <HiBadgeCheck className="w-3.5 h-3.5" />
                   Verifierad
+                </span>
+              )}
+              {hasDiscount && (
+                <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-2 py-0.5 sm:py-1 rounded text-xs font-semibold shadow-md ring-1 ring-white/20">
+                  {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}{effectiveLabel ? ` ${effectiveLabel}` : ''}
                 </span>
               )}
             </div>
@@ -133,10 +197,13 @@ function CompanyCardComponent({ company }: CompanyCardProps) {
               )}
             </div>
             
-            {priceFrom > 0 ? (
+            {originalFrom > 0 ? (
               <span className="text-xs sm:text-sm whitespace-nowrap">
                 <span className="text-gray-400">Från </span>
-                <span className="font-semibold text-gray-900">{priceFrom} kr</span>
+                <span className="font-semibold text-gray-900">{showStrike ? discountedFrom : originalFrom} kr</span>
+                {showStrike && (
+                  <span className="ml-1.5 text-gray-400 line-through font-medium">{originalFrom} kr</span>
+                )}
               </span>
             ) : (
               <span className="text-blue-600 text-xs sm:text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all whitespace-nowrap">

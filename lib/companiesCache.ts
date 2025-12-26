@@ -13,6 +13,19 @@ interface Company {
   rating?: number
   reviewCount?: number
   priceFrom?: number
+  discountPercent?: number
+  discountText?: string
+  discount?: {
+    enabled?: boolean
+    label?: string
+    type?: 'percent' | 'amount'
+    value?: number
+    appliesTo?: 'all' | 'services'
+    serviceNames?: string[]
+    startDate?: string
+    endDate?: string
+    showBadge?: boolean
+  }
   premium?: boolean
   services?: Array<{ price?: number; name?: string; duration?: number }>
   description?: string
@@ -71,7 +84,15 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        priceFrom: doc.data().services?.[0]?.price || 0,
+        priceFrom: (() => {
+          const services = doc.data().services || []
+          const min = services.reduce((acc: number, s: any) => {
+            const p = Number(s?.price || 0)
+            if (!Number.isFinite(p) || p <= 0) return acc
+            return p < acc ? p : acc
+          }, Number.POSITIVE_INFINITY)
+          return min === Number.POSITIVE_INFINITY ? 0 : min
+        })(),
       })) as Company[]
       
       // Update cache

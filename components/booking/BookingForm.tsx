@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, addDoc, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, getDoc, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { HiCalendar, HiClock, HiUser, HiPhone, HiCheck } from 'react-icons/hi'
 
 interface Service {
@@ -12,15 +12,30 @@ interface Service {
   duration?: number
 }
 
+type DiscountConfig = {
+  enabled?: boolean
+  label?: string
+  type?: 'percent' | 'amount'
+  value?: number
+  appliesTo?: 'all' | 'services'
+  serviceNames?: string[]
+  startDate?: string
+  endDate?: string
+  showBadge?: boolean
+}
+
 interface BookingFormProps {
   services: Service[]
   companyName: string
   companyId?: string
   companyPhone?: string
   companyOwnerId?: string
+  discount?: DiscountConfig
+  discountPercent?: number
+  discountText?: string
 }
 
-export default function BookingForm({ services, companyName, companyId, companyPhone, companyOwnerId }: BookingFormProps) {
+export default function BookingForm({ services, companyName, companyId, companyPhone, companyOwnerId, discount, discountPercent, discountText }: BookingFormProps) {
   let user = null
   try {
     const auth = useAuth()
@@ -34,10 +49,38 @@ export default function BookingForm({ services, companyName, companyId, companyP
   const [time, setTime] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [smsReminder, setSmsReminder] = useState(true)
+  const [message, setMessage] = useState('')
+  const [takenTimes, setTakenTimes] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  const todayIso = new Date().toLocaleDateString('sv-SE')
+  const discountCfg = discount
+  const isDiscountCfgActive = Boolean(
+    discountCfg?.enabled &&
+      (discountCfg.showBadge !== false) &&
+      Number(discountCfg.value || 0) > 0 &&
+      (!discountCfg.startDate || todayIso >= discountCfg.startDate) &&
+      (!discountCfg.endDate || todayIso <= discountCfg.endDate)
+  )
+  const legacyPercent = Number(discountPercent || 0)
+  const hasLegacyDiscount = legacyPercent > 0
+  const hasDiscount = isDiscountCfgActive || hasLegacyDiscount
+  const effectiveType: 'percent' | 'amount' = (isDiscountCfgActive ? (discountCfg?.type || 'percent') : 'percent')
+  const effectiveValue = isDiscountCfgActive ? Number(discountCfg?.value || 0) : legacyPercent
+  const effectiveLabel = (isDiscountCfgActive ? (discountCfg?.label || '') : (discountText || '')).trim()
+  const appliesToServices = Boolean(isDiscountCfgActive && discountCfg?.appliesTo === 'services')
+  const selectedServiceNames = (discountCfg?.serviceNames || []).map(s => String(s || '').trim()).filter(Boolean)
+
+  const applyDiscountToPrice = (original: number, serviceName?: string) => {
+    if (!hasDiscount || original <= 0) return original
+    if (appliesToServices) {
+      if (!serviceName || !selectedServiceNames.includes(serviceName)) return original
+    }
+    if (effectiveType === 'amount') return Math.max(0, Math.round(original - effectiveValue))
+    return Math.max(0, Math.round(original * (100 - effectiveValue) / 100))
+  }
 
   // Validate Swedish phone number
   const validatePhone = (phone: string): boolean => {
@@ -48,6 +91,35 @@ export default function BookingForm({ services, companyName, companyId, companyP
   }
 
   const normalizePhone = (phone: string) => phone.replace(/[\s-]/g, '')
+
+  const makeSlotId = (date: string, time: string) => `${date}_${String(time || '').replace(':', '-')}`
+
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchTakenTimes() {
+      if (!db || !companyId || !date) {
+        if (mounted) setTakenTimes([])
+        return
+      }
+      try {
+        const bookingsRef = collection(db, 'bookings')
+        const snap = await getDocs(query(
+          bookingsRef,
+          where('companyId', '==', companyId),
+          where('date', '==', date),
+          where('status', 'in', ['pending', 'confirmed'])
+        ))
+        const times = snap.docs.map(d => (d.data() as any)?.time).filter(Boolean)
+        if (mounted) setTakenTimes(times)
+      } catch (e) {
+        if (mounted) setTakenTimes([])
+      }
+    }
+
+    fetchTakenTimes()
+    return () => { mounted = false }
+  }, [companyId, date])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +145,11 @@ export default function BookingForm({ services, companyName, companyId, companyP
       return
     }
 
+    if (takenTimes.includes(time)) {
+      setError('Den här tiden är redan bokad. Välj en annan tid.')
+      return
+    }
+
     // Validate phone number
     if (!validatePhone(phone)) {
       setError('Ange ett giltigt svenskt mobilnummer (07X XXX XX XX)')
@@ -82,6 +159,11 @@ export default function BookingForm({ services, companyName, companyId, companyP
     // Validate name (at least 2 characters)
     if (name.trim().length < 2) {
       setError('Ange ditt fullständiga namn')
+      return
+    }
+
+    if (message.trim().length > 500) {
+      setError('Meddelandet får vara max 500 tecken')
       return
     }
 
@@ -98,30 +180,42 @@ export default function BookingForm({ services, companyName, companyId, companyP
         s => `${s.name || ''}-${s.price || 0}` === selectedService
       )
 
+      const originalServicePrice = Number(selectedServiceData?.price || 0)
+      const selectedServiceName = String(selectedServiceData?.name || selectedService).trim()
+      const finalServicePrice = applyDiscountToPrice(originalServicePrice, selectedServiceName)
+
       const cleanedPhone = normalizePhone(phone)
+
+      const slotId = makeSlotId(date, time)
 
       const bookingData = {
         // Company info
         companyId,
         companyName,
         companyOwnerId: companyOwnerId || null,
+        slotId,
         
         // Service
         service: selectedServiceData?.name || selectedService,
         serviceName: selectedServiceData?.name || selectedService,
-        servicePrice: selectedServiceData?.price || 0,
+        serviceOriginalPrice: originalServicePrice,
+        servicePrice: finalServicePrice,
         serviceDuration: selectedServiceData?.duration || 30,
+        discountApplied: Boolean(hasDiscount && finalServicePrice < originalServicePrice),
+        discountType: hasDiscount ? effectiveType : null,
+        discountValue: hasDiscount ? effectiveValue : 0,
+        discountLabel: hasDiscount ? (effectiveLabel || null) : null,
         
         // Customer
         customerName: name,
         customerPhone: cleanedPhone,
+        customerMessage: message.trim() || null,
         customerId: user?.uid || null,
         customerEmail: user?.email || null,
         
         // Booking details
         date,
         time,
-        smsReminder,
         
         // Status
         status: 'pending', // pending, confirmed, cancelled, completed
@@ -131,14 +225,39 @@ export default function BookingForm({ services, companyName, companyId, companyP
         updatedAt: serverTimestamp(),
       }
 
-      await addDoc(collection(db, 'bookings'), bookingData)
+      const bookingRef = await addDoc(collection(db, 'bookings'), bookingData)
 
-      updateDoc(doc(db, 'companies', companyId), { bookingCount: increment(1) }).catch(() => {})
+      let slotConflict = false
+      for (let i = 0; i < 6; i++) {
+        await new Promise(resolve => setTimeout(resolve, 350))
+        const snap = await getDoc(bookingRef).catch(() => null)
+        const d: any = snap?.data?.() || null
+        if (!d) continue
+
+        if (d.status === 'cancelled' && d.cancelReason === 'slot_taken') {
+          slotConflict = true
+          break
+        }
+
+        if (d.status && d.status !== 'cancelled') {
+          break
+        }
+      }
+
+      if (slotConflict) {
+        setError('Den här tiden blev precis bokad. Välj en annan tid.')
+        return
+      }
+
       setSubmitted(true)
       
     } catch (err: any) {
       console.error('Booking error:', err)
-      setError('Kunde inte skicka bokningen. Försök igen.')
+      if (String(err?.message || err).includes('slot_taken')) {
+        setError('Den här tiden blev precis bokad. Välj en annan tid.')
+      } else {
+        setError('Kunde inte skicka bokningen. Försök igen.')
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -153,13 +272,8 @@ export default function BookingForm({ services, companyName, companyId, companyP
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">Bokningsförfrågan skickad!</h3>
           <p className="text-gray-600 mb-4">
-            {companyName} kommer att kontakta dig för att bekräfta din bokning.
+            {companyName} kommer att kontakta dig.
           </p>
-          {smsReminder && (
-            <p className="text-sm text-gray-500 mb-4">
-              Du kommer få en SMS-påminnelse innan din tid.
-            </p>
-          )}
           
           {/* Cancellation Info */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-left">
@@ -192,6 +306,7 @@ export default function BookingForm({ services, companyName, companyId, companyP
               setTime('')
               setName('')
               setPhone('')
+              setMessage('')
             }}
             className="text-brand hover:underline"
           >
@@ -227,10 +342,45 @@ export default function BookingForm({ services, companyName, companyId, companyP
             <option value="">Välj tjänst...</option>
             {services.filter(s => s.name).map((service, index) => (
               <option key={index} value={`${service.name || ''}-${service.price || 0}`}>
-                {service.name} - {service.price || 0} kr ({service.duration || 30} min)
+                {(() => {
+                  const name = String(service.name || '').trim()
+                  const original = Number(service.price || 0)
+                  const discounted = applyDiscountToPrice(original, name)
+                  return discounted < original && original > 0
+                    ? `${name} - ${discounted} kr (ord ${original} kr) (${service.duration || 30} min)`
+                    : `${name} - ${original} kr (${service.duration || 30} min)`
+                })()}
               </option>
             ))}
           </select>
+
+          {(() => {
+            const selectedServiceData = services.find(
+              s => `${s.name || ''}-${s.price || 0}` === selectedService
+            )
+            const name = String(selectedServiceData?.name || '').trim()
+            const original = Number(selectedServiceData?.price || 0)
+            const discounted = applyDiscountToPrice(original, name)
+            const show = hasDiscount && original > 0 && discounted < original
+
+            if (!show) return null
+
+            return (
+              <div className="mt-3 p-3 rounded-xl bg-green-50 border border-green-200">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-green-800">Kampanj</p>
+                  <span className="text-xs font-semibold text-white bg-green-600 px-2 py-0.5 rounded-full">
+                    {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}
+                  </span>
+                </div>
+                <p className="text-sm text-green-800 mt-1">
+                  Pris: <span className="font-bold">{discounted} kr</span>{' '}
+                  <span className="text-green-700 line-through">{original} kr</span>
+                  {effectiveLabel ? <span className="text-green-700"> • {effectiveLabel}</span> : null}
+                </p>
+              </div>
+            )
+          })()}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3">
@@ -265,8 +415,10 @@ export default function BookingForm({ services, companyName, companyId, companyP
               <option value="">Välj tid...</option>
               {['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', 
                 '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'].map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
+                  <option key={t} value={t} disabled={takenTimes.includes(t)}>
+                    {t}{takenTimes.includes(t) ? ' (bokad)' : ''}
+                  </option>
+                ))}
             </select>
           </div>
         </div>
@@ -305,18 +457,21 @@ export default function BookingForm({ services, companyName, companyId, companyP
           </div>
         </div>
 
-        {/* SMS Reminder */}
-        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-          <input
-            type="checkbox"
-            id="smsReminder"
-            checked={smsReminder}
-            onChange={(e) => setSmsReminder(e.target.checked)}
-            className="w-5 h-5 rounded border-gray-300 text-brand focus:ring-brand"
-          />
-          <label htmlFor="smsReminder" className="text-sm text-gray-700">
-            Skicka mig en SMS-påminnelse innan min tid
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Meddelande (valfritt)
           </label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="Skriv ett kort meddelande till företaget..."
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none resize-none"
+          />
+          <p className="mt-1 text-xs text-gray-500 text-right">
+            {message.length}/500
+          </p>
         </div>
 
         {/* Submit Button */}
@@ -329,7 +484,7 @@ export default function BookingForm({ services, companyName, companyId, companyP
         </button>
 
         <p className="text-xs text-gray-500 text-center">
-          Företaget kontaktar dig för att bekräfta bokningen
+          Företaget kontaktar dig efter bokningen
         </p>
       </form>
     </div>
