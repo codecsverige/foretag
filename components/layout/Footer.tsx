@@ -4,7 +4,7 @@ import { HiMail, HiPhone, HiLocationMarker } from 'react-icons/hi'
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-400">
-      <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="w-full max-w-6xl mx-auto px-4 py-10">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
@@ -15,7 +15,7 @@ export default function Footer() {
               <span className="font-semibold text-white">BokaNära</span>
             </div>
             <p className="text-xs leading-relaxed">
-              Sveriges plattform för att hitta och boka lokala tjänster.
+              Sveriges plattform för att hitta och boka städ- och flyttjänster.
             </p>
           </div>
 
@@ -23,11 +23,11 @@ export default function Footer() {
           <div>
             <h3 className="font-medium text-white text-sm mb-3">Tjänster</h3>
             <ul className="space-y-2 text-xs">
-              <li><Link href="/sok?kategori=frisor" className="hover:text-white transition">Frisör</Link></li>
-              <li><Link href="/sok?kategori=massage" className="hover:text-white transition">Massage</Link></li>
               <li><Link href="/sok?kategori=stadning" className="hover:text-white transition">Städning</Link></li>
-              <li><Link href="/sok?kategori=halsa" className="hover:text-white transition">Hälsa & Vård</Link></li>
-              <li><Link href="/sok" className="hover:text-white transition">Alla kategorier</Link></li>
+              <li><Link href="/sok?kategori=flytt" className="hover:text-white transition">Flytt & Transport</Link></li>
+              <li><Link href="/sok?kategori=hantverk" className="hover:text-white transition">Hantverk & Småjobb</Link></li>
+              <li><Link href="/sok?kategori=hem-fastighet" className="hover:text-white transition">Hem & Fastighet</Link></li>
+              <li><Link href="/sok" className="hover:text-white transition">Visa alla</Link></li>
             </ul>
           </div>
 
@@ -83,7 +83,7 @@ export default function Footer() {
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
                 </svg>
-                Säker betalning
+                Trygg bokning
               </span>
               <span className="flex items-center gap-1.5">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">

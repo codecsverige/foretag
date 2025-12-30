@@ -36,14 +36,21 @@ interface Company {
   images?: string[]
   openingHours?: Record<string, { open: string; close: string; closed: boolean }>
   verified?: boolean
-  status?: string
+  status?: 'active' | 'draft' | 'archived'
+  published?: boolean
+  settings?: {
+    showAbout?: boolean
+    showReviews?: boolean
+    showMap?: boolean
+    showContact?: boolean
+  }
   createdAt?: any
 }
 
 // Simple in-memory cache
 let companiesCache: Company[] = []
 let lastFetchTime = 0
-const CACHE_DURATION = 300000 // 5 minutes (increased from 1 minute)
+const CACHE_DURATION = 600000 // 10 minutes cache for better performance
 
 // Single company cache
 const singleCompanyCache: Map<string, { data: Company; time: number }> = new Map()
@@ -77,7 +84,7 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
         collection(db, 'companies'),
         where('status', '==', 'active'),
         orderBy('createdAt', 'desc'),
-        limit(50)
+        limit(20) // Reduced from 50 to 20 for faster loading
       )
       
       const snapshot = await getDocs(companiesQuery)

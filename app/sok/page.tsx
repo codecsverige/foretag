@@ -8,16 +8,52 @@ import { getCompanies } from '@/lib/companiesCache'
 import CompanyCard from '@/components/company/CompanyCard'
 
 const categories = [
-  { id: '', name: 'Alla kategorier' },
-  { id: 'frisor', name: 'Frisör & Skönhet' },
-  { id: 'massage', name: 'Massage & Spa' },
-  { id: 'stadning', name: 'Städ & Hemservice' },
-  { id: 'bil', name: 'Bil & Motor' },
-  { id: 'halsa', name: 'Hälsa & Sjukvård' },
-  { id: 'restaurang', name: 'Restaurang & Café' },
-  { id: 'fitness', name: 'Träning & Fitness' },
-  { id: 'utbildning', name: 'Utbildning' },
+  { id: '', name: 'Alla kategorier', subServices: [] },
+  { 
+    id: 'stadning', 
+    name: 'Städning',
+    subServices: [
+      { id: 'hemstadning', name: 'Hemstädning' },
+      { id: 'flyttstadning', name: 'Flyttstädning' },
+      { id: 'kontorsstadning', name: 'Kontorsstädning' },
+      { id: 'trappstadning', name: 'Trappstädning' },
+      { id: 'byggstadning', name: 'Byggstädning' },
+      { id: 'fonsterputs', name: 'Fönsterputs' },
+    ]
+  },
+  { 
+    id: 'flytt', 
+    name: 'Flytt & Transport',
+    subServices: [
+      { id: 'flytthjalp', name: 'Flytthjälp' },
+      { id: 'flytt-stadning', name: 'Flytt med städning' },
+      { id: 'transport', name: 'Transport småjobb' },
+      { id: 'bortforsling', name: 'Bortforsling' },
+    ]
+  },
+  { 
+    id: 'hantverk', 
+    name: 'Hantverk & Småjobb',
+    subServices: [
+      { id: 'montering', name: 'Montering' },
+      { id: 'snickeri', name: 'Snickeri' },
+      { id: 'el', name: 'El småjobb' },
+      { id: 'vvs', name: 'VVS småjobb' },
+    ]
+  },
+  { 
+    id: 'hem-fastighet', 
+    name: 'Hem & Fastighet',
+    subServices: [
+      { id: 'grasklippning', name: 'Gräsklippning' },
+      { id: 'snoskottning', name: 'Snöskottning' },
+      { id: 'tradgardsarbete', name: 'Trädgårdsarbete' },
+      { id: 'fastighetsskotsel', name: 'Fastighetsskötsel' },
+    ]
+  },
 ]
+
+const allowedCategories = new Set(['stadning', 'flytt', 'hantverk', 'hem-fastighet', 'annat'])
 
 const cities = [
   { id: '', name: 'Alla städer' },
@@ -46,21 +82,28 @@ interface Company {
   description?: string
   verified?: boolean
   services?: Array<{ price?: number }>
+  subServiceNames?: string[]
 }
 
 function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const prefetched = useRef(false)
+
+  const initialCategoryParam = searchParams.get('kategori') || ''
+  const initialCategory = allowedCategories.has(initialCategoryParam) ? initialCategoryParam : ''
   
   const [allCompanies, setAllCompanies] = useState<Company[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('kategori') || '')
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory)
+  const [selectedSubService, setSelectedSubService] = useState('')
   const [selectedCity, setSelectedCity] = useState(searchParams.get('stad') || '')
   const [sortBy, setSortBy] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
+  
+  const currentCategorySubServices = categories.find(c => c.id === selectedCategory)?.subServices || []
 
   useEffect(() => {
     let mounted = true
@@ -84,6 +127,8 @@ function SearchContent() {
 
   useEffect(() => {
     let results = [...allCompanies]
+
+    results = results.filter((c) => allowedCategories.has(c.category || ''))
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -91,12 +136,19 @@ function SearchContent() {
         c.name?.toLowerCase().includes(query) ||
         c.categoryName?.toLowerCase().includes(query) ||
         c.description?.toLowerCase().includes(query) ||
-        c.city?.toLowerCase().includes(query)
+        c.city?.toLowerCase().includes(query) ||
+        c.subServiceNames?.some((s: string) => s.toLowerCase().includes(query))
       )
     }
     
     if (selectedCategory) {
       results = results.filter(c => c.category === selectedCategory)
+    }
+    
+    if (selectedSubService) {
+      results = results.filter(c => 
+        c.subServiceNames?.some((s: string) => s.toLowerCase().includes(selectedSubService.toLowerCase()))
+      )
     }
     
     if (selectedCity) {
@@ -118,7 +170,7 @@ function SearchContent() {
     results.sort((a, b) => (b.premium ? 1 : 0) - (a.premium ? 1 : 0))
     
     setCompanies(results)
-  }, [allCompanies, searchQuery, selectedCategory, selectedCity, sortBy])
+  }, [allCompanies, searchQuery, selectedCategory, selectedSubService, selectedCity, sortBy])
 
   useEffect(() => {
     const top = companies.slice(0, 3)
@@ -132,7 +184,13 @@ function SearchContent() {
   const clearFilters = useCallback(() => {
     setSearchQuery('')
     setSelectedCategory('')
+    setSelectedSubService('')
     setSelectedCity('')
+  }, [])
+  
+  const handleCategoryChange = useCallback((newCategory: string) => {
+    setSelectedCategory(newCategory)
+    setSelectedSubService('')
   }, [])
 
   const activeFiltersCount = [selectedCategory, selectedCity].filter(Boolean).length
@@ -172,7 +230,7 @@ function SearchContent() {
             <div className="hidden md:flex gap-2">
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
               >
                 {categories.map((cat) => (
@@ -210,7 +268,7 @@ function SearchContent() {
                 <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
                 <select
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
                 >
                   {categories.map((cat) => (
@@ -247,12 +305,20 @@ function SearchContent() {
           )}
 
           {/* Active Filters */}
-          {(selectedCategory || selectedCity) && (
+          {(selectedCategory || selectedCity || selectedSubService) && (
             <div className="flex flex-wrap gap-2 mt-3">
               {selectedCategory && (
                 <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-sm">
                   {categories.find((c) => c.id === selectedCategory)?.name}
-                  <button onClick={() => setSelectedCategory('')} className="hover:text-blue-900">
+                  <button onClick={() => handleCategoryChange('')} className="hover:text-blue-900">
+                    <HiX className="w-4 h-4" />
+                  </button>
+                </span>
+              )}
+              {selectedSubService && (
+                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-sm">
+                  {currentCategorySubServices.find((s) => s.id === selectedSubService)?.name}
+                  <button onClick={() => setSelectedSubService('')} className="hover:text-green-900">
                     <HiX className="w-4 h-4" />
                   </button>
                 </span>
@@ -271,6 +337,26 @@ function SearchContent() {
               >
                 Rensa alla
               </button>
+            </div>
+          )}
+
+          {/* Sub-services filter */}
+          {selectedCategory && currentCategorySubServices.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+              <span className="text-xs text-gray-500 self-center mr-1">Filtrera:</span>
+              {currentCategorySubServices.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setSelectedSubService(selectedSubService === sub.id ? '' : sub.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm transition ${
+                    selectedSubService === sub.id
+                      ? 'bg-brand text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {sub.name}
+                </button>
+              ))}
             </div>
           )}
         </div>

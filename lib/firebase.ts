@@ -6,7 +6,9 @@ import {
   Auth 
 } from 'firebase/auth'
 import { 
-  getFirestore, 
+  getFirestore,
+  initializeFirestore,
+  connectFirestoreEmulator,
   Firestore
 } from 'firebase/firestore'
 import { getStorage, FirebaseStorage } from 'firebase/storage'
@@ -39,11 +41,30 @@ if (typeof window !== 'undefined') {
     auth = getAuth(app)
     setPersistence(auth, browserLocalPersistence).catch(() => {})
 
-    // Initialize Firestore - simple initialization
-    db = getFirestore(app)
+    // Initialize Firestore - prefer standard WebSocket connection for performance
+    try {
+      db = getFirestore(app)
+      console.log('✅ Firestore initialized (WebSockets)')
+    } catch (e) {
+      console.warn('⚠️ Standard Firestore init failed, trying fallback:', e)
+      try {
+        db = initializeFirestore(app, {
+          experimentalForceLongPolling: true,
+          ignoreUndefinedProperties: true
+        })
+        console.log('✅ Firestore initialized with long-polling fallback')
+      } catch (e2) {
+        console.error('❌ Firestore initialization failed:', e2)
+      }
+    }
 
-    // Initialize storage
-    storage = getStorage(app)
+    // Initialize storage with error handling
+    try {
+      storage = getStorage(app)
+      console.log('✅ Storage initialized:', firebaseConfig.storageBucket)
+    } catch (e) {
+      console.warn('⚠️ Storage initialization failed:', e)
+    }
     
     console.log('✅ Firebase initialized successfully')
   } catch (error) {

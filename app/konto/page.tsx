@@ -36,6 +36,12 @@ interface Company {
   discountText?: string
   discount?: DiscountConfig
   services?: Array<{ name?: string; price?: number; duration?: number; description?: string }>
+  settings?: {
+    showAbout?: boolean
+    showReviews?: boolean
+    showMap?: boolean
+    showContact?: boolean
+  }
 }
 
 interface Booking {
@@ -98,6 +104,12 @@ function AccountPageContent() {
     startDate: string
     endDate: string
     showBadge: boolean
+  }>>({})
+  const [settingsDrafts, setSettingsDrafts] = useState<Record<string, {
+    showAbout: boolean
+    showReviews: boolean
+    showMap: boolean
+    showContact: boolean
   }>>({})
 
   useEffect(() => {
@@ -313,6 +325,34 @@ function AccountPageContent() {
     })
 
     setCompanies(companies.map(c => c.id === companyId ? { ...c, discount, discountPercent: legacyPercent, discountText: legacyText } : c))
+    setUpdating(null)
+    clearCache()
+  }
+
+  const handleSaveSettings = async (companyId: string) => {
+    if (!db) return
+    setActionError(null)
+    setUpdating(companyId)
+    
+    const company = companies.find(c => c.id === companyId)
+    const currentSettings = company?.settings || {
+      showAbout: true, showReviews: true, showMap: true, showContact: true
+    }
+    const draft = settingsDrafts[companyId] || currentSettings
+
+    const settings = {
+      showAbout: draft.showAbout !== false,
+      showReviews: draft.showReviews !== false,
+      showMap: draft.showMap !== false,
+      showContact: draft.showContact !== false,
+    }
+
+    await updateDoc(doc(db, 'companies', companyId), {
+      settings,
+      updatedAt: new Date(),
+    })
+
+    setCompanies(companies.map(c => c.id === companyId ? { ...c, settings } : c))
     setUpdating(null)
     clearCache()
   }
@@ -713,6 +753,46 @@ function AccountPageContent() {
                         {updating === c.id ? 'Sparar...' : 'Spara kampanj'}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Visibility Settings */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-sm font-semibold text-gray-900 mb-2">Sidvisning (Visa/Dölj)</p>
+                    {(() => {
+                      const current = c.settings || { showAbout: true, showReviews: true, showMap: true, showContact: true }
+                      const draft = settingsDrafts[c.id] || current
+                      const setDraft = (patch: Partial<typeof draft>) => {
+                        setSettingsDrafts(prev => ({ ...prev, [c.id]: { ...draft, ...patch } }))
+                      }
+                      
+                      return (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                              <input type="checkbox" checked={draft.showAbout !== false} onChange={e => setDraft({ showAbout: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
+                              Om oss
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                              <input type="checkbox" checked={draft.showReviews !== false} onChange={e => setDraft({ showReviews: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
+                              Omdömen
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                              <input type="checkbox" checked={draft.showContact !== false} onChange={e => setDraft({ showContact: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
+                              Kontakt
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                              <input type="checkbox" checked={draft.showMap !== false} onChange={e => setDraft({ showMap: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
+                              Karta
+                            </label>
+                          </div>
+                          <div className="flex justify-end">
+                             <button onClick={() => handleSaveSettings(c.id)} disabled={updating === c.id} className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-semibold">
+                               {updating === c.id ? 'Sparar...' : 'Spara visning'}
+                             </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               </div>

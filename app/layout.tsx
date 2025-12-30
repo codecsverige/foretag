@@ -4,6 +4,7 @@ import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { AuthProvider } from '@/context/AuthContext'
+import { ReactQueryProvider } from '@/lib/react-query-provider'
 
 const inter = Inter({ 
   subsets: ['latin'], 
@@ -13,12 +14,12 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'BokaNära - Hitta lokala tjänster',
-  description: 'Upptäck och boka lokala tjänster nära dig. Frisör, massage, städning och mer.',
-  keywords: 'boka, tjänster, lokala företag, frisör, massage, städning, Sverige',
+  title: 'BokaNära - Städ & flyttjänster',
+  description: 'Hitta och boka städning, fönsterputs och flyttstäd nära dig. Jämför företag och boka enkelt.',
+  keywords: 'boka, städning, flyttstäd, fönsterputs, städfirma, Sverige',
   openGraph: {
-    title: 'BokaNära - Hitta lokala tjänster',
-    description: 'Upptäck och boka lokala tjänster nära dig.',
+    title: 'BokaNära - Städ & flyttjänster',
+    description: 'Hitta och boka städning, fönsterputs och flyttstäd nära dig.',
     type: 'website',
     locale: 'sv_SE',
   },
@@ -32,15 +33,17 @@ export default function RootLayout({
   return (
     <html lang="sv">
       <body className={inter.className}>
-        <AuthProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
-        </AuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1 w-full">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   )

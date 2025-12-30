@@ -3,23 +3,65 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { db } from '@/lib/firebase'
+import { db, storage } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed } from 'react-icons/hi'
 import Link from 'next/link'
 
 const categories = [
-  { id: 'frisor', name: 'Frisör', emoji: '💇' },
-  { id: 'massage', name: 'Massage', emoji: '💆' },
-  { id: 'stadning', name: 'Städning', emoji: '🧹' },
-  { id: 'bil', name: 'Bil & Motor', emoji: '🚗' },
-  { id: 'halsa', name: 'Hälsa', emoji: '🏥' },
-  { id: 'restaurang', name: 'Restaurang', emoji: '🍽️' },
-  { id: 'fitness', name: 'Fitness', emoji: '💪' },
-  { id: 'utbildning', name: 'Utbildning', emoji: '📚' },
-  { id: 'djur', name: 'Djur', emoji: '🐕' },
-  { id: 'it', name: 'IT-tjänster', emoji: '💻' },
-  { id: 'annat', name: 'Övrigt', emoji: '📋' },
+  { 
+    id: 'stadning', 
+    name: 'Städning', 
+    emoji: '🧼',
+    subServices: [
+      { id: 'hemstadning', name: 'Hemstädning' },
+      { id: 'flyttstadning', name: 'Flyttstädning' },
+      { id: 'kontorsstadning', name: 'Kontorsstädning' },
+      { id: 'trappstadning', name: 'Trappstädning' },
+      { id: 'byggstadning', name: 'Byggstädning' },
+      { id: 'fonsterputs', name: 'Fönsterputs' },
+    ]
+  },
+  { 
+    id: 'flytt', 
+    name: 'Flytt & Transport', 
+    emoji: '🚚',
+    subServices: [
+      { id: 'flytthjalp', name: 'Flytthjälp' },
+      { id: 'flytt-stadning', name: 'Flytt med städning' },
+      { id: 'transport', name: 'Transport småjobb' },
+      { id: 'bortforsling', name: 'Bortforsling' },
+    ]
+  },
+  { 
+    id: 'hantverk', 
+    name: 'Hantverk & Småjobb', 
+    emoji: '🔧',
+    subServices: [
+      { id: 'montering', name: 'Montering (möbler, TV)' },
+      { id: 'snickeri', name: 'Snickeri småjobb' },
+      { id: 'el', name: 'El småjobb' },
+      { id: 'vvs', name: 'VVS småjobb' },
+    ]
+  },
+  { 
+    id: 'hem-fastighet', 
+    name: 'Hem & Fastighet', 
+    emoji: '🏠',
+    subServices: [
+      { id: 'grasklippning', name: 'Gräsklippning' },
+      { id: 'snoskottning', name: 'Snöskottning' },
+      { id: 'tradgardsarbete', name: 'Trädgårdsarbete' },
+      { id: 'fastighetsskotsel', name: 'Fastighetsskötsel' },
+    ]
+  },
+  { 
+    id: 'annat', 
+    name: 'Annat', 
+    emoji: '📋',
+    subServices: []
+  },
 ]
 
 const cities = [
@@ -31,6 +73,7 @@ const cities = [
 interface Service {
   id: string
   name: string
+  category: string
   price: string
   duration: string
   description: string
@@ -69,14 +112,20 @@ export default function CreatePage() {
   // Form data
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
+  const [customCategoryName, setCustomCategoryName] = useState('')
+  const [customSubServices, setCustomSubServices] = useState<string[]>([''])
+  const [selectedSubServices, setSelectedSubServices] = useState<string[]>([])
   const [city, setCity] = useState('')
   const [address, setAddress] = useState('')
   const [description, setDescription] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [website, setWebsite] = useState('')
+  const [ownerName, setOwnerName] = useState('')
+  const [ownerBio, setOwnerBio] = useState('')
+  const [imageFiles, setImageFiles] = useState<File[]>([])
   const [services, setServices] = useState<Service[]>([
-    { id: '1', name: '', price: '', duration: '', description: '' }
+    { id: '1', name: '', category: '', price: '', duration: '', description: '' }
   ])
   const [openingHours, setOpeningHours] = useState(defaultOpeningHours)
 
@@ -87,10 +136,15 @@ export default function CreatePage() {
     }
   }, [user, authLoading, router])
 
+  useEffect(() => {
+    if (!user) return
+    setOwnerName((prev) => prev || user.displayName || user.email || '')
+  }, [user])
+
   const addService = () => {
     setServices([
       ...services,
-      { id: Date.now().toString(), name: '', price: '', duration: '', description: '' }
+      { id: Date.now().toString(), name: '', category: '', price: '', duration: '', description: '' }
     ])
   }
 
@@ -123,23 +177,55 @@ export default function CreatePage() {
     setError('')
 
     try {
+      let uploadedImages: string[] = []
+      if (imageFiles.length > 0) {
+        if (!storage) {
+          throw new Error('Bilduppladdning är inte tillgänglig just nu. Försök igen senare.')
+        }
+        const storageInstance = storage
+        uploadedImages = await Promise.all(
+          imageFiles.map(async (file, index) => {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+            const fileId = `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}-${safeName}`
+            const fileRef = storageRef(storageInstance, `companies/${user.uid}/${fileId}`)
+            await uploadBytes(fileRef, file)
+            return await getDownloadURL(fileRef)
+          })
+        )
+      }
+
       // Prepare services data
       const validServices = services
         .filter(s => s.name && s.price)
         .map(s => ({
           name: s.name,
+          category: (s.category || '').trim(),
           price: parseInt(s.price) || 0,
           duration: parseInt(s.duration) || 30,
           description: s.description || '',
         }))
 
       // Create company document
+      const selectedCat = categories.find(c => c.id === category)
+      const isCustomCategory = category === 'annat'
+      
+      // Handle sub-services based on category type
+      const finalSubServices = isCustomCategory 
+        ? customSubServices.filter(s => s.trim()) 
+        : selectedSubServices
+      const subServiceNames = isCustomCategory
+        ? customSubServices.filter(s => s.trim())
+        : selectedSubServices.map(id => selectedCat?.subServices.find(s => s.id === id)?.name || id)
+      
       const companyData = {
         // Basic info
         name,
-        category,
-        categoryName: categories.find(c => c.id === category)?.name || category,
-        emoji: categories.find(c => c.id === category)?.emoji || '📋',
+        category: isCustomCategory ? 'annat' : category,
+        categoryName: isCustomCategory ? customCategoryName : (selectedCat?.name || category),
+        customCategory: isCustomCategory,
+        emoji: selectedCat?.emoji || '📋',
+        subServices: finalSubServices,
+        subServiceNames,
         city,
         address,
         description,
@@ -153,9 +239,12 @@ export default function CreatePage() {
         services: validServices,
         openingHours,
 
+        ...(uploadedImages.length > 0 ? { images: uploadedImages, image: uploadedImages[0] } : {}),
+
         // Metadata - linked to authenticated user
         ownerId: user?.uid || '',
-        ownerName: user?.displayName || '',
+        ownerName: ownerName || user?.displayName || user?.email || '',
+        ownerBio: ownerBio || '',
         ownerEmail: user?.email || email || '',
 
         // Stats (initial - honest values)
@@ -163,10 +252,19 @@ export default function CreatePage() {
         reviewCount: 0,
         views: 0,
 
-        // Status
-        status: 'active',
+        // Status - initially draft
+        status: 'draft',
+        published: false,
         premium: false,
         verified: false,
+
+        // Content visibility settings
+        settings: {
+          showAbout: true,
+          showReviews: true,
+          showMap: true,
+          showContact: true,
+        },
 
         // Timestamps
         createdAt: serverTimestamp(),
@@ -182,6 +280,8 @@ export default function CreatePage() {
       setNewCompanyId(docRef.id)
       setSubmitted(true)
       console.log('✅ Saved to Firestore:', docRef.id)
+
+      setImageFiles([])
 
     } catch (err: any) {
       console.error('Error creating company:', err)
@@ -245,10 +345,10 @@ export default function CreatePage() {
             <HiCheck className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            🎉 Premium-annons skapad!
+            🎉 Annons skapad (Utkast)
           </h1>
           <p className="text-gray-600 mb-2">
-            Din företagsannons är nu skapad och publicerad som Premium!
+            Din företagsannons är nu skapad som ett utkast. Du kan granska den och publicera när du är redo.
           </p>
           <p className="text-sm text-gray-500 mb-6">
             ID: {newCompanyId}
@@ -258,7 +358,7 @@ export default function CreatePage() {
               href={`/foretag/${newCompanyId}`}
               className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
             >
-              Visa din sida
+              Granska och Publicera
             </Link>
             <Link
               href="/"
@@ -273,13 +373,19 @@ export default function CreatePage() {
                 setStep(1)
                 setName('')
                 setCategory('')
+                setCustomCategoryName('')
+                setCustomSubServices([''])
+                setSelectedSubServices([])
                 setCity('')
                 setAddress('')
                 setDescription('')
                 setPhone('')
                 setEmail('')
                 setWebsite('')
-                setServices([{ id: '1', name: '', price: '', duration: '', description: '' }])
+                setOwnerName(user?.displayName || user?.email || '')
+                setOwnerBio('')
+                setImageFiles([])
+                setServices([{ id: '1', name: '', category: '', price: '', duration: '', description: '' }])
               }}
               className="block w-full text-brand hover:underline py-2"
             >
@@ -360,7 +466,10 @@ export default function CreatePage() {
                 </label>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    setCategory(e.target.value)
+                    setSelectedSubServices([])
+                  }}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
                 >
                   <option value="">Välj kategori...</option>
@@ -372,6 +481,23 @@ export default function CreatePage() {
                 </select>
               </div>
 
+              {/* Custom category name for "Annat" */}
+              {category === 'annat' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Beskriv din kategori *
+                  </label>
+                  <input
+                    type="text"
+                    value={customCategoryName}
+                    onChange={(e) => setCustomCategoryName(e.target.value)}
+                    placeholder="t.ex. Trädgårdstjänster, Målning..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+                  />
+                </div>
+              )}
+
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -413,6 +539,127 @@ export default function CreatePage() {
                   placeholder="Berätta om ditt företag..."
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none resize-none"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Personal / Ansvarig
+                  </label>
+                  <input
+                    type="text"
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    placeholder="t.ex. Nora"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kort bio (valfritt)
+                  </label>
+                  <textarea
+                    value={ownerBio}
+                    onChange={(e) => setOwnerBio(e.target.value)}
+                    rows={3}
+                    placeholder="t.ex. Certifierad och erfaren..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none resize-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bilder (max 5 bilder, valfritt)
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Första bilden används som huvudbild. Max 5 MB per bild.
+                </p>
+                
+                {/* Image previews */}
+                {imageFiles.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-3">
+                    {imageFiles.map((file, idx) => (
+                      <div key={idx} className="relative group aspect-square">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-full h-full object-cover rounded-xl border border-gray-200"
+                        />
+                        {idx === 0 && (
+                          <span className="absolute top-1 left-1 bg-brand text-white text-xs px-2 py-0.5 rounded-full">
+                            Huvud
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newFiles = [...imageFiles]
+                            newFiles.splice(idx, 1)
+                            setImageFiles(newFiles)
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                        >
+                          ×
+                        </button>
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newFiles = [...imageFiles]
+                              const temp = newFiles[idx]
+                              newFiles[idx] = newFiles[idx - 1]
+                              newFiles[idx - 1] = temp
+                              setImageFiles(newFiles)
+                            }}
+                            className="absolute bottom-1 left-1 bg-gray-800/70 hover:bg-gray-800 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs"
+                            title="Flytta uppåt"
+                          >
+                            ←
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {imageFiles.length < 5 && (
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand hover:bg-brand/5 transition">
+                    <div className="flex flex-col items-center justify-center py-4">
+                      <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-500">
+                        <span className="text-brand font-medium">Ladda upp</span> eller dra bilder hit
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {imageFiles.length}/5 bilder • PNG, JPG, WEBP
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        const validFiles = files.filter(f => f.size <= 5 * 1024 * 1024) // 5MB max
+                        const totalAllowed = 5 - imageFiles.length
+                        const newFiles = [...imageFiles, ...validFiles.slice(0, totalAllowed)]
+                        setImageFiles(newFiles.slice(0, 5))
+                        if (files.some(f => f.size > 5 * 1024 * 1024)) {
+                          alert('Vissa bilder var för stora (max 5 MB) och lades inte till.')
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+                
+                {imageFiles.length >= 5 && (
+                  <p className="text-sm text-orange-600 mt-2">
+                    Max antal bilder uppnått (5). Ta bort en bild för att lägga till fler.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -489,6 +736,14 @@ export default function CreatePage() {
                     value={service.name}
                     onChange={(e) => updateService(service.id, 'name', e.target.value)}
                     placeholder="Namn på tjänsten"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                  />
+
+                  <input
+                    type="text"
+                    value={service.category}
+                    onChange={(e) => updateService(service.id, 'category', e.target.value)}
+                    placeholder="Kategori (t.ex. Klippning, Massage)"
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
                   />
 

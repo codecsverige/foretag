@@ -45,7 +45,7 @@ export default function Header() {
 
   return (
     <header className={`sticky top-0 z-50 border-b border-gray-200/80 backdrop-blur-md transition-all ${scrolled ? 'bg-white/90 shadow-sm' : 'bg-white/70'}`}>
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="w-full max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo - goes to dashboard if logged in, home if not */}
           <Link href={user ? "/konto" : "/"} className="flex items-center gap-2">

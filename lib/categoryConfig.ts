@@ -19,9 +19,27 @@ export const categoryConfig: Record<string, {
   },
   stadning: {
     name: 'Städning',
-    emoji: '🧹',
+    emoji: '🧼',
     gradient: 'from-cyan-500 to-blue-600',
     color: '#06b6d4'
+  },
+  flytt: {
+    name: 'Flytt & Transport',
+    emoji: '🚚',
+    gradient: 'from-slate-700 to-gray-900',
+    color: '#334155'
+  },
+  hantverk: {
+    name: 'Hantverk & Småjobb',
+    emoji: '🔧',
+    gradient: 'from-amber-500 to-orange-600',
+    color: '#f59e0b'
+  },
+  'hem-fastighet': {
+    name: 'Hem & Fastighet',
+    emoji: '🏠',
+    gradient: 'from-green-500 to-emerald-600',
+    color: '#22c55e'
   },
   bil: {
     name: 'Bil & Motor',

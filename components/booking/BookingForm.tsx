@@ -30,12 +30,14 @@ interface BookingFormProps {
   companyId?: string
   companyPhone?: string
   companyOwnerId?: string
+  preselectedService?: string
+  openingHours?: Record<string, { open: string; close: string; closed: boolean }>
   discount?: DiscountConfig
   discountPercent?: number
   discountText?: string
 }
 
-export default function BookingForm({ services, companyName, companyId, companyPhone, companyOwnerId, discount, discountPercent, discountText }: BookingFormProps) {
+export default function BookingForm({ services, companyName, companyId, companyPhone, companyOwnerId, preselectedService, openingHours, discount, discountPercent, discountText }: BookingFormProps) {
   let user = null
   try {
     const auth = useAuth()
@@ -50,12 +52,28 @@ export default function BookingForm({ services, companyName, companyId, companyP
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
-  const [takenTimes, setTakenTimes] = useState<string[]>([])
+  const [takenBookings, setTakenBookings] = useState<Array<{ time: string; duration: number }>>([])
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const todayIso = new Date().toLocaleDateString('sv-SE')
+  useEffect(() => {
+    if (!preselectedService) return
+    const exists = services.some(s => `${s.name || ''}-${s.price || 0}` === preselectedService)
+    if (!exists) return
+    setSubmitted(false)
+    setError('')
+    setSelectedService(preselectedService)
+    setTime('')
+  }, [preselectedService, services])
+
+  const toIsoDate = (d: Date) => {
+    const copy = new Date(d)
+    copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset())
+    return copy.toISOString().split('T')[0]
+  }
+
+  const todayIso = toIsoDate(new Date())
   const discountCfg = discount
   const isDiscountCfgActive = Boolean(
     discountCfg?.enabled &&
@@ -94,12 +112,100 @@ export default function BookingForm({ services, companyName, companyId, companyP
 
   const makeSlotId = (date: string, time: string) => `${date}_${String(time || '').replace(':', '-')}`
 
+  const dayKeyByIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+  const timeToMinutes = (t: string) => {
+    const [h, m] = String(t || '').split(':').map(Number)
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return 0
+    return (h * 60) + m
+  }
+
+  const minutesToTime = (min: number) => {
+    const h = Math.floor(min / 60)
+    const m = min % 60
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  }
+
+  const getDayKeyForIsoDate = (isoDate: string) => {
+    const d = new Date(`${isoDate}T12:00:00`)
+    return dayKeyByIndex[d.getDay()] || 'monday'
+  }
+
+  const selectedServiceData = services.find(
+    s => `${s.name || ''}-${s.price || 0}` === selectedService
+  )
+  const selectedServiceDuration = Math.max(15, Number(selectedServiceData?.duration || 30))
+
+  const isTimeBlocked = (candidateTime: string) => {
+    const start = timeToMinutes(candidateTime)
+    const end = start + selectedServiceDuration
+    return takenBookings.some((b) => {
+      const bStart = timeToMinutes(b.time)
+      const bEnd = bStart + Math.max(15, Number(b.duration || 30))
+      return start < bEnd && bStart < end
+    })
+  }
+
+  const isTimeInPast = (isoDate: string, candidateTime: string) => {
+    if (!isoDate) return false
+    const today = toIsoDate(new Date())
+    if (isoDate !== today) return false
+    const now = new Date()
+    const nowMin = (now.getHours() * 60) + now.getMinutes()
+    return timeToMinutes(candidateTime) < nowMin
+  }
+
+  const nextAvailableDates = (() => {
+    if (!openingHours) return [] as string[]
+    const result: string[] = []
+    const base = new Date()
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(base)
+      d.setDate(base.getDate() + i)
+      const iso = toIsoDate(d)
+      const dayKey = dayKeyByIndex[d.getDay()]
+      const hours = openingHours?.[dayKey]
+      if (!hours || hours.closed) continue
+      result.push(iso)
+      if (result.length >= 7) break
+    }
+    return result
+  })()
+
+  const formatDateChip = (iso: string) => {
+    const d = new Date(`${iso}T12:00:00`)
+    return d.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })
+  }
+
+  const fallbackTimeSlots = [
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
+    '17:00', '17:30',
+  ]
+
+  const timeSlots = (() => {
+    if (!date) return [] as string[]
+    if (!openingHours) return fallbackTimeSlots
+    const dayKey = getDayKeyForIsoDate(date)
+    const hours = openingHours?.[dayKey]
+    if (!hours || hours.closed) return [] as string[]
+    const openMin = timeToMinutes(hours.open)
+    const closeMin = timeToMinutes(hours.close)
+
+    const slots: string[] = []
+    const step = 30
+    for (let start = openMin; start + selectedServiceDuration <= closeMin; start += step) {
+      slots.push(minutesToTime(start))
+    }
+    return slots
+  })()
+
   useEffect(() => {
     let mounted = true
 
     async function fetchTakenTimes() {
       if (!db || !companyId || !date) {
-        if (mounted) setTakenTimes([])
+        if (mounted) setTakenBookings([])
         return
       }
       try {
@@ -110,10 +216,18 @@ export default function BookingForm({ services, companyName, companyId, companyP
           where('date', '==', date),
           where('status', 'in', ['pending', 'confirmed'])
         ))
-        const times = snap.docs.map(d => (d.data() as any)?.time).filter(Boolean)
-        if (mounted) setTakenTimes(times)
+        const items = snap.docs
+          .map(d => {
+            const data: any = d.data() || {}
+            return {
+              time: String(data?.time || ''),
+              duration: Math.max(15, Number(data?.serviceDuration || data?.duration || 30)),
+            }
+          })
+          .filter(b => b.time)
+        if (mounted) setTakenBookings(items)
       } catch (e) {
-        if (mounted) setTakenTimes([])
+        if (mounted) setTakenBookings([])
       }
     }
 
@@ -145,7 +259,29 @@ export default function BookingForm({ services, companyName, companyId, companyP
       return
     }
 
-    if (takenTimes.includes(time)) {
+    if (openingHours && date) {
+      const dayKey = getDayKeyForIsoDate(date)
+      const hours = openingHours?.[dayKey]
+      if (!hours || hours.closed) {
+        setError('Företaget har stängt det här datumet. Välj ett annat datum.')
+        return
+      }
+      const openMin = timeToMinutes(hours.open)
+      const closeMin = timeToMinutes(hours.close)
+      const startMin = timeToMinutes(time)
+      const endMin = startMin + selectedServiceDuration
+      if (startMin < openMin || endMin > closeMin) {
+        setError('Välj en tid inom öppettiderna')
+        return
+      }
+    }
+
+    if (isTimeInPast(date, time)) {
+      setError('Välj en tid i framtiden')
+      return
+    }
+
+    if (isTimeBlocked(time)) {
       setError('Den här tiden är redan bokad. Välj en annan tid.')
       return
     }
@@ -335,7 +471,10 @@ export default function BookingForm({ services, companyName, companyId, companyP
           </label>
           <select
             value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
+            onChange={(e) => {
+              setSelectedService(e.target.value)
+              setTime('')
+            }}
             required
             className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
           >
@@ -390,12 +529,36 @@ export default function BookingForm({ services, companyName, companyId, companyP
               <HiCalendar className="inline w-4 h-4 mr-1" />
               Datum *
             </label>
+            {nextAvailableDates.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mb-2">
+                {nextAvailableDates.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      setDate(d)
+                      setTime('')
+                    }}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                      date === d
+                        ? 'border-brand bg-brand/10 text-brand'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {formatDateChip(d)}
+                  </button>
+                ))}
+              </div>
+            )}
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                setDate(e.target.value)
+                setTime('')
+              }}
               required
-              min={new Date().toISOString().split('T')[0]}
+              min={todayIso}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
             />
           </div>
@@ -413,13 +576,22 @@ export default function BookingForm({ services, companyName, companyId, companyP
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
             >
               <option value="">Välj tid...</option>
-              {['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', 
-                '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'].map(t => (
-                  <option key={t} value={t} disabled={takenTimes.includes(t)}>
-                    {t}{takenTimes.includes(t) ? ' (bokad)' : ''}
+              {timeSlots.map((t) => {
+                const past = isTimeInPast(date, t)
+                const blocked = isTimeBlocked(t)
+                const disabled = past || blocked
+                return (
+                  <option key={t} value={t} disabled={disabled}>
+                    {t}{blocked ? ' (bokad)' : past ? ' (passerat)' : ''}
                   </option>
-                ))}
+                )
+              })}
             </select>
+            {date && openingHours && timeSlots.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Inga tider tillgängliga för valt datum.
+              </p>
+            )}
           </div>
         </div>
 

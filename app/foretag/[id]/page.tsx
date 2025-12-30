@@ -7,13 +7,17 @@ import Image from 'next/image'
 import { 
   HiArrowLeft, HiPhone, HiMail, HiLocationMarker, HiStar, HiShare,
   HiClock, HiCheckCircle, HiGlobe, HiCalendar, HiShieldCheck,
-  HiChevronLeft, HiChevronRight, HiBadgeCheck, HiExternalLink
+  HiChevronLeft, HiChevronRight, HiBadgeCheck, HiExternalLink,
+  HiExclamationCircle, HiLockClosed
 } from 'react-icons/hi'
-import BookingForm from '@/components/booking/BookingForm'
+import BookingFormWizard from '@/components/booking/BookingFormWizard'
+import CompanyTabs from '@/components/company/CompanyTabs'
+import HeroGallery from '@/components/company/HeroGallery'
 import { getCompanyById } from '@/lib/companiesCache'
 import { getCategoryImage, categoryNames } from '@/lib/categoryImages'
+import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
-import { doc, updateDoc, increment } from 'firebase/firestore'
+import { collection, getDocs, orderBy, query, doc, updateDoc, increment, getDoc } from 'firebase/firestore'
 
 interface Service {
   name?: string
@@ -26,6 +30,8 @@ interface Company {
   id: string
   name: string
   ownerId?: string
+  ownerName?: string
+  ownerBio?: string
   category?: string
   categoryName?: string
   city?: string
@@ -50,13 +56,31 @@ interface Company {
     showBadge?: boolean
   }
   services?: Service[]
-  images?: string[]
+  status?: 'active' | 'draft' | 'archived'
+  published?: boolean
+  settings?: {
+    showAbout?: boolean
+    showReviews?: boolean
+    showMap?: boolean
+    showContact?: boolean
+  }
   image?: string
+  images?: string[]
   openingHours?: Record<string, { open: string; close: string; closed: boolean }>
+  excludedDates?: string[]
+  excludedTimes?: Record<string, string[]>
   verified?: boolean
   premium?: boolean
   bookingCount?: number
   createdAt?: any
+}
+
+interface Review {
+  id: string
+  author: string
+  rating: number
+  comment: string
+  date: string
 }
 
 const dayNames: Record<string, string> = {
@@ -69,15 +93,25 @@ const dayNames: Record<string, string> = {
   sunday: 'Söndag',
 }
 
+type RequestedTab = 'services' | 'about' | 'reviews' | 'contact'
+
 export default function CompanyPage() {
   const params = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const id = params?.id as string
   
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [preselectedService, setPreselectedService] = useState('')
+  const [requestedTab, setRequestedTab] = useState<RequestedTab | undefined>(undefined)
+  const [requestedTabNonce, setRequestedTabNonce] = useState(0)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewsRating, setReviewsRating] = useState(0)
+  const [reviewsCount, setReviewsCount] = useState(0)
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [showMobileHours, setShowMobileHours] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -121,6 +155,70 @@ export default function CompanyPage() {
     return () => { mounted = false }
   }, [id])
 
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchReviews() {
+      if (!db || !id) {
+        if (mounted) {
+          setReviews([])
+          setReviewsRating(0)
+          setReviewsCount(0)
+        }
+        return
+      }
+
+      try {
+        const reviewsRef = collection(db, 'companies', id, 'reviews')
+        const snap = await getDocs(query(reviewsRef, orderBy('createdAt', 'desc')))
+
+        const items: Review[] = snap.docs.map((d) => {
+          const data: any = d.data() || {}
+          const rating = Number(data?.rating || 0)
+          const author = String(data?.author || data?.customerName || data?.name || 'Anonym').trim() || 'Anonym'
+          const comment = String(data?.comment || data?.text || '').trim()
+
+          const createdAt = data?.createdAt
+          const date = typeof data?.date === 'string'
+            ? data.date
+            : createdAt?.toDate
+              ? createdAt.toDate().toLocaleDateString('sv-SE')
+              : typeof createdAt === 'number'
+                ? new Date(createdAt).toLocaleDateString('sv-SE')
+                : ''
+
+          return {
+            id: d.id,
+            author,
+            rating: Number.isFinite(rating) ? rating : 0,
+            comment,
+            date,
+          }
+        })
+
+        const count = items.length
+        const avg = count > 0
+          ? (items.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / count)
+          : 0
+
+        if (mounted) {
+          setReviews(items)
+          setReviewsCount(count)
+          setReviewsRating(avg)
+        }
+      } catch (e) {
+        if (mounted) {
+          setReviews([])
+          setReviewsRating(0)
+          setReviewsCount(0)
+        }
+      }
+    }
+
+    fetchReviews()
+    return () => { mounted = false }
+  }, [id])
+
   const handleShare = useCallback(async () => {
     if (navigator.share && company) {
       try {
@@ -135,11 +233,23 @@ export default function CompanyPage() {
     }
   }, [company])
 
+  const scrollToTabs = useCallback((tab: RequestedTab) => {
+    setRequestedTab(tab)
+    setRequestedTabNonce((n) => n + 1)
+    const el = document.getElementById('company-tabs')
+    el?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  const scrollToBooking = useCallback(() => {
+    const bookingSection = document.getElementById('booking-form')
+    bookingSection?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 animate-pulse">
         <div className="h-44 sm:h-52 md:h-60 lg:h-64 bg-gray-200" />
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
           <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
             <div className="lg:col-span-8 space-y-4 sm:space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5">
@@ -210,17 +320,90 @@ export default function CompanyPage() {
   }
 
   // Get images - use own images or fallback to category
-  const hasOwnImages = company.image || (company.images && company.images.length > 0)
-  const images = hasOwnImages 
-    ? (company.images || (company.image ? [company.image] : [])) 
-    : [getCategoryImage(company.category)]
+  const rawImages = Array.isArray(company.images) ? company.images : []
+  const cleanedImages = rawImages
+    .map((img) => String(img || '').trim())
+    .filter(Boolean)
+  const primaryImage = String(company.image || '').trim()
+  const images = cleanedImages.length > 0
+    ? cleanedImages
+    : primaryImage
+      ? [primaryImage]
+      : [getCategoryImage(company.category, company.id)]
   
   const categoryName = company.categoryName || categoryNames[company.category || ''] || 'Företag'
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+  const now = new Date()
+  const today = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
   const todayHours = company.openingHours?.[today]
-  const isOpenNow = todayHours && !todayHours.closed
-  const lowestPrice = company.services?.reduce((min, s) => (s.price || 0) < min ? (s.price || 0) : min, Infinity) || 0
-  const todayIso = new Date().toLocaleDateString('sv-SE')
+  
+  // Check if currently open based on actual time
+  const checkIsOpenNow = () => {
+    if (!todayHours || todayHours.closed) return false
+    const currentTime = now.getHours() * 60 + now.getMinutes()
+    const [openH, openM] = (todayHours.open || '00:00').split(':').map(Number)
+    const [closeH, closeM] = (todayHours.close || '00:00').split(':').map(Number)
+    const openTime = openH * 60 + openM
+    const closeTime = closeH * 60 + closeM
+    return currentTime >= openTime && currentTime < closeTime
+  }
+  const isOpenNow = checkIsOpenNow()
+
+  const servicePrices = (company.services || [])
+    .map((s) => ({
+      name: String(s.name || '').trim(),
+      price: Number(s.price || 0),
+    }))
+    .filter((s) => Number.isFinite(s.price) && s.price > 0)
+
+  const lowestPrice = servicePrices.length > 0
+    ? Math.min(...servicePrices.map((s) => s.price))
+    : 0
+  const isOwner = user && company?.ownerId && user.uid === company.ownerId
+  
+  const showAbout = company?.settings?.showAbout !== false
+  const showReviews = company?.settings?.showReviews !== false
+  const showMap = company?.settings?.showMap !== false
+  const showContact = company?.settings?.showContact !== false
+
+  const handlePublish = async () => {
+    if (!company || !user || !db) return
+    try {
+      await updateDoc(doc(db, 'companies', company.id), {
+        status: 'active',
+        published: true
+      })
+      setCompany(prev => prev ? { ...prev, status: 'active', published: true } : null)
+      alert('Din annons är nu publicerad!')
+    } catch (err) {
+      console.error('Error publishing:', err)
+      alert('Kunde inte publicera annonsen. Försök igen.')
+    }
+  }
+
+  if (company?.status === 'draft' && !isOwner) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-sm mx-auto px-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <HiLockClosed className="w-8 h-8 text-gray-400" />
+          </div>
+          <h1 className="text-lg font-semibold text-gray-900 mb-2">Utkast</h1>
+          <p className="text-gray-500 text-sm mb-6">
+            Denna sida är inte publicerad än.
+          </p>
+          <Link 
+            href="/"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm"
+          >
+            <HiArrowLeft className="w-4 h-4" />
+            Tillbaka till startsidan
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  
+  const todayIso = new Date().toISOString().split('T')[0]
   const discountCfg = company.discount
   const isDiscountCfgActive = Boolean(
     discountCfg?.enabled &&
@@ -250,352 +433,227 @@ export default function CompanyPage() {
     return Math.max(0, Math.round(original * (100 - effectiveValue) / 100))
   }
 
-  const discountedLowestPrice = hasDiscount && lowestPrice > 0
-    ? Math.min(
-        ...((company.services || [])
-          .filter(s => (s?.price || 0) > 0)
-          .map(s => applyDiscountToPrice(Number(s.price || 0), String(s.name || '').trim())))
-      )
+  const discountedLowestPrice = hasDiscount && servicePrices.length > 0
+    ? Math.min(...servicePrices.map((s) => applyDiscountToPrice(s.price, s.name)))
     : 0
+
+  const showDiscountFromPrice = hasDiscount && discountedLowestPrice > 0 && lowestPrice > 0 && discountedLowestPrice < lowestPrice
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Banner - Responsive avec cadrage amélioré */}
-      <div className="relative h-44 sm:h-52 md:h-60 lg:h-64 bg-gray-900 overflow-hidden">
-        <Image
-          src={images[currentImageIndex]}
-          alt={company.name}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-          style={{ objectFit: 'cover' }}
-        />
-        {/* Overlay avec meilleur contraste */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/40 to-transparent" />
-        
-        {/* Navigation on banner */}
-        <div className="absolute top-0 left-0 right-0 z-10">
-          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
-            <button 
-              onClick={() => router.back()}
-              className="flex items-center gap-1.5 sm:gap-2 text-white/90 hover:text-white text-xs sm:text-sm font-medium bg-black/30 backdrop-blur-md px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all hover:bg-black/40"
-            >
-              <HiArrowLeft className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-              Tillbaka
-            </button>
-            <button 
-              onClick={handleShare}
-              className="text-white/90 hover:text-white bg-black/30 backdrop-blur-md p-1.5 sm:p-2 rounded-lg transition-all hover:bg-black/40"
-            >
-              <HiShare className="w-4 sm:w-5 h-4 sm:h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Image navigation */}
-        {images.length > 1 && (
-          <>
-            <button 
-              onClick={() => setCurrentImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1)}
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg hover:bg-white hover:scale-110 transition-all"
-            >
-              <HiChevronLeft className="w-4 sm:w-5 h-4 sm:h-5" />
-            </button>
-            <button 
-              onClick={() => setCurrentImageIndex((prev) => prev === images.length - 1 ? 0 : prev + 1)}
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg hover:bg-white hover:scale-110 transition-all"
-            >
-              <HiChevronRight className="w-4 sm:w-5 h-4 sm:h-5" />
-            </button>
-          </>
-        )}
-
-        {/* Company info on banner */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <div className="max-w-6xl mx-auto px-3 sm:px-4 pb-4 sm:pb-6">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-              <span className="bg-white/20 backdrop-blur-md text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium">
-                {categoryName}
-              </span>
-              {company.verified && (
-                <span className="bg-blue-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-0.5 sm:gap-1">
-                  <HiBadgeCheck className="w-3 sm:w-4 h-3 sm:h-4" />
-                  Verifierat företag
-                </span>
-              )}
-              {company.premium && (
-                <span className="bg-amber-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium">
-                  Premium
-                </span>
-              )}
-              {hasDiscount && (
-                <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold ring-1 ring-white/20 shadow">
-                  {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}{effectiveLabel ? ` ${effectiveLabel}` : ''}
-                </span>
-              )}
-              {isOpenNow && (
-                <span className="bg-green-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-0.5 sm:gap-1">
-                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                  Öppet nu
-                </span>
-              )}
-            </div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-tight">{company.name}</h1>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1.5 sm:mt-2 text-white/90 text-xs sm:text-sm">
-              <span className="flex items-center gap-1">
-                <HiLocationMarker className="w-4 h-4" />
-                {company.city || 'Sverige'}
-              </span>
-              {company.rating && company.rating > 0 && (
-                <span className="flex items-center gap-1">
-                  <HiStar className="w-4 h-4 text-amber-400" />
-                  {company.rating.toFixed(1)} ({company.reviewCount || 0} omdömen)
-                </span>
-              )}
-              {hasDiscount && discountedLowestPrice > 0 && (
-                <span className="flex items-center gap-1">
-                  <span className="font-semibold text-white">Från {discountedLowestPrice} kr</span>
-                  <span className="text-white/70 line-through">{lowestPrice} kr</span>
-                </span>
-              )}
-            </div>
-          </div>
+      {/* Top Navigation Bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium text-sm transition"
+          >
+            <HiArrowLeft className="w-4 h-4" />
+            Tillbaka
+          </button>
+          <button 
+            onClick={handleShare}
+            className="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition"
+          >
+            <HiShare className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
-      {/* Miniatures des images - Galerie */}
-      {images.length > 1 && (
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 -mt-8 relative z-10">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-3 sm:p-4">
-            <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition-all ${
-                    idx === currentImageIndex 
-                      ? 'border-blue-600 shadow-md scale-105' 
-                      : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <Image
-                    src={img}
-                    alt={`Image ${idx + 1}`}
-                    fill
-                    sizes="80px"
-                    className="object-cover object-center"
-                    style={{ objectFit: 'cover' }}
-                  />
-                </button>
-              ))}
+      {/* Draft Banner */}
+      {company.status === 'draft' && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 sticky top-16 z-20">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-amber-800">
+              <HiExclamationCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">Utkast - Endast synlig för dig</span>
             </div>
+            <button 
+              onClick={handlePublish}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition"
+            >
+              Publicera nu
+            </button>
           </div>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
-        <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
-          {/* Left Column - Info (3/5) */}
-          <div className="lg:col-span-8 space-y-4 sm:space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-3 sm:p-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                {company.phone && (
-                  <a
-                    href={`tel:${company.phone}`}
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 sm:py-3 rounded-xl font-medium transition-all hover:shadow-lg"
-                  >
-                    <HiPhone className="w-4 sm:w-5 h-4 sm:h-5" />
-                    Ring nu
-                  </a>
-                )}
-                {company.email && (
-                  <a
-                    href={`mailto:${company.email}`}
-                    className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 sm:py-3 rounded-xl font-medium transition-all"
-                  >
-                    <HiMail className="w-4 sm:w-5 h-4 sm:h-5" />
-                    E-posta
-                  </a>
-                )}
-                {company.website && (
-                  <a
-                    href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 sm:py-3 rounded-xl font-medium transition-all"
-                  >
-                    <HiExternalLink className="w-4 sm:w-5 h-4 sm:h-5" />
-                    Webbplats
-                  </a>
-                )}
-              </div>
-            </div>
+      {/* Hero Photo Gallery */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <HeroGallery images={images} companyName={company.name} />
+      </div>
 
-            {/* About */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Om {company.name}</h2>
-              
-              {/* Images supplémentaires si disponibles */}
-              {images.length > 1 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-4">
-                  {images.slice(1, 4).map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentImageIndex(idx + 1)}
-                      className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-all group"
-                    >
-                      <Image
-                        src={img}
-                        alt={`${company.name} - Image ${idx + 2}`}
-                        fill
-                        sizes="(max-width: 640px) 50vw, 33vw"
-                        className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                        quality={80}
-                      />
-                      <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-xl pointer-events-none" />
-                    </button>
-                  ))}
-                </div>
+      {/* Company Info Section */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          {/* Left: Company name and details */}
+          <div className="flex-1">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+              {company.name}
+            </h1>
+            
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium">
+                {categoryName}
+              </span>
+              {company.verified && (
+                <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5">
+                  <HiBadgeCheck className="w-4 h-4" />
+                  Verifierad
+                </span>
               )}
-              
-              {company.description ? (
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed whitespace-pre-line">{company.description}</p>
+              {company.premium && (
+                <span className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-medium">
+                  Premium
+                </span>
+              )}
+              {hasDiscount && (
+                <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm">
+                  {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}{effectiveLabel ? ` ${effectiveLabel}` : ''}
+                </span>
+              )}
+              {isOpenNow ? (
+                <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Öppet nu
+                </span>
               ) : (
-                <p className="text-gray-400 italic">Ingen beskrivning tillgänglig.</p>
+                <span className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium">
+                  Stängt
+                </span>
               )}
             </div>
-
-            {/* Services */}
-            {company.services && company.services.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Tjänster & Priser</h2>
-                <div className="space-y-2 sm:space-y-3">
-                  {company.services.filter(s => s.name).map((service, index) => (
-                    <div 
-                      key={index} 
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all gap-2 sm:gap-0"
-                    >
-                      <div>
-                        <h3 className="font-semibold text-sm sm:text-base text-gray-900">{service.name}</h3>
-                        <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs sm:text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <HiClock className="w-4 h-4" />
-                            {service.duration || 30} min
-                          </span>
-                          {service.description && (
-                            <span>• {service.description}</span>
-                          )}
-                        </div>
-                      </div>
-                      {(() => {
-                        const original = Number(service.price || 0)
-                        const serviceName = String(service.name || '').trim()
-                        const discounted = applyDiscountToPrice(original, serviceName)
-                        const show = hasDiscount && original > 0 && discounted < original
-
-                        return show ? (
-                          <span className="text-right whitespace-nowrap">
-                            <span className="text-lg sm:text-xl font-bold text-white bg-green-600 px-2 py-1 rounded-lg inline-block">
-                              {discounted}
-                              <span className="text-xs sm:text-sm font-normal text-white/90"> kr</span>
-                            </span>
-                            <span className="block text-xs sm:text-sm text-gray-400 line-through font-medium mt-1">
-                              {original} kr
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">{original} <span className="text-xs sm:text-sm font-normal text-gray-500">kr</span></span>
-                        )
-                      })()}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Opening Hours */}
-            {company.openingHours && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Öppettider</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
-                  {Object.entries(dayNames).map(([key, name]) => {
-                    const hours = company.openingHours?.[key]
-                    const isToday = key === today
-                    return (
-                      <div 
-                        key={key} 
-                        className={`flex justify-between p-2.5 sm:p-3 rounded-lg ${isToday ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}
-                      >
-                        <span className={`font-medium text-xs sm:text-sm ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>
-                          {name}
-                          {isToday && <span className="ml-1 sm:ml-2 text-xs">(idag)</span>}
-                        </span>
-                        <span className={`text-xs sm:text-sm ${hours?.closed ? 'text-gray-400' : 'text-gray-900'}`}>
-                          {hours?.closed ? 'Stängt' : hours ? `${hours.open} - ${hours.close}` : '—'}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Contact & Location */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Kontakt & Plats</h2>
-              <div className="space-y-2 sm:space-y-3">
-                {company.address && (
-                  <a 
-                    href={`https://maps.google.com/?q=${encodeURIComponent(company.address + ', ' + company.city)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-2 sm:gap-3 p-3 sm:p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
-                  >
-                    <HiLocationMarker className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-sm sm:text-base text-gray-900">{company.address}</p>
-                      <p className="text-xs sm:text-sm text-gray-500">{company.city}</p>
-                      <p className="text-xs sm:text-sm text-blue-600 mt-1 font-medium">Visa på karta →</p>
-                    </div>
-                  </a>
-                )}
-                {company.phone && (
-                  <a 
-                    href={`tel:${company.phone}`}
-                    className="flex items-center gap-2 sm:gap-3 p-3 sm:p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
-                  >
-                    <HiPhone className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium text-sm sm:text-base text-gray-900">{company.phone}</span>
-                  </a>
-                )}
-                {company.email && (
-                  <a 
-                    href={`mailto:${company.email}`}
-                    className="flex items-center gap-2 sm:gap-3 p-3 sm:p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
-                  >
-                    <HiMail className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium text-sm sm:text-base text-gray-900 break-all">{company.email}</span>
-                  </a>
-                )}
-                {company.website && (
-                  <a 
-                    href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 sm:gap-3 p-3 sm:p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
-                  >
-                    <HiGlobe className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium text-sm sm:text-base text-blue-600 break-all">{company.website}</span>
-                  </a>
-                )}
-              </div>
+            
+            {/* Meta info */}
+            <div className="flex flex-wrap items-center gap-4 text-gray-600">
+              <span className="flex items-center gap-2">
+                <HiLocationMarker className="w-5 h-5" />
+                <span className="font-medium">{company.city || 'Sverige'}</span>
+              </span>
+              {reviewsCount > 0 && (
+                <span className="flex items-center gap-2">
+                  <HiStar className="w-5 h-5 text-amber-400" />
+                  <span className="font-medium">{reviewsRating.toFixed(1)}</span>
+                  <span className="text-gray-400">({reviewsCount} recensioner)</span>
+                </span>
+              )}
+              {showDiscountFromPrice && (
+                <span className="flex items-center gap-2 text-lg font-bold text-green-600">
+                  Från {discountedLowestPrice} kr
+                  <span className="text-gray-400 line-through font-normal text-base">{lowestPrice} kr</span>
+                </span>
+              )}
             </div>
+          </div>
+          
+          {/* Right: Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {company.phone && (
+              <a
+                href={`tel:${company.phone}`}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition shadow-sm"
+              >
+                <HiPhone className="w-5 h-5" />
+                Ring oss
+              </a>
+            )}
+            <button
+              onClick={() => scrollToTabs('services')}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand text-white rounded-xl font-semibold hover:bg-brand-dark transition shadow-sm"
+            >
+              <HiCalendar className="w-5 h-5" />
+              Boka tid
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content with Sidebar */}
+      <div className="w-full max-w-5xl mx-auto px-4 pb-24 lg:pb-8">
+        <div className="grid lg:grid-cols-12 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-8">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <CompanyTabs
+                services={company.services || []}
+                description={company.description}
+                images={images}
+                companyName={company.name}
+                rating={reviewsRating}
+                reviewCount={reviewsCount}
+                reviews={reviews}
+                openingHours={company.openingHours}
+                address={company.address}
+                city={company.city}
+                phone={company.phone}
+                email={company.email}
+                website={company.website}
+                requestedTab={requestedTab}
+                requestedTabNonce={requestedTabNonce}
+                onBookService={(service) => {
+                  const key = `${service.name || ''}-${service.price || 0}`
+                  setPreselectedService(key)
+                  setShowBookingModal(true)
+                }}
+                applyDiscount={applyDiscountToPrice}
+                hasDiscount={hasDiscount}
+                visibleSections={{
+                  about: showAbout,
+                  reviews: showReviews,
+                  contact: showContact
+                }}
+              />
+            </div>
+
+            {/* Map Section */}
+            {showMap && (company.address || company.city) && (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mt-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <HiLocationMarker className="w-5 h-5 text-brand" />
+                  Adress & Karta
+                </h3>
+                <div className="space-y-3">
+                  {(company.address || company.city) && (
+                    <div className="text-sm text-gray-600">
+                      {company.address && <p className="font-medium text-gray-900">{company.address}</p>}
+                      {company.city && <p>{company.city}</p>}
+                    </div>
+                  )}
+                  
+                  {/* Embedded Map */}
+                  <div className="aspect-video rounded-xl overflow-hidden bg-gray-100">
+                    <iframe
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                        `${company.address || ''}, ${company.city || ''}`
+                      )}&t=m&z=16&output=embed&iwloc=near`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      className="w-full h-full"
+                    />
+                  </div>
+                  
+                  {/* Get Directions Button */}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      `${company.address || ''} ${company.city || ''}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 w-full bg-brand hover:bg-brand-dark text-white px-4 py-2.5 rounded-xl text-sm font-medium transition"
+                  >
+                    <HiExternalLink className="w-4 h-4" />
+                    Visa på Google Maps
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Trust Badges */}
-            <div className="bg-gradient-to-br from-blue-50 to-gray-50 rounded-2xl border border-gray-200 p-3 sm:p-4">
+            <div className="bg-gradient-to-br from-blue-50 to-gray-50 rounded-2xl border border-gray-200 p-3 sm:p-4 mt-4">
               <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
                 <span className="flex items-center gap-1.5 sm:gap-2 font-medium">
                   <HiShieldCheck className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" />
@@ -613,15 +671,132 @@ export default function CompanyPage() {
             </div>
           </div>
 
-          {/* Right Column - Booking (2/5) */}
-          <div className="lg:col-span-4">
-            <div className="sticky top-20 lg:max-w-md lg:ml-auto">
-              <BookingForm 
+          {/* Right Column - Öppettider Sidebar (Desktop only) */}
+          <div className="hidden lg:block lg:col-span-4">
+            <div className="sticky top-20 space-y-4">
+              {/* Öppettider Card */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <HiClock className="w-5 h-5 text-brand" />
+                  Öppettider
+                </h3>
+                {company.openingHours ? (
+                  <div className="space-y-1.5">
+                    {Object.entries({
+                      monday: 'Måndag',
+                      tuesday: 'Tisdag',
+                      wednesday: 'Onsdag',
+                      thursday: 'Torsdag',
+                      friday: 'Fredag',
+                      saturday: 'Lördag',
+                      sunday: 'Söndag'
+                    }).map(([key, name]) => {
+                      const hours = company.openingHours?.[key]
+                      const isToday = key === today
+                      return (
+                        <div 
+                          key={key} 
+                          className={`flex justify-between py-2 px-3 rounded-lg text-sm ${
+                            isToday ? 'bg-brand/10 font-semibold' : 'bg-gray-50'
+                          }`}
+                        >
+                          <span className={isToday ? 'text-brand' : 'text-gray-600'}>
+                            {name}
+                            {isToday && <span className="ml-1 text-xs">(idag)</span>}
+                          </span>
+                          <span className={hours?.closed ? 'text-red-500' : isToday ? 'text-brand' : 'text-gray-900'}>
+                            {hours?.closed ? 'Stängt' : hours ? `${hours.open} – ${hours.close}` : '—'}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">Inga öppettider angivna.</p>
+                )}
+                
+                {/* Current status */}
+                <div className={`mt-4 p-3 rounded-xl text-center ${isOpenNow ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <span className={`font-semibold ${isOpenNow ? 'text-green-700' : 'text-red-700'}`}>
+                    {isOpenNow ? '✓ Öppet just nu' : '✗ Stängt just nu'}
+                  </span>
+                  {todayHours && !todayHours.closed && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Idag: {todayHours.open} – {todayHours.close}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Boka Button */}
+              <button
+                onClick={() => setShowBookingModal(true)}
+                className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-xl font-bold text-base transition shadow-lg shadow-brand/20"
+              >
+                Boka tid
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky Bottom Bar - Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden z-40 safe-area-bottom">
+        <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
+          <div>
+            <p className="text-xs text-gray-500">Pris från</p>
+            <p className="text-lg font-bold text-gray-900">
+              {showDiscountFromPrice ? (
+                <span>
+                  <span className="text-brand">{discountedLowestPrice} kr</span>
+                  <span className="text-sm text-gray-400 line-through ml-2">{lowestPrice} kr</span>
+                </span>
+              ) : `${lowestPrice} kr`}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowBookingModal(true)}
+            className="flex-shrink-0 bg-brand hover:bg-brand-dark text-white px-8 py-3 rounded-xl font-bold transition"
+          >
+            Boka nu
+          </button>
+        </div>
+      </div>
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center">
+          <div 
+            className="bg-white w-full max-w-lg max-h-[90vh] overflow-auto rounded-t-3xl lg:rounded-2xl animate-slide-up lg:animate-fade-in"
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-10">
+              <h2 className="text-lg font-bold text-gray-900">Boka tid</h2>
+              <button
+                onClick={() => {
+                  setShowBookingModal(false)
+                  setPreselectedService('')
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-4">
+              <BookingFormWizard 
                 services={company.services || []} 
                 companyName={company.name}
                 companyId={company.id}
                 companyPhone={company.phone || ''}
                 companyOwnerId={company.ownerId}
+                preselectedService={preselectedService}
+                openingHours={company.openingHours}
+                excludedDates={company.excludedDates}
+                excludedTimes={company.excludedTimes}
                 discount={company.discount}
                 discountPercent={company.discountPercent}
                 discountText={company.discountText}
@@ -629,7 +804,7 @@ export default function CompanyPage() {
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

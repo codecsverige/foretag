@@ -107,7 +107,7 @@ function CompanyCardComponent({ company }: CompanyCardProps) {
   const showStrike = hasDiscount && discountedFrom > 0 && originalFrom > 0 && discountedFrom < originalFrom
   
   const hasOwnImage = company.image || (company.images && company.images.length > 0)
-  const imageUrl: string = (company.image || company.images?.[0] || getCategoryImage(company.category))
+  const imageUrl: string = (company.image || company.images?.[0] || getCategoryImage(company.category, company.id))
 
   return (
     <Link href={`/foretag/${company.id}`} className="block h-full" onMouseEnter={prefetch} onFocus={prefetch} onTouchStart={prefetch}>

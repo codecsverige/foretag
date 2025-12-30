@@ -2,7 +2,7 @@ export default function Loading() {
   return (
     <div className="min-h-screen bg-gray-50 animate-pulse">
       <div className="h-44 sm:h-52 md:h-60 lg:h-64 bg-gray-200" />
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
         <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
           <div className="lg:col-span-8 space-y-4 sm:space-y-6">
             <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5">
