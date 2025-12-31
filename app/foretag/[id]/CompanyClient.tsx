@@ -64,7 +64,7 @@ export default function CompanyClient({ company, reviews }: CompanyClientProps) 
 
   const images = Array.isArray(localCompany.images) ? localCompany.images : []
   const cleanedImages = images
-    .map((img) => String(img || '').trim())
+    .map((img: string) => String(img || '').trim())
     .filter(Boolean)
 
   return (
