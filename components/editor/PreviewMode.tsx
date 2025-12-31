@@ -10,8 +10,8 @@ interface PreviewModeProps {
 }
 
 export default function PreviewMode({ company, onBack }: PreviewModeProps) {
-  const images = Array.isArray(company.images) ? company.images : []
-  const cleanedImages = images.map((img) => String(img || '').trim()).filter(Boolean)
+  const images: unknown[] = Array.isArray(company.images) ? company.images : []
+  const cleanedImages = images.map((img: unknown) => String(img || '').trim()).filter(Boolean)
 
   const showAbout = company.settings?.showAbout !== false
   const showReviews = company.settings?.showReviews !== false

@@ -38,9 +38,9 @@ interface CompanyTabsProps {
   website?: string
   requestedTab?: TabId
   requestedTabNonce?: number
-  onBookService: (service: Service) => void
-  applyDiscount: (price: number, serviceName?: string) => number
-  hasDiscount: boolean
+  onBookService?: (service: Service) => void
+  applyDiscount?: (price: number, serviceName?: string) => number
+  hasDiscount?: boolean
   visibleSections?: {
     about?: boolean
     reviews?: boolean
@@ -76,9 +76,9 @@ export default function CompanyTabs({
   website,
   requestedTab,
   requestedTabNonce,
-  onBookService,
-  applyDiscount,
-  hasDiscount,
+  onBookService = () => {},
+  applyDiscount = (price: number) => price,
+  hasDiscount = false,
   visibleSections = { about: true, reviews: true, contact: true },
 }: CompanyTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('services')

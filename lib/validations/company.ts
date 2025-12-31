@@ -17,13 +17,16 @@ export const companySchema = z.object({
   email: z.string().email('Ogiltig e-postadress').optional().or(z.literal('')),
   website: z.string().url('Ogiltig webbadress').optional().or(z.literal('')),
   services: z.array(serviceSchema).min(1, 'Lägg till minst en tjänst'),
-  openingHours: z.record(
-    z.object({
-      open: z.string(),
-      close: z.string(),
-      closed: z.boolean(),
-    })
-  ).optional(),
+  openingHours: z
+    .record(
+      z.string(),
+      z.object({
+        open: z.string(),
+        close: z.string(),
+        closed: z.boolean(),
+      })
+    )
+    .optional(),
 })
 
 export type CompanyFormData = z.infer<typeof companySchema>

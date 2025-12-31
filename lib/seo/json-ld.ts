@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+
 interface LocalBusinessProps {
   name: string
   description?: string
@@ -78,10 +80,8 @@ function capitalize(str: string): string {
 }
 
 export function JSONLDScript({ data }: { data: object }) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
-  )
+  return createElement('script', {
+    type: 'application/ld+json',
+    dangerouslySetInnerHTML: { __html: JSON.stringify(data) },
+  })
 }

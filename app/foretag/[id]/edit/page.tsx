@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
@@ -9,9 +9,13 @@ import LiveEditor from '@/components/editor/LiveEditor'
 import { HiArrowLeft, HiLockClosed } from 'react-icons/hi'
 import Link from 'next/link'
 
+type CompanyDoc = {
+  ownerId?: string
+  [key: string]: unknown
+}
+
 export default function EditCompanyPage() {
   const params = useParams()
-  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [company, setCompany] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +37,8 @@ export default function EditCompanyPage() {
           return
         }
 
-        const data = { id: docSnap.id, ...docSnap.data() }
+        const raw = docSnap.data() as CompanyDoc
+        const data = { id: docSnap.id, ...raw } as CompanyDoc & { id: string }
         
         // Check if user is owner
         if (!user || data.ownerId !== user.uid) {

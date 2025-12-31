@@ -19,18 +19,20 @@ export default function EditableHero({ data, isActive, onActivate, onUpdate }: E
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const images = Array.isArray(data.images) ? data.images : []
+  const images: string[] = Array.isArray(data.images) ? (data.images as string[]) : []
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0 || !storage || !user) return
+
+    const storageInstance = storage as NonNullable<typeof storage>
 
     setUploading(true)
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const fileId = `${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`
-        const fileRef = storageRef(storage, `companies/${user.uid}/${fileId}`)
+        const fileRef = storageRef(storageInstance, `companies/${user.uid}/${fileId}`)
         await uploadBytes(fileRef, file)
         return await getDownloadURL(fileRef)
       })
@@ -46,7 +48,7 @@ export default function EditableHero({ data, isActive, onActivate, onUpdate }: E
   }
 
   const handleRemoveImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
+    const newImages = images.filter((_: string, i: number) => i !== index)
     onUpdate('images', newImages)
   }
 
