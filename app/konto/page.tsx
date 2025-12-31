@@ -548,7 +548,7 @@ function AccountPageContent() {
                 <div className="px-5 py-3 bg-gray-50 border-t flex flex-col gap-3">
                   <div className="flex gap-2">
                   <Link href={`/foretag/${c.id}`} className="px-3 py-1.5 text-sm text-gray-600 hover:text-brand rounded-lg hover:bg-white"><HiOutlineEye className="w-4 h-4 inline mr-1" />Visa</Link>
-                  <Link href={`/redigera/${c.id}`} className="px-3 py-1.5 text-sm text-gray-600 hover:text-brand rounded-lg hover:bg-white"><HiOutlinePencil className="w-4 h-4 inline mr-1" />Redigera</Link>
+                  <Link href={`/foretag/${c.id}/edit`} className="px-3 py-1.5 text-sm bg-brand text-white hover:bg-brand-dark rounded-lg font-medium"><HiOutlinePencil className="w-4 h-4 inline mr-1" />Redigera</Link>
                   <button
                     onClick={() => handleToggle(c.id, c.status)}
                     disabled={updating === c.id || (c.status !== 'active' && publishBlocked && plan !== 'premium')}
