@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react'
 import { HiClock, HiLocationMarker, HiPhone, HiMail, HiGlobe } from 'react-icons/hi'
 import ServiceCard from './ServiceCard'
 import ReviewSection from './ReviewSection'
-import ImageGallery from './ImageGallery'
 
 interface Service {
   name?: string
@@ -309,13 +308,6 @@ export default function CompanyTabs({
             
             {description && (
               <p className="text-gray-600 leading-relaxed whitespace-pre-line lg:text-sm">{description}</p>
-            )}
-
-            {images.length > 1 && (
-              <div>
-                <h3 className="text-base lg:text-sm font-semibold text-gray-800 mb-3">Bilder</h3>
-                <ImageGallery images={images} companyName={companyName} />
-              </div>
             )}
           </div>
         )}

@@ -38,7 +38,7 @@ export default function HeroGallery({ images, companyName }: HeroGalleryProps) {
   return (
     <>
       {/* Desktop Gallery Grid - Style Airbnb */}
-      <div className="hidden md:grid md:grid-cols-4 gap-2 rounded-2xl overflow-hidden h-[400px] lg:h-[500px]">
+      <div className="hidden md:grid md:grid-cols-4 gap-2 rounded-2xl overflow-hidden h-[320px] lg:h-[420px] xl:h-[500px]">
         {/* Main large image - left side */}
         <button
           onClick={() => openLightbox(0)}
