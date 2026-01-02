@@ -98,7 +98,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="border-t border-gray-800 mt-6 pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-xs">
           <p>© {new Date().getFullYear()} BokaNära AB. Org.nr: 559XXX-XXXX</p>
-          <p className="text-gray-500">Alla rättigheter förbehållna.</p>
+          <p className="text-gray-400">Alla rättigheter förbehållna.</p>
         </div>
       </div>
     </footer>

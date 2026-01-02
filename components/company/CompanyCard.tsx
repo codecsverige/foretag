@@ -145,7 +145,7 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
     return 'Stängt'
   })()
   const openTextClass = openText.startsWith('Öppet')
-    ? 'text-green-600 font-medium'
+    ? 'text-green-700 font-medium'
     : (openText.startsWith('Stäng') ? 'text-red-600 font-medium' : 'text-gray-600')
 
   // Formatage pro des prix en suédois (ex: 1 200)

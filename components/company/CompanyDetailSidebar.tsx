@@ -88,7 +88,7 @@ export default function CompanyDetailSidebar({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     {isOpenNow ? (
-                      <span className="text-sm font-semibold text-green-600">Öppet nu</span>
+                      <span className="text-sm font-semibold text-green-700">Öppet nu</span>
                     ) : (
                       <span className="text-sm font-semibold text-red-600">Stängt</span>
                     )}
