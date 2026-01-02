@@ -170,7 +170,7 @@ export default function CompanyTabs({
             <div key={category}>
               <h3 className="text-base lg:text-sm font-semibold text-gray-800 mb-3 lg:mb-2 flex items-center gap-2">
                 {category}
-                <span className="text-sm lg:text-xs font-normal text-gray-400">({categoryServices.length})</span>
+                <span className="text-sm lg:text-xs font-normal text-gray-500">({categoryServices.length})</span>
               </h3>
               <div className="space-y-3 lg:space-y-2">
                 {categoryServices.map((service, idx) => {

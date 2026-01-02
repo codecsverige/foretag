@@ -86,7 +86,7 @@ export default function Header() {
                 </Link>
 
                 <div className="relative group ml-2">
-                  <button className="flex items-center justify-center w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20">
+                  <button aria-label="Användarmeny" className="flex items-center justify-center w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20">
                     <span className="text-sm font-medium text-gray-700">
                       {user.displayName?.charAt(0) || user.email?.charAt(0) || '?'}
                     </span>

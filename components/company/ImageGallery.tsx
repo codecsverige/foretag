@@ -92,6 +92,7 @@ export default function ImageGallery({ images, companyName }: ImageGalleryProps)
           onClick={closeLightbox}
         >
           <button
+            aria-label="Stäng"
             onClick={closeLightbox}
             className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors z-10"
           >
@@ -100,6 +101,7 @@ export default function ImageGallery({ images, companyName }: ImageGalleryProps)
 
           {allImages.length > 1 && (
             <button
+              aria-label="Föregående bild"
               onClick={(e) => { e.stopPropagation(); goToPrev() }}
               className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
             >
@@ -124,6 +126,7 @@ export default function ImageGallery({ images, companyName }: ImageGalleryProps)
 
           {allImages.length > 1 && (
             <button
+              aria-label="Nästa bild"
               onClick={(e) => { e.stopPropagation(); goToNext() }}
               className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
             >

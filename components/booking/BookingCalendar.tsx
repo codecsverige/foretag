@@ -149,6 +149,7 @@ export default function BookingCalendar({
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
+          aria-label="Föregående månad"
           onClick={goToPrevMonth}
           disabled={!canGoPrev}
           className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
@@ -160,6 +161,7 @@ export default function BookingCalendar({
         </h3>
         <button
           type="button"
+          aria-label="Nästa månad"
           onClick={goToNextMonth}
           className="p-2 rounded-lg hover:bg-gray-100 transition"
         >

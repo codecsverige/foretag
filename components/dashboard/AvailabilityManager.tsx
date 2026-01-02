@@ -210,6 +210,7 @@ export default function AvailabilityManager({
         <div className="flex items-center justify-between mb-4">
           <button
             type="button"
+            aria-label="Föregående månad"
             onClick={goToPrevMonth}
             disabled={!canGoPrev}
             className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
@@ -221,6 +222,7 @@ export default function AvailabilityManager({
           </h4>
           <button
             type="button"
+            aria-label="Nästa månad"
             onClick={goToNextMonth}
             className="p-2 rounded-lg hover:bg-gray-100 transition"
           >
@@ -272,6 +274,7 @@ export default function AvailabilityManager({
               {day.isCurrentMonth && !day.isPast && day.isOpen && !day.isExcluded && (
                 <button
                   type="button"
+                  aria-label="Hantera tider"
                   onClick={(e) => {
                     e.stopPropagation()
                     setSelectedDate(day.iso)
@@ -314,6 +317,7 @@ export default function AvailabilityManager({
                 {new Date(`${d}T12:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
                 <button
                   type="button"
+                  aria-label="Ta bort stängt datum"
                   onClick={() => toggleExcludeDate(d)}
                   className="ml-1 hover:text-red-900"
                 >
@@ -340,6 +344,7 @@ export default function AvailabilityManager({
               </div>
               <button
                 type="button"
+                aria-label="Stäng"
                 onClick={() => {
                   setShowTimeManager(false)
                   setSelectedDate(null)

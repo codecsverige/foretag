@@ -117,7 +117,7 @@ export default function CompanyDetailSidebar({
               <div key={day} className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">{dayNames[day] || day}</span>
                 {hours.closed ? (
-                  <span className="text-gray-400">Stängt</span>
+                  <span className="text-gray-500">Stängt</span>
                 ) : (
                   <span className="text-gray-900">
                     {hours.open} - {hours.close}

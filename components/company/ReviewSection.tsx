@@ -85,7 +85,7 @@ export default function ReviewSection({ rating, reviewCount, reviews = [] }: Rev
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-900">{review.author}</span>
-                    <span className="text-sm text-gray-400">{review.date}</span>
+                    <span className="text-sm text-gray-500">{review.date}</span>
                   </div>
                   <div className="flex items-center gap-0.5 mt-1">
                     {[1, 2, 3, 4, 5].map(star => (

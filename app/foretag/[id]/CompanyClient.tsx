@@ -103,6 +103,7 @@ export default function CompanyClient({ company, reviews }: CompanyClientProps) 
             <h2 className="text-lg font-bold text-gray-900 mb-3">Hitta hit</h2>
             <div className="aspect-video rounded-xl overflow-hidden">
               <iframe
+                title="Karta som visar företagets plats"
                 src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${encodeURIComponent(
                   `${localCompany.address || ''} ${localCompany.city || ''}`
                 )}`}

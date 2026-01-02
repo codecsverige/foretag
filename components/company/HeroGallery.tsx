@@ -202,12 +202,14 @@ export default function HeroGallery({ images, companyName }: HeroGalleryProps) {
         {images.length > 1 && (
           <>
             <button
+              aria-label="Föregående bild"
               onClick={() => setLightboxIndex((prev) => (prev - 1 + images.length) % images.length)}
               className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/95 rounded-full shadow-lg hover:bg-white"
             >
               <HiChevronLeft className="w-5 h-5" />
             </button>
             <button
+              aria-label="Nästa bild"
               onClick={() => setLightboxIndex((prev) => (prev + 1) % images.length)}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/95 rounded-full shadow-lg hover:bg-white"
             >
@@ -235,6 +237,7 @@ export default function HeroGallery({ images, companyName }: HeroGalleryProps) {
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
           {/* Close button */}
           <button
+            aria-label="Stäng"
             onClick={closeLightbox}
             className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
           >
@@ -245,12 +248,14 @@ export default function HeroGallery({ images, companyName }: HeroGalleryProps) {
           {images.length > 1 && (
             <>
               <button
+                aria-label="Föregående bild"
                 onClick={prevImage}
                 className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
               >
                 <HiChevronLeft className="w-6 h-6" />
               </button>
               <button
+                aria-label="Nästa bild"
                 onClick={nextImage}
                 className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
               >
