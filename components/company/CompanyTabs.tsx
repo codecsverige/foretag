@@ -162,13 +162,13 @@ export default function CompanyTabs({
       </div>
 
       {/* Tab Content - all sections visible, menu used for quick navigation */}
-      <div className="py-6 lg:py-5 space-y-10 lg:space-y-8">
+      <div className="py-6 lg:py-4 space-y-10 lg:space-y-6">
         {/* Services Section */}
-        <div ref={servicesRef} id="services-section" className="space-y-6 lg:space-y-5 px-4 sm:px-6">
+        <div ref={servicesRef} id="services-section" className="space-y-6 lg:space-y-4 px-4 sm:px-6">
           <h2 className="text-xl lg:text-lg font-bold text-gray-900">Tjänster</h2>
           {Object.entries(groupedServices).map(([category, categoryServices]) => (
             <div key={category}>
-              <h3 className="text-base lg:text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <h3 className="text-base lg:text-sm font-semibold text-gray-800 mb-3 lg:mb-2 flex items-center gap-2">
                 {category}
                 <span className="text-sm lg:text-xs font-normal text-gray-400">({categoryServices.length})</span>
               </h3>

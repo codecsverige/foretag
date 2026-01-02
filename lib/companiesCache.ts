@@ -88,11 +88,13 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
       )
       
       const snapshot = await getDocs(companiesQuery)
-      const data = snapshot.docs.map(doc => ({
+      const data = snapshot.docs.map(doc => {
+        const raw: any = doc.data() || {}
+        return ({
+        ...raw,
         id: doc.id,
-        ...doc.data(),
         priceFrom: (() => {
-          const services = doc.data().services || []
+          const services = raw.services || []
           const min = services.reduce((acc: number, s: any) => {
             const p = Number(s?.price || 0)
             if (!Number.isFinite(p) || p <= 0) return acc
@@ -100,7 +102,8 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
           }, Number.POSITIVE_INFINITY)
           return min === Number.POSITIVE_INFINITY ? 0 : min
         })(),
-      })) as Company[]
+      })
+      }) as Company[]
       
       // Update cache
       companiesCache = data
@@ -145,7 +148,7 @@ export async function getCompanyById(id: string): Promise<Company | null> {
       return null
     }
 
-    const data = { id: docSnap.id, ...docSnap.data() } as Company
+    const data = { ...docSnap.data(), id: docSnap.id } as Company
     
     // Update cache
     singleCompanyCache.set(id, { data, time: now })

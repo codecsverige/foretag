@@ -58,7 +58,7 @@ export function useCompanies(options?: { limit?: number; category?: string; city
       }
 
       const snapshot = await getDocs(q)
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Company))
+      return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Company))
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
@@ -76,7 +76,7 @@ export function useCompany(id: string) {
       
       if (!docSnap.exists()) return null
       
-      return { id: docSnap.id, ...docSnap.data() } as Company
+      return { ...docSnap.data(), id: docSnap.id } as Company
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
@@ -118,7 +118,7 @@ export function useCompanyReviews(companyId: string) {
       )
       
       const snapshot = await getDocs(reviewsQuery)
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))
     },
     enabled: !!companyId,
     staleTime: 2 * 60 * 1000, // 2 minutes

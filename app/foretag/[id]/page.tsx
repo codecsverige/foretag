@@ -13,7 +13,8 @@ import {
 import BookingFormWizard from '@/components/booking/BookingFormWizard'
 import CompanyTabs from '@/components/company/CompanyTabs'
 import HeroGallery from '@/components/company/HeroGallery'
-import { getCompanyById } from '@/lib/companiesCache'
+import CompanyDetailSidebar from '@/components/company/CompanyDetailSidebar'
+import { clearCache, getCompanyById } from '@/lib/companiesCache'
 import { getCategoryImage, categoryNames } from '@/lib/categoryImages'
 import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
@@ -373,6 +374,7 @@ export default function CompanyPage() {
         published: true
       })
       setCompany(prev => prev ? { ...prev, status: 'active', published: true } : null)
+      clearCache()
       alert('Din annons är nu publicerad!')
     } catch (err) {
       console.error('Error publishing:', err)
@@ -478,102 +480,73 @@ export default function CompanyPage() {
         </div>
       )}
 
-      {/* Hero Photo Gallery */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 lg:py-5">
-        <HeroGallery images={images} companyName={company.name} />
-      </div>
-
-      {/* Company Info Section */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          {/* Left: Company name and details */}
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-gray-900 mb-2">
-              {company.name}
-            </h1>
-            
-            {/* Badges */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium">
-                {categoryName}
-              </span>
-              {company.verified && (
-                <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5">
-                  <HiBadgeCheck className="w-4 h-4" />
-                  Verifierad
-                </span>
-              )}
-              {company.premium && (
-                <span className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-medium">
-                  Premium
-                </span>
-              )}
-              {hasDiscount && (
-                <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm">
-                  {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}{effectiveLabel ? ` ${effectiveLabel}` : ''}
-                </span>
-              )}
-              {isOpenNow ? (
-                <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Öppet nu
-                </span>
-              ) : (
-                <span className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium">
-                  Stängt
-                </span>
-              )}
-            </div>
-            
-            {/* Meta info */}
-            <div className="flex flex-wrap items-center gap-4 text-gray-600 text-sm">
-              <span className="flex items-center gap-2">
-                <HiLocationMarker className="w-5 h-5" />
-                <span className="font-medium">{company.city || 'Sverige'}</span>
-              </span>
-              {reviewsCount > 0 && (
-                <span className="flex items-center gap-2">
-                  <HiStar className="w-5 h-5 text-amber-400" />
-                  <span className="font-medium">{reviewsRating.toFixed(1)}</span>
-                  <span className="text-gray-400">({reviewsCount} recensioner)</span>
-                </span>
-              )}
-              {showDiscountFromPrice && (
-                <span className="flex items-center gap-2 text-base font-bold text-green-600">
-                  Från {discountedLowestPrice} kr
-                  <span className="text-gray-400 line-through font-normal text-base">{lowestPrice} kr</span>
-                </span>
-              )}
-            </div>
-          </div>
-          
-          {/* Right: Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            {company.phone && (
-              <a
-                href={`tel:${company.phone}`}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition shadow-sm"
-              >
-                <HiPhone className="w-5 h-5" />
-                Ring oss
-              </a>
-            )}
-            <button
-              onClick={() => scrollToTabs('services')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-brand text-white rounded-xl font-semibold hover:bg-brand-dark transition shadow-sm"
-            >
-              <HiCalendar className="w-5 h-5" />
-              Boka tid
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content with Sidebar */}
-      <div className="w-full max-w-5xl mx-auto px-4 pb-24 lg:pb-8">
+      {/* Main 2-Column Layout */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 lg:py-4">
         <div className="grid lg:grid-cols-12 gap-6">
-          {/* Left Column - Main Content */}
-          <div className="lg:col-span-8">
+          {/* Left Column - Gallery + Company Info + Tabs */}
+          <div className="lg:col-span-8 space-y-4">
+            {/* Hero Photo Gallery */}
+            <HeroGallery images={images} companyName={company.name} />
+
+            {/* Company Info Section */}
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-gray-900 mb-3">
+                {company.name}
+              </h1>
+              
+              {/* Info chips */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium">
+                  {categoryName}
+                </span>
+                <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
+                  <HiLocationMarker className="w-4 h-4" />
+                  {company.city || 'Sverige'}
+                </span>
+                {isOpenNow ? (
+                  <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Öppet nu
+                  </span>
+                ) : (
+                  <span className="bg-red-50 text-red-700 px-3 py-1.5 rounded-full text-sm font-medium">
+                    Stängt
+                  </span>
+                )}
+                {reviewsCount > 0 && (
+                  <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
+                    <HiStar className="w-4 h-4 text-amber-400" />
+                    {reviewsRating.toFixed(1)}
+                    <span className="text-gray-500">({reviewsCount})</span>
+                  </span>
+                )}
+                {company.verified && (
+                  <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
+                    <HiBadgeCheck className="w-4 h-4" />
+                    Verifierad
+                  </span>
+                )}
+                {company.premium && (
+                  <span className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full text-sm font-medium">
+                    Premium
+                  </span>
+                )}
+                {hasDiscount && (
+                  <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm">
+                    {effectiveType === 'amount' ? `-${effectiveValue} kr` : `-${effectiveValue}%`}{effectiveLabel ? ` ${effectiveLabel}` : ''}
+                  </span>
+                )}
+              </div>
+
+              {showDiscountFromPrice && (
+                <div className="text-sm font-semibold text-green-700">
+                  Från {discountedLowestPrice} kr
+                  <span className="text-gray-400 line-through font-normal ml-2">{lowestPrice} kr</span>
+                </div>
+              )}
+            </div>
+
+            {/* Company Tabs */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
               <CompanyTabs
                 services={company.services || []}
@@ -608,7 +581,7 @@ export default function CompanyPage() {
 
             {/* Map Section */}
             {showMap && (company.address || company.city) && (
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mt-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mt-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <HiLocationMarker className="w-5 h-5 text-brand" />
                   Adress & Karta
@@ -653,7 +626,7 @@ export default function CompanyPage() {
             )}
 
             {/* Trust Badges */}
-            <div className="bg-gradient-to-br from-blue-50 to-gray-50 rounded-2xl border border-gray-200 p-3 sm:p-4 mt-4">
+            <div className="bg-gradient-to-br from-blue-50 to-gray-50 rounded-2xl border border-gray-200 p-3 sm:p-4 mt-6">
               <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
                 <span className="flex items-center gap-1.5 sm:gap-2 font-medium">
                   <HiShieldCheck className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" />
@@ -671,71 +644,24 @@ export default function CompanyPage() {
             </div>
           </div>
 
-          {/* Right Column - Öppettider Sidebar (Desktop only) */}
+          {/* Right Column - Sticky Sidebar (Desktop only) */}
           <div className="hidden lg:block lg:col-span-4">
-            <div className="sticky top-20 space-y-4">
-              {/* Öppettider Card */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <HiClock className="w-5 h-5 text-brand" />
-                  Öppettider
-                </h3>
-                {company.openingHours ? (
-                  <div className="space-y-1.5">
-                    {Object.entries({
-                      monday: 'Måndag',
-                      tuesday: 'Tisdag',
-                      wednesday: 'Onsdag',
-                      thursday: 'Torsdag',
-                      friday: 'Fredag',
-                      saturday: 'Lördag',
-                      sunday: 'Söndag'
-                    }).map(([key, name]) => {
-                      const hours = company.openingHours?.[key]
-                      const isToday = key === today
-                      return (
-                        <div 
-                          key={key} 
-                          className={`flex justify-between py-2 px-3 rounded-lg text-sm ${
-                            isToday ? 'bg-brand/10 font-semibold' : 'bg-gray-50'
-                          }`}
-                        >
-                          <span className={isToday ? 'text-brand' : 'text-gray-600'}>
-                            {name}
-                            {isToday && <span className="ml-1 text-xs">(idag)</span>}
-                          </span>
-                          <span className={hours?.closed ? 'text-red-500' : isToday ? 'text-brand' : 'text-gray-900'}>
-                            {hours?.closed ? 'Stängt' : hours ? `${hours.open} – ${hours.close}` : '—'}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm">Inga öppettider angivna.</p>
-                )}
-                
-                {/* Current status */}
-                <div className={`mt-4 p-3 rounded-xl text-center ${isOpenNow ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                  <span className={`font-semibold ${isOpenNow ? 'text-green-700' : 'text-red-700'}`}>
-                    {isOpenNow ? '✓ Öppet just nu' : '✗ Stängt just nu'}
-                  </span>
-                  {todayHours && !todayHours.closed && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Idag: {todayHours.open} – {todayHours.close}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Boka Button */}
-              <button
-                onClick={() => setShowBookingModal(true)}
-                className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-xl font-bold text-base transition shadow-lg shadow-brand/20"
-              >
-                Boka tid
-              </button>
-            </div>
+            <CompanyDetailSidebar
+              company={{
+                phone: company.phone,
+                email: company.email,
+                website: company.website,
+                address: company.address,
+                city: company.city,
+                openingHours: company.openingHours
+              }}
+              lowestPrice={lowestPrice}
+              discountedPrice={discountedLowestPrice}
+              hasDiscount={hasDiscount && showDiscountFromPrice}
+              onBookingClick={() => setShowBookingModal(true)}
+              isOpenNow={isOpenNow}
+              todayHours={todayHours}
+            />
           </div>
         </div>
       </div>

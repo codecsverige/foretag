@@ -18,6 +18,19 @@ export default function HeroGallery({ images, companyName }: HeroGalleryProps) {
   const displayImages = images.slice(0, 5)
   const hasMoreImages = images.length > 5
 
+  const desktopCount = displayImages.length
+
+  const desktopGridClass =
+    desktopCount === 1
+      ? 'md:grid-cols-1'
+      : desktopCount === 2
+        ? 'md:grid-cols-2'
+        : desktopCount === 3
+          ? 'md:grid-cols-3 md:grid-rows-2'
+          : desktopCount === 4
+            ? 'md:grid-cols-2 md:grid-rows-2'
+            : 'md:grid-cols-4 md:grid-rows-2'
+
   const openLightbox = (index: number) => {
     setLightboxIndex(index)
     setLightboxOpen(true)
@@ -38,54 +51,139 @@ export default function HeroGallery({ images, companyName }: HeroGalleryProps) {
   return (
     <>
       {/* Desktop Gallery Grid - Style Airbnb */}
-      <div className="hidden md:grid md:grid-cols-4 gap-2 rounded-2xl overflow-hidden h-[320px] lg:h-[420px] xl:h-[500px]">
-        {/* Main large image - left side */}
-        <button
-          onClick={() => openLightbox(0)}
-          className="relative col-span-2 row-span-2 group overflow-hidden bg-gray-100"
-        >
-          <Image
-            src={displayImages[0]}
-            alt={`${companyName} - Photo principale`}
-            fill
-            sizes="(max-width: 768px) 100vw, 50vw"
-            quality={85}
-            priority={true}
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </button>
-
-        {/* Grid of smaller images - right side */}
-        {displayImages.slice(1, 5).map((img, idx) => (
+      <div className={`hidden md:grid gap-2 rounded-2xl overflow-hidden h-[220px] lg:h-[220px] xl:h-[240px] ${desktopGridClass}`}>
+        {desktopCount === 1 && (
           <button
-            key={idx + 1}
-            onClick={() => openLightbox(idx + 1)}
+            onClick={() => openLightbox(0)}
             className="relative group overflow-hidden bg-gray-100"
           >
             <Image
-              src={img}
-              alt={`${companyName} - Photo ${idx + 2}`}
+              src={displayImages[0]}
+              alt={`${companyName} - Photo principale`}
               fill
-              sizes="(max-width: 768px) 50vw, 25vw"
-              quality={75}
+              sizes="(max-width: 768px) 100vw, 80vw"
+              quality={85}
+              priority={true}
               className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            {/* Show +N overlay on last image if more images exist */}
-            {idx === 3 && hasMoreImages && (
-              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                <span className="text-white text-2xl font-bold">
-                  +{images.length - 5}
-                </span>
-              </div>
-            )}
           </button>
-        ))}
+        )}
 
-        {/* If less than 5 images, fill empty spaces */}
-        {displayImages.length < 5 &&
-          Array.from({ length: 5 - displayImages.length }).map((_, idx) => (
-            <div key={`empty-${idx}`} className="bg-gray-100" />
+        {desktopCount === 2 &&
+          displayImages.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => openLightbox(idx)}
+              className="relative group overflow-hidden bg-gray-100"
+            >
+              <Image
+                src={img}
+                alt={`${companyName} - Photo ${idx + 1}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 40vw"
+                quality={80}
+                priority={idx === 0}
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </button>
           ))}
+
+        {desktopCount === 3 && (
+          <>
+            <button
+              onClick={() => openLightbox(0)}
+              className="relative col-span-2 row-span-2 group overflow-hidden bg-gray-100"
+            >
+              <Image
+                src={displayImages[0]}
+                alt={`${companyName} - Photo principale`}
+                fill
+                sizes="(max-width: 768px) 100vw, 66vw"
+                quality={85}
+                priority={true}
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </button>
+            {displayImages.slice(1).map((img, idx) => (
+              <button
+                key={idx + 1}
+                onClick={() => openLightbox(idx + 1)}
+                className="relative group overflow-hidden bg-gray-100"
+              >
+                <Image
+                  src={img}
+                  alt={`${companyName} - Photo ${idx + 2}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 34vw"
+                  quality={78}
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </button>
+            ))}
+          </>
+        )}
+
+        {desktopCount === 4 &&
+          displayImages.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => openLightbox(idx)}
+              className="relative group overflow-hidden bg-gray-100"
+            >
+              <Image
+                src={img}
+                alt={`${companyName} - Photo ${idx + 1}`}
+                fill
+                sizes="(max-width: 768px) 100vw, 40vw"
+                quality={78}
+                priority={idx === 0}
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </button>
+          ))}
+
+        {desktopCount >= 5 && (
+          <>
+            <button
+              onClick={() => openLightbox(0)}
+              className="relative col-span-2 row-span-2 group overflow-hidden bg-gray-100"
+            >
+              <Image
+                src={displayImages[0]}
+                alt={`${companyName} - Photo principale`}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                quality={85}
+                priority={true}
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </button>
+
+            {displayImages.slice(1, 5).map((img, idx) => (
+              <button
+                key={idx + 1}
+                onClick={() => openLightbox(idx + 1)}
+                className="relative group overflow-hidden bg-gray-100"
+              >
+                <Image
+                  src={img}
+                  alt={`${companyName} - Photo ${idx + 2}`}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 20vw"
+                  quality={75}
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {idx === 3 && hasMoreImages && (
+                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                    <span className="text-white text-2xl font-bold">
+                      +{images.length - 5}
+                    </span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Mobile Gallery - Single large image with counter */}

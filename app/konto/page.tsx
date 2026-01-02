@@ -131,7 +131,7 @@ function AccountPageContent() {
         if (userDoc?.exists()) setUserData(userDoc.data() as UserData)
 
         const companiesSnap = await getDocs(query(collection(db, 'companies'), where('ownerId', '==', user.uid)))
-        const companiesData = companiesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Company[]
+        const companiesData = companiesSnap.docs.map(d => ({ ...d.data(), id: d.id })) as Company[]
         companiesData.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0))
         setCompanies(companiesData)
 
@@ -154,7 +154,7 @@ function AccountPageContent() {
           limit(pageSize)
         )).catch(() => ({ docs: [] } as any))
 
-        const firstBookings = (firstSnap.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Booking))
+        const firstBookings = (firstSnap.docs || []).map((d: any) => ({ ...d.data(), id: d.id } as Booking))
         setBookings(firstBookings)
 
         const last = (firstSnap.docs && firstSnap.docs.length > 0) ? firstSnap.docs[firstSnap.docs.length - 1] : null
@@ -183,7 +183,7 @@ function AccountPageContent() {
         limit(pageSize)
       )).catch(() => ({ docs: [] } as any))
 
-      const nextBookings = (snap.docs || []).map((d: any) => ({ id: d.id, ...d.data() } as Booking))
+      const nextBookings = (snap.docs || []).map((d: any) => ({ ...d.data(), id: d.id } as Booking))
       setBookings(prev => [...prev, ...nextBookings])
 
       const last = (snap.docs && snap.docs.length > 0) ? snap.docs[snap.docs.length - 1] : null

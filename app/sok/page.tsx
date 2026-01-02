@@ -199,7 +199,7 @@ function SearchContent() {
     <div className="min-h-screen bg-gray-50">
       {/* Search Header */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-30">
-        <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -363,9 +363,9 @@ function SearchContent() {
       </div>
 
       {/* Results */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
                 <div className="h-48 bg-gray-100"></div>
@@ -387,7 +387,7 @@ function SearchContent() {
             </div>
 
             {companies.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 gap-5">
                 {companies.map((company) => (
                   <CompanyCard key={company.id} company={company} />
                 ))}
