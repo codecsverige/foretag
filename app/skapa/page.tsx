@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { db, storage } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed } from 'react-icons/hi'
-import Link from 'next/link'
+import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed, HiEye, HiSave } from 'react-icons/hi'
 
 const categories = [
   { 
@@ -64,18 +65,31 @@ const categories = [
   },
 ]
 
-const cities = [
+const allCities = [
   'Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Västerås',
   'Örebro', 'Linköping', 'Helsingborg', 'Jönköping', 'Norrköping',
-  'Lund', 'Umeå', 'Gävle', 'Borås', 'Eskilstuna'
+  'Lund', 'Umeå', 'Gävle', 'Borås', 'Eskilstuna', 'Sundsvall',
+  'Karlstad', 'Växjö', 'Halmstad', 'Trollhättan', 'Kalmar',
+  'Kristianstad', 'Skellefteå', 'Uddevalla', 'Falun', 'Nyköping',
+  'Varberg', 'Skövde', 'Östersund', 'Borlänge', 'Visby'
+]
+
+const paymentMethods = [
+  { id: 'swish', name: 'Swish', icon: '📱' },
+  { id: 'kort', name: 'Kort', icon: '💳' },
+  { id: 'faktura', name: 'Faktura', icon: '📄' },
+  { id: 'kontant', name: 'Kontant', icon: '💵' },
 ]
 
 interface Service {
   id: string
   name: string
   category: string
+  priceType: 'fixed' | 'range' | 'quote'
   price: string
+  priceMax: string
   duration: string
+  durationFlexible: boolean
   description: string
 }
 
@@ -99,6 +113,8 @@ const dayNames: { [key: string]: string } = {
   sunday: 'Söndag',
 }
 
+const DRAFT_KEY = 'bokanara_draft_company'
+
 export default function CreatePage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
@@ -108,26 +124,95 @@ export default function CreatePage() {
   const [submitted, setSubmitted] = useState(false)
   const [newCompanyId, setNewCompanyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
+  const [draftSaved, setDraftSaved] = useState(false)
 
-  // Form data
+  // Step 1: Basic info
   const [name, setName] = useState('')
+  const [orgNumber, setOrgNumber] = useState('')
   const [category, setCategory] = useState('')
   const [customCategoryName, setCustomCategoryName] = useState('')
   const [customSubServices, setCustomSubServices] = useState<string[]>([''])
   const [selectedSubServices, setSelectedSubServices] = useState<string[]>([])
-  const [city, setCity] = useState('')
+  const [serviceCities, setServiceCities] = useState<string[]>([])
   const [address, setAddress] = useState('')
   const [description, setDescription] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [website, setWebsite] = useState('')
+  const [facebook, setFacebook] = useState('')
+  const [instagram, setInstagram] = useState('')
   const [ownerName, setOwnerName] = useState('')
   const [ownerBio, setOwnerBio] = useState('')
+  
+  // New fields
+  const [rutAvdrag, setRutAvdrag] = useState(false)
+  const [rotAvdrag, setRotAvdrag] = useState(false)
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([])
+  const [hasInsurance, setHasInsurance] = useState(false)
+  const [insuranceInfo, setInsuranceInfo] = useState('')
+  const [guarantee, setGuarantee] = useState('')
+  
+  // Images
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [imageFiles, setImageFiles] = useState<File[]>([])
+  
+  // Services
   const [services, setServices] = useState<Service[]>([
-    { id: '1', name: '', category: '', price: '', duration: '', description: '' }
+    { id: '1', name: '', category: '', priceType: 'fixed', price: '', priceMax: '', duration: '', durationFlexible: false, description: '' }
   ])
   const [openingHours, setOpeningHours] = useState(defaultOpeningHours)
+
+  // Load draft on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY)
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved)
+        if (draft.name) setName(draft.name)
+        if (draft.orgNumber) setOrgNumber(draft.orgNumber)
+        if (draft.category) setCategory(draft.category)
+        if (draft.serviceCities) setServiceCities(draft.serviceCities)
+        if (draft.address) setAddress(draft.address)
+        if (draft.description) setDescription(draft.description)
+        if (draft.phone) setPhone(draft.phone)
+        if (draft.email) setEmail(draft.email)
+        if (draft.website) setWebsite(draft.website)
+        if (draft.facebook) setFacebook(draft.facebook)
+        if (draft.instagram) setInstagram(draft.instagram)
+        if (draft.rutAvdrag) setRutAvdrag(draft.rutAvdrag)
+        if (draft.rotAvdrag) setRotAvdrag(draft.rotAvdrag)
+        if (draft.selectedPaymentMethods) setSelectedPaymentMethods(draft.selectedPaymentMethods)
+        if (draft.hasInsurance) setHasInsurance(draft.hasInsurance)
+        if (draft.insuranceInfo) setInsuranceInfo(draft.insuranceInfo)
+        if (draft.guarantee) setGuarantee(draft.guarantee)
+        if (draft.services) setServices(draft.services)
+        if (draft.openingHours) setOpeningHours(draft.openingHours)
+      } catch (e) {
+        console.error('Failed to load draft:', e)
+      }
+    }
+  }, [])
+
+  // Save draft
+  const saveDraft = () => {
+    const draft = {
+      name, orgNumber, category, serviceCities, address, description,
+      phone, email, website, facebook, instagram,
+      rutAvdrag, rotAvdrag, selectedPaymentMethods,
+      hasInsurance, insuranceInfo, guarantee,
+      services, openingHours
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+    setDraftSaved(true)
+    setTimeout(() => setDraftSaved(false), 2000)
+  }
+
+  // Clear draft
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY)
+  }
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -144,7 +229,7 @@ export default function CreatePage() {
   const addService = () => {
     setServices([
       ...services,
-      { id: Date.now().toString(), name: '', category: '', price: '', duration: '', description: '' }
+      { id: Date.now().toString(), name: '', category: '', priceType: 'fixed', price: '', priceMax: '', duration: '', durationFlexible: false, description: '' }
     ])
   }
 
@@ -154,7 +239,7 @@ export default function CreatePage() {
     }
   }
 
-  const updateService = (id: string, field: keyof Service, value: string) => {
+  const updateService = (id: string, field: keyof Service, value: any) => {
     setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s))
   }
 
@@ -165,8 +250,33 @@ export default function CreatePage() {
     })
   }
 
-  const handleSubmit = async () => {
-    // Security check - must be logged in
+  const toggleCity = (city: string) => {
+    setServiceCities(prev => 
+      prev.includes(city) 
+        ? prev.filter(c => c !== city)
+        : [...prev, city]
+    )
+  }
+
+  const togglePaymentMethod = (id: string) => {
+    setSelectedPaymentMethods(prev =>
+      prev.includes(id)
+        ? prev.filter(p => p !== id)
+        : [...prev, id]
+    )
+  }
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.size <= 2 * 1024 * 1024) {
+      setLogoFile(file)
+      setLogoPreview(URL.createObjectURL(file))
+    } else if (file) {
+      alert('Logotypen är för stor (max 2 MB)')
+    }
+  }
+
+  const handleSubmit = async (asDraft = false) => {
     if (!user) {
       setError('Du måste vara inloggad för att skapa en annons.')
       router.push('/login?redirect=/skapa')
@@ -178,38 +288,48 @@ export default function CreatePage() {
 
     try {
       let uploadedImages: string[] = []
-      if (imageFiles.length > 0) {
-        if (!storage) {
-          throw new Error('Bilduppladdning är inte tillgänglig just nu. Försök igen senare.')
+      let uploadedLogo: string | null = null
+
+      if (storage) {
+        // Upload logo
+        if (logoFile) {
+          const logoId = `logo-${Date.now()}-${Math.random().toString(36).slice(2)}`
+          const logoRef = storageRef(storage, `companies/${user.uid}/${logoId}`)
+          await uploadBytes(logoRef, logoFile)
+          uploadedLogo = await getDownloadURL(logoRef)
         }
-        const storageInstance = storage
-        uploadedImages = await Promise.all(
-          imageFiles.map(async (file, index) => {
-            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-            const fileId = `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}-${safeName}`
-            const fileRef = storageRef(storageInstance, `companies/${user.uid}/${fileId}`)
-            await uploadBytes(fileRef, file)
-            return await getDownloadURL(fileRef)
-          })
-        )
+
+        // Upload images
+        if (imageFiles.length > 0) {
+          uploadedImages = await Promise.all(
+            imageFiles.map(async (file, index) => {
+              const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+              const fileId = `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}-${safeName}`
+              const fileRef = storageRef(storage, `companies/${user.uid}/${fileId}`)
+              await uploadBytes(fileRef, file)
+              return await getDownloadURL(fileRef)
+            })
+          )
+        }
       }
 
       // Prepare services data
       const validServices = services
-        .filter(s => s.name && s.price)
+        .filter(s => s.name && (s.price || s.priceType === 'quote'))
         .map(s => ({
           name: s.name,
           category: (s.category || '').trim(),
-          price: parseInt(s.price) || 0,
-          duration: parseInt(s.duration) || 30,
+          priceType: s.priceType,
+          price: s.priceType === 'quote' ? 0 : parseInt(s.price) || 0,
+          priceMax: s.priceType === 'range' ? parseInt(s.priceMax) || 0 : null,
+          duration: s.durationFlexible ? null : (parseInt(s.duration) || 30),
+          durationFlexible: s.durationFlexible,
           description: s.description || '',
         }))
 
-      // Create company document
       const selectedCat = categories.find(c => c.id === category)
       const isCustomCategory = category === 'annat'
       
-      // Handle sub-services based on category type
       const finalSubServices = isCustomCategory 
         ? customSubServices.filter(s => s.trim()) 
         : selectedSubServices
@@ -218,15 +338,18 @@ export default function CreatePage() {
         : selectedSubServices.map(id => selectedCat?.subServices.find(s => s.id === id)?.name || id)
       
       const companyData = {
-        // Basic info
         name,
+        orgNumber: orgNumber || null,
         category: isCustomCategory ? 'annat' : category,
         categoryName: isCustomCategory ? customCategoryName : (selectedCat?.name || category),
         customCategory: isCustomCategory,
         emoji: selectedCat?.emoji || '📋',
         subServices: finalSubServices,
         subServiceNames,
-        city,
+        
+        // Location
+        city: serviceCities[0] || '',
+        serviceCities,
         address,
         description,
 
@@ -234,163 +357,218 @@ export default function CreatePage() {
         phone,
         email: email || '',
         website,
+        socialMedia: {
+          facebook: facebook || null,
+          instagram: instagram || null,
+        },
+
+        // Business info
+        rutAvdrag,
+        rotAvdrag,
+        paymentMethods: selectedPaymentMethods,
+        hasInsurance,
+        insuranceInfo: hasInsurance ? insuranceInfo : null,
+        guarantee: guarantee || null,
 
         // Services & Hours
         services: validServices,
         openingHours,
 
+        // Images
+        logo: uploadedLogo,
         ...(uploadedImages.length > 0 ? { images: uploadedImages, image: uploadedImages[0] } : {}),
 
-        // Metadata - linked to authenticated user
-        ownerId: user?.uid || '',
-        ownerName: ownerName || user?.displayName || user?.email || '',
+        // Metadata
+        ownerId: user.uid,
+        ownerName: ownerName || user.displayName || user.email || '',
         ownerBio: ownerBio || '',
-        ownerEmail: user?.email || email || '',
+        ownerEmail: user.email || email || '',
 
-        // Stats (initial - honest values)
+        // Stats
         rating: 0,
         reviewCount: 0,
-        views: 0,
-
-        // Status - initially draft
-        status: 'draft',
-        published: false,
-        premium: false,
+        viewCount: 0,
+        bookingCount: 0,
         verified: false,
-
-        // Content visibility settings
-        settings: {
-          showAbout: true,
-          showReviews: true,
-          showMap: true,
-          showContact: true,
-        },
-
-        // Timestamps
+        premium: false,
+        
+        // Status
+        status: asDraft ? 'draft' : 'active',
+        published: !asDraft,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }
 
-      // Save to Firestore (mandatory)
-      if (!db) {
-        throw new Error('Firebase är inte konfigurerat. Kontakta support.')
-      }
-
+      if (!db) throw new Error('Database not available')
       const docRef = await addDoc(collection(db, 'companies'), companyData)
+      
+      clearDraft()
       setNewCompanyId(docRef.id)
       setSubmitted(true)
-      console.log('✅ Saved to Firestore:', docRef.id)
-
-      setImageFiles([])
-
     } catch (err: any) {
       console.error('Error creating company:', err)
-      setError(err.message || 'Kunde inte skapa annonsen. Kontrollera din anslutning och försök igen.')
+      setError(err.message || 'Kunde inte skapa annonsen. Försök igen.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Loading state
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-500">Laddar...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     )
   }
 
-  // Not logged in state
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <HiLockClosed className="w-10 h-10 text-blue-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Logga in för att fortsätta
-          </h1>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm p-8 text-center">
+          <HiLockClosed className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Logga in krävs</h1>
           <p className="text-gray-600 mb-6">
-            Du måste vara inloggad för att skapa en företagsannons.
+            Du måste vara inloggad för att skapa en annons.
           </p>
-          <div className="space-y-3">
-            <Link
-              href="/login?redirect=/skapa"
-              className="block w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
-            >
-              Logga in
-            </Link>
-            <Link
-              href="/registrera"
-              className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-            >
-              Skapa konto
-            </Link>
-          </div>
+          <Link
+            href="/login?redirect=/skapa"
+            className="inline-block bg-brand hover:bg-brand-dark text-white px-6 py-3 rounded-xl font-semibold transition"
+          >
+            Logga in
+          </Link>
         </div>
       </div>
     )
   }
 
-  // Success state
   if (submitted && newCompanyId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <HiCheck className="w-10 h-10 text-green-600" />
+            <HiCheck className="w-10 h-10 text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            🎉 Annons skapad (Utkast)
-          </h1>
-          <p className="text-gray-600 mb-2">
-            Din företagsannons är nu skapad som ett utkast. Du kan granska den och publicera när du är redo.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            ID: {newCompanyId}
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Annonsen är skapad!</h1>
+          <p className="text-gray-600 mb-6">
+            Din annons är nu publicerad och synlig för alla.
           </p>
           <div className="space-y-3">
             <Link
               href={`/foretag/${newCompanyId}`}
-              className="block w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+              className="block w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-xl font-semibold transition"
             >
-              Granska och Publicera
+              Visa din annons
             </Link>
             <Link
-              href="/"
-              className="block w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+              href="/konto"
+              className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition"
             >
-              Tillbaka till startsidan
+              Gå till mitt konto
             </Link>
-            <button
-              onClick={() => {
-                setSubmitted(false)
-                setNewCompanyId(null)
-                setStep(1)
-                setName('')
-                setCategory('')
-                setCustomCategoryName('')
-                setCustomSubServices([''])
-                setSelectedSubServices([])
-                setCity('')
-                setAddress('')
-                setDescription('')
-                setPhone('')
-                setEmail('')
-                setWebsite('')
-                setOwnerName(user?.displayName || user?.email || '')
-                setOwnerBio('')
-                setImageFiles([])
-                setServices([{ id: '1', name: '', category: '', price: '', duration: '', description: '' }])
-              }}
-              className="block w-full text-brand hover:underline py-2"
-            >
-              Skapa en till annons
-            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Preview Modal
+  if (showPreview) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-brand text-white p-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold">Förhandsgranskning</h2>
+              <button onClick={() => setShowPreview(false)} className="text-white/80 hover:text-white">
+                Stäng ✕
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Preview content */}
+              <div className="flex items-start gap-4">
+                {logoPreview ? (
+                  <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover" />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center text-2xl">
+                    {categories.find(c => c.id === category)?.emoji || '🏢'}
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-2xl font-bold">{name || 'Företagsnamn'}</h1>
+                  <p className="text-gray-500">{categories.find(c => c.id === category)?.name || 'Kategori'}</p>
+                  {orgNumber && <p className="text-sm text-gray-400">Org.nr: {orgNumber}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium">Städer</p>
+                  <p className="text-gray-600">{serviceCities.join(', ') || 'Ej angiven'}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="font-medium">Telefon</p>
+                  <p className="text-gray-600">{phone || 'Ej angiven'}</p>
+                </div>
+              </div>
+
+              {(rutAvdrag || rotAvdrag) && (
+                <div className="flex gap-2">
+                  {rutAvdrag && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">RUT-avdrag</span>}
+                  {rotAvdrag && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">ROT-avdrag</span>}
+                </div>
+              )}
+
+              {selectedPaymentMethods.length > 0 && (
+                <div>
+                  <p className="font-medium mb-2">Betalningsmetoder</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedPaymentMethods.map(id => {
+                      const method = paymentMethods.find(p => p.id === id)
+                      return method ? (
+                        <span key={id} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                          {method.icon} {method.name}
+                        </span>
+                      ) : null
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {services.filter(s => s.name).length > 0 && (
+                <div>
+                  <p className="font-medium mb-2">Tjänster</p>
+                  <div className="space-y-2">
+                    {services.filter(s => s.name).map(s => (
+                      <div key={s.id} className="bg-gray-50 p-3 rounded-lg flex justify-between">
+                        <span>{s.name}</span>
+                        <span className="font-medium">
+                          {s.priceType === 'quote' ? 'Enligt offert' : 
+                           s.priceType === 'range' ? `${s.price} - ${s.priceMax} kr` : 
+                           `${s.price} kr`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-gray-50 border-t flex gap-3">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold"
+              >
+                ← Fortsätt redigera
+              </button>
+              <button
+                onClick={() => { setShowPreview(false); handleSubmit() }}
+                disabled={isSubmitting}
+                className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold"
+              >
+                🚀 Publicera
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -398,41 +576,40 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-6 px-4">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🏢 Skapa din företagsannons
-          </h1>
-          <p className="text-gray-600">
-            Gratis! Nå tusentals nya kunder.
-          </p>
-          {user && (
-            <p className="text-xs text-green-600 mt-2 bg-green-50 inline-block px-3 py-1 rounded-full">
-              ✓ Inloggad som {user.displayName || user.email}
-            </p>
-          )}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Skapa ny annons</h1>
+          <p className="text-gray-600 mt-1">Fyll i information om ditt företag</p>
         </div>
 
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${s === step
-                ? 'bg-brand text-white'
-                : s < step
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 text-gray-500'
-                }`}
-            >
-              {s < step ? <HiCheck className="w-5 h-5" /> : s}
+          {[1, 2, 3, 4].map((s) => (
+            <div key={s} className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
+                step >= s ? 'bg-brand text-white' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {s}
+              </div>
+              {s < 4 && <div className={`w-8 h-0.5 ${step > s ? 'bg-brand' : 'bg-gray-200'}`} />}
             </div>
           ))}
         </div>
 
-        {/* Error Message */}
+        {/* Save draft button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={saveDraft}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand"
+          >
+            <HiSave className="w-4 h-4" />
+            {draftSaved ? 'Sparat!' : 'Spara utkast'}
+          </button>
+        </div>
+
+        {/* Error */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
             <HiExclamationCircle className="w-5 h-5 flex-shrink-0" />
@@ -440,233 +617,241 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* Form */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">📋 Grundläggande information</h2>
+              <h2 className="text-xl font-bold text-gray-900">📋 Grundläggande info</h2>
 
+              {/* Company name & Org number */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Företagsnamn *</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="t.ex. Städ & Flytt AB"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Organisationsnummer</label>
+                  <input
+                    type="text"
+                    value={orgNumber}
+                    onChange={(e) => setOrgNumber(e.target.value)}
+                    placeholder="XXXXXX-XXXX"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Företagsnamn *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Kategori *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategory(cat.id)}
+                      className={`p-3 rounded-xl border-2 text-left transition ${
+                        category === cat.id
+                          ? 'border-brand bg-brand/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl">{cat.emoji}</span>
+                      <p className="font-medium text-sm mt-1">{cat.name}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Service cities (multiple) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Serviceområden * (välj städer)</label>
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {allCities.map((city) => (
+                      <label key={city} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={serviceCities.includes(city)}
+                          onChange={() => toggleCity(city)}
+                          className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                        />
+                        <span className="text-sm">{city}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {serviceCities.length > 0 && (
+                  <p className="text-sm text-gray-500 mt-2">Valt: {serviceCities.join(', ')}</p>
+                )}
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Adress</label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="t.ex. Salon Nora"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Gatuadress 123"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
                 />
               </div>
 
+              {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kategori *
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => {
-                    setCategory(e.target.value)
-                    setSelectedSubServices([])
-                  }}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                >
-                  <option value="">Välj kategori...</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.emoji} {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Custom category name for "Annat" */}
-              {category === 'annat' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Beskriv din kategori *
-                  </label>
-                  <input
-                    type="text"
-                    value={customCategoryName}
-                    onChange={(e) => setCustomCategoryName(e.target.value)}
-                    placeholder="t.ex. Trädgårdstjänster, Målning..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-1 focus:ring-brand outline-none"
-                  />
-                </div>
-              )}
-
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Stad *
-                  </label>
-                  <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  >
-                    <option value="">Välj stad...</option>
-                    {cities.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Adress
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Gatuadress 123"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Beskrivning *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Beskrivning *</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
                   placeholder="Berätta om ditt företag..."
+                  rows={4}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Personal / Ansvarig
+              {/* RUT/ROT */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Skatteavdrag</label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rutAvdrag}
+                      onChange={(e) => setRutAvdrag(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="font-medium">RUT-avdrag</span>
+                    <span className="text-xs text-gray-500">(Hushållstjänster)</span>
                   </label>
-                  <input
-                    type="text"
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    placeholder="t.ex. Nora"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kort bio (valfritt)
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rotAvdrag}
+                      onChange={(e) => setRotAvdrag(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="font-medium">ROT-avdrag</span>
+                    <span className="text-xs text-gray-500">(Renovering)</span>
                   </label>
-                  <textarea
-                    value={ownerBio}
-                    onChange={(e) => setOwnerBio(e.target.value)}
-                    rows={3}
-                    placeholder="t.ex. Certifierad och erfaren..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none resize-none"
-                  />
                 </div>
               </div>
 
+              {/* Payment methods */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bilder (max 5 bilder, valfritt)
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Första bilden används som huvudbild. Max 5 MB per bild.
-                </p>
-                
-                {/* Image previews */}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Betalningsmetoder</label>
+                <div className="flex flex-wrap gap-2">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => togglePaymentMethod(method.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition ${
+                        selectedPaymentMethods.includes(method.id)
+                          ? 'border-brand bg-brand/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span>{method.icon}</span>
+                      <span className="text-sm font-medium">{method.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setStep(2)}
+                disabled={!name || !category || serviceCities.length === 0 || !description}
+                className="w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Nästa: Kontakt & Media →
+              </button>
+            </div>
+          )}
+
+          {/* Step 2: Contact & Media */}
+          {step === 2 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-900">📞 Kontakt & Media</h2>
+
+              {/* Logo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Logotyp</label>
+                <div className="flex items-center gap-4">
+                  {logoPreview ? (
+                    <div className="relative">
+                      <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover" />
+                      <button
+                        onClick={() => { setLogoFile(null); setLogoPreview(null) }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <HiTrash className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-brand">
+                      <HiPlus className="w-6 h-6 text-gray-400" />
+                      <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+                    </label>
+                  )}
+                  <p className="text-sm text-gray-500">Max 2 MB. Rekommenderat: 200x200px</p>
+                </div>
+              </div>
+
+              {/* Images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bilder (max 5)</label>
                 {imageFiles.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-3">
-                    {imageFiles.map((file, idx) => (
-                      <div key={idx} className="relative group aspect-square">
-                        <img
+                  <div className="flex gap-2 flex-wrap mb-3">
+                    {imageFiles.map((file, index) => (
+                      <div key={index} className="relative w-24 h-24">
+                        <Image
                           src={URL.createObjectURL(file)}
-                          alt={`Preview ${idx + 1}`}
-                          className="w-full h-full object-cover rounded-xl border border-gray-200"
+                          alt={`Bild ${index + 1}`}
+                          fill
+                          className="object-cover rounded-lg"
                         />
-                        {idx === 0 && (
-                          <span className="absolute top-1 left-1 bg-brand text-white text-xs px-2 py-0.5 rounded-full">
-                            Huvud
-                          </span>
-                        )}
                         <button
-                          type="button"
-                          onClick={() => {
-                            const newFiles = [...imageFiles]
-                            newFiles.splice(idx, 1)
-                            setImageFiles(newFiles)
-                          }}
-                          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          onClick={() => setImageFiles(imageFiles.filter((_, i) => i !== index))}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                         >
-                          ×
+                          <HiTrash className="w-3 h-3" />
                         </button>
-                        {idx > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newFiles = [...imageFiles]
-                              const temp = newFiles[idx]
-                              newFiles[idx] = newFiles[idx - 1]
-                              newFiles[idx - 1] = temp
-                              setImageFiles(newFiles)
-                            }}
-                            className="absolute bottom-1 left-1 bg-gray-800/70 hover:bg-gray-800 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs"
-                            title="Flytta uppåt"
-                          >
-                            ←
-                          </button>
-                        )}
                       </div>
                     ))}
                   </div>
                 )}
-                
                 {imageFiles.length < 5 && (
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand hover:bg-brand/5 transition">
-                    <div className="flex flex-col items-center justify-center py-4">
-                      <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-sm text-gray-500">
-                        <span className="text-brand font-medium">Ladda upp</span> eller dra bilder hit
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {imageFiles.length}/5 bilder • PNG, JPG, WEBP
-                      </p>
+                  <label className="block w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand flex items-center justify-center">
+                    <div className="text-center">
+                      <HiPlus className="w-6 h-6 text-gray-400 mx-auto" />
+                      <p className="text-sm text-gray-500 mt-1">{imageFiles.length}/5 bilder</p>
                     </div>
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/webp"
+                      accept="image/*"
                       multiple
                       onChange={(e) => {
-                        const files = Array.from(e.target.files || [])
-                        const validFiles = files.filter(f => f.size <= 5 * 1024 * 1024) // 5MB max
-                        const totalAllowed = 5 - imageFiles.length
-                        const newFiles = [...imageFiles, ...validFiles.slice(0, totalAllowed)]
-                        setImageFiles(newFiles.slice(0, 5))
-                        if (files.some(f => f.size > 5 * 1024 * 1024)) {
-                          alert('Vissa bilder var för stora (max 5 MB) och lades inte till.')
-                        }
+                        const files = Array.from(e.target.files || []).filter(f => f.size <= 5 * 1024 * 1024)
+                        const newFiles = [...imageFiles, ...files].slice(0, 5)
+                        setImageFiles(newFiles)
                       }}
                       className="hidden"
                     />
                   </label>
                 )}
-                
-                {imageFiles.length >= 5 && (
-                  <p className="text-sm text-orange-600 mt-2">
-                    Max antal bilder uppnått (5). Ta bort en bild för att lägga till fler.
-                  </p>
-                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Contact fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefon *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
                   <input
                     type="tel"
                     value={phone}
@@ -676,9 +861,7 @@ export default function CreatePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    E-post
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
                   <input
                     type="email"
                     value={email}
@@ -688,9 +871,7 @@ export default function CreatePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Hemsida
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hemsida</label>
                   <input
                     type="url"
                     value={website}
@@ -701,31 +882,90 @@ export default function CreatePage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setStep(2)}
-                disabled={!name || !category || !city || !description || !phone}
-                className="w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Nästa: Tjänster →
-              </button>
+              {/* Social media */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+                  <input
+                    type="url"
+                    value={facebook}
+                    onChange={(e) => setFacebook(e.target.value)}
+                    placeholder="facebook.com/dittforetag"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                  <input
+                    type="url"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    placeholder="instagram.com/dittforetag"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Insurance */}
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasInsurance}
+                    onChange={(e) => setHasInsurance(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-brand focus:ring-brand"
+                  />
+                  <span className="font-medium">Företaget har försäkring</span>
+                </label>
+                {hasInsurance && (
+                  <input
+                    type="text"
+                    value={insuranceInfo}
+                    onChange={(e) => setInsuranceInfo(e.target.value)}
+                    placeholder="t.ex. Ansvarsförsäkring via Trygg Hansa"
+                    className="w-full mt-2 px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                  />
+                )}
+              </div>
+
+              {/* Guarantee */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Garanti</label>
+                <input
+                  type="text"
+                  value={guarantee}
+                  onChange={(e) => setGuarantee(e.target.value)}
+                  placeholder="t.ex. 100% nöjd-garanti"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
+                  ← Tillbaka
+                </button>
+                <button
+                  onClick={() => setStep(3)}
+                  disabled={!phone}
+                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50"
+                >
+                  Nästa: Tjänster →
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Step 2: Services */}
-          {step === 2 && (
+          {/* Step 3: Services */}
+          {step === 3 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900">💈 Tjänster & Priser</h2>
-              <p className="text-gray-600 text-sm">Lägg till minst en tjänst som du erbjuder.</p>
 
               {services.map((service, index) => (
                 <div key={service.id} className="p-4 bg-gray-50 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-700">Tjänst {index + 1}</span>
                     {services.length > 1 && (
-                      <button
-                        onClick={() => removeService(service.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
+                      <button onClick={() => removeService(service.id)} className="text-red-500 hover:text-red-700">
                         <HiTrash className="w-5 h-5" />
                       </button>
                     )}
@@ -743,25 +983,71 @@ export default function CreatePage() {
                     type="text"
                     value={service.category}
                     onChange={(e) => updateService(service.id, 'category', e.target.value)}
-                    placeholder="Kategori (t.ex. Klippning, Massage)"
+                    placeholder="Kategori (t.ex. Städning, Flytthjälp)"
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
                   />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="number"
-                      value={service.price}
-                      onChange={(e) => updateService(service.id, 'price', e.target.value)}
-                      placeholder="Pris (SEK)"
-                      className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                    />
+                  {/* Price type */}
+                  <div className="flex gap-2">
+                    {[
+                      { id: 'fixed', label: 'Fast pris' },
+                      { id: 'range', label: 'Prisintervall' },
+                      { id: 'quote', label: 'Enligt offert' },
+                    ].map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => updateService(service.id, 'priceType', type.id)}
+                        className={`px-3 py-1 rounded-lg text-sm ${
+                          service.priceType === type.id
+                            ? 'bg-brand text-white'
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {service.priceType !== 'quote' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="number"
+                        value={service.price}
+                        onChange={(e) => updateService(service.id, 'price', e.target.value)}
+                        placeholder={service.priceType === 'range' ? 'Från (SEK)' : 'Pris (SEK)'}
+                        className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                      />
+                      {service.priceType === 'range' && (
+                        <input
+                          type="number"
+                          value={service.priceMax}
+                          onChange={(e) => updateService(service.id, 'priceMax', e.target.value)}
+                          placeholder="Till (SEK)"
+                          className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3">
                     <input
                       type="number"
                       value={service.duration}
                       onChange={(e) => updateService(service.id, 'duration', e.target.value)}
                       placeholder="Tid (min)"
-                      className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
+                      disabled={service.durationFlexible}
+                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none disabled:bg-gray-100"
                     />
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={service.durationFlexible}
+                        onChange={(e) => updateService(service.id, 'durationFlexible', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-brand"
+                      />
+                      Varierar
+                    </label>
                   </div>
 
                   <input
@@ -783,16 +1069,13 @@ export default function CreatePage() {
               </button>
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-                >
+                <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
                   ← Tillbaka
                 </button>
                 <button
-                  onClick={() => setStep(3)}
-                  disabled={!services.some(s => s.name && s.price)}
-                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setStep(4)}
+                  disabled={!services.some(s => s.name && (s.price || s.priceType === 'quote'))}
+                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50"
                 >
                   Nästa: Öppettider →
                 </button>
@@ -800,8 +1083,8 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* Step 3: Opening Hours */}
-          {step === 3 && (
+          {/* Step 4: Opening Hours & Publish */}
+          {step === 4 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900">🕐 Öppettider</h2>
 
@@ -835,26 +1118,38 @@ export default function CreatePage() {
                         />
                       </>
                     )}
-                    {hours.closed && (
-                      <span className="text-red-500 text-sm">Stängt</span>
-                    )}
+                    {hours.closed && <span className="text-red-500 text-sm">Stängt</span>}
                   </div>
                 ))}
               </div>
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(2)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-                >
+                <button onClick={() => setStep(3)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
                   ← Tillbaka
                 </button>
                 <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition disabled:opacity-50"
+                  onClick={() => setShowPreview(true)}
+                  className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-900 transition flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? 'Publicerar...' : '🚀 Publicera annons'}
+                  <HiEye className="w-5 h-5" />
+                  Förhandsgranska
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleSubmit(true)}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                >
+                  💾 Spara som utkast
+                </button>
+                <button
+                  onClick={() => handleSubmit(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition"
+                >
+                  {isSubmitting ? 'Publicerar...' : '🚀 Publicera'}
                 </button>
               </div>
             </div>
