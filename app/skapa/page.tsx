@@ -670,206 +670,316 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Skapa ny annons</h1>
-          <p className="text-gray-600 mt-1">Fyll i information om ditt företag</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        {/* Professional Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand to-blue-600 rounded-2xl shadow-lg shadow-brand/30 mb-4">
+            <span className="text-3xl">🏢</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Skapa din företagsannons</h1>
+          <p className="text-gray-600 mt-2 max-w-lg mx-auto">Fyll i all information om ditt företag för att nå tusentals potentiella kunder</p>
         </div>
 
-        {/* Progress */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {[1, 2, 3, 4].map((s) => (
-            <div key={s} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
-                step >= s ? 'bg-brand text-white' : 'bg-gray-200 text-gray-500'
-              }`}>
-                {s}
+        {/* Enhanced Progress Indicator */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+          <div className="flex items-center justify-between">
+            {[
+              { num: 1, label: 'Grundinfo', icon: '📋' },
+              { num: 2, label: 'Kontakt', icon: '📞' },
+              { num: 3, label: 'Tjänster', icon: '💼' },
+              { num: 4, label: 'Publicera', icon: '🚀' },
+            ].map((s, i) => (
+              <div key={s.num} className="flex items-center flex-1">
+                <button
+                  onClick={() => s.num < step && setStep(s.num)}
+                  disabled={s.num > step}
+                  className={`flex flex-col items-center gap-1 transition-all ${s.num <= step ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all ${
+                    step === s.num 
+                      ? 'bg-gradient-to-br from-brand to-blue-600 text-white shadow-lg shadow-brand/30 scale-110' 
+                      : step > s.num 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {step > s.num ? '✓' : s.icon}
+                  </div>
+                  <span className={`text-xs font-medium ${step === s.num ? 'text-brand' : 'text-gray-500'}`}>
+                    {s.label}
+                  </span>
+                </button>
+                {i < 3 && (
+                  <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${step > s.num ? 'bg-green-400' : 'bg-gray-200'}`} />
+                )}
               </div>
-              {s < 4 && <div className={`w-8 h-0.5 ${step > s ? 'bg-brand' : 'bg-gray-200'}`} />}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Save draft button */}
-        <div className="flex justify-end mb-4">
+        {/* Save draft & status bar */}
+        <div className="flex items-center justify-between mb-4 px-2">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full">
+              Steg {step} av 4
+            </span>
+            {draftSaved && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                ✓ Utkast sparat
+              </span>
+            )}
+          </div>
           <button
             onClick={saveDraft}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-brand hover:bg-brand/5 rounded-lg transition"
           >
             <HiSave className="w-4 h-4" />
-            {draftSaved ? 'Sparat!' : 'Spara utkast'}
+            Spara utkast
           </button>
         </div>
 
-        {/* Error */}
+        {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
-            <HiExclamationCircle className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm">{error}</span>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 shadow-sm">
+            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <HiExclamationCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-medium">Något gick fel</p>
+              <p className="text-sm mt-0.5">{error}</p>
+            </div>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
           {/* Step 1: Basic Info */}
           {step === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">📋 Grundläggande info</h2>
+            <div className="space-y-8">
+              {/* Section Header */}
+              <div className="border-b border-gray-100 pb-4">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">📋</span>
+                  Grundläggande info
+                </h2>
+                <p className="text-gray-500 mt-1 ml-13">Berätta om ditt företag och vad ni erbjuder</p>
+              </div>
 
-              {/* Company name & Org number */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Företagsnamn *</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value)
-                      if (e.target.value.trim()) setFieldErrors(prev => ({ ...prev, name: '' }))
-                    }}
-                    placeholder="t.ex. Städ & Flytt AB"
-                    className={`w-full px-4 py-3 border rounded-xl focus:border-brand outline-none ${fieldErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
-                  />
-                  {fieldErrors.name && <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Organisationsnummer</label>
-                  <input
-                    type="text"
-                    value={orgNumber}
-                    onChange={(e) => setOrgNumber(e.target.value)}
-                    placeholder="XXXXXX-XXXX"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
+              {/* Company Identity Section */}
+              <div className="bg-gradient-to-br from-gray-50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">🏢</span> Företagsidentitet
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Företagsnamn <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value)
+                        if (e.target.value.trim()) setFieldErrors(prev => ({ ...prev, name: '' }))
+                      }}
+                      placeholder="t.ex. Städ & Flytt AB"
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition ${fieldErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    />
+                    {fieldErrors.name && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><HiExclamationCircle className="w-3 h-3" />{fieldErrors.name}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Organisationsnummer <span className="text-gray-400 text-xs">(valfritt)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={orgNumber}
+                      onChange={(e) => setOrgNumber(e.target.value)}
+                      placeholder="XXXXXX-XXXX"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Kategori *</label>
-                {fieldErrors.category && <p className="text-red-500 text-xs mb-2">{fieldErrors.category}</p>}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {/* Category Section */}
+              <div className="bg-gradient-to-br from-blue-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">📂</span> Kategori <span className="text-red-500">*</span>
+                </h3>
+                {fieldErrors.category && (
+                  <p className="text-red-500 text-xs mb-3 flex items-center gap-1 bg-red-50 p-2 rounded-lg">
+                    <HiExclamationCircle className="w-4 h-4" />{fieldErrors.category}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
                       onClick={() => setCategory(cat.id)}
-                      className={`p-3 rounded-xl border-2 text-left transition ${
+                      className={`p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02] ${
                         category === cat.id
-                          ? 'border-brand bg-brand/5'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-brand bg-brand/5 shadow-md shadow-brand/10'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      <span className="text-xl">{cat.emoji}</span>
-                      <p className="font-medium text-sm mt-1">{cat.name}</p>
+                      <span className="text-2xl">{cat.emoji}</span>
+                      <p className={`font-medium text-sm mt-2 ${category === cat.id ? 'text-brand' : 'text-gray-700'}`}>{cat.name}</p>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Service cities (multiple) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Serviceområden * (välj minst en stad)</label>
-                {fieldErrors.serviceCities && <p className="text-red-500 text-xs mb-2">{fieldErrors.serviceCities}</p>}
-                <div className={`max-h-48 overflow-y-auto border rounded-xl p-3 ${fieldErrors.serviceCities ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {allCities.map((city) => (
-                      <label key={city} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={serviceCities.includes(city)}
-                          onChange={() => toggleCity(city)}
-                          className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
-                        />
-                        <span className="text-sm">{city}</span>
-                      </label>
-                    ))}
+              {/* Location Section */}
+              <div className="bg-gradient-to-br from-green-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">📍</span> Plats & Område
+                </h3>
+                
+                {/* Service cities */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Serviceområden <span className="text-red-500">*</span>
+                    <span className="text-gray-400 font-normal ml-1">(välj minst en stad)</span>
+                  </label>
+                  {fieldErrors.serviceCities && (
+                    <p className="text-red-500 text-xs mb-2 flex items-center gap-1 bg-red-50 p-2 rounded-lg">
+                      <HiExclamationCircle className="w-4 h-4" />{fieldErrors.serviceCities}
+                    </p>
+                  )}
+                  <div className={`max-h-48 overflow-y-auto border-2 rounded-xl p-4 transition ${fieldErrors.serviceCities ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {allCities.map((city) => (
+                        <label key={city} className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg transition ${serviceCities.includes(city) ? 'bg-brand/10' : 'hover:bg-gray-50'}`}>
+                          <input
+                            type="checkbox"
+                            checked={serviceCities.includes(city)}
+                            onChange={() => toggleCity(city)}
+                            className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                          />
+                          <span className={`text-sm ${serviceCities.includes(city) ? 'font-medium text-brand' : ''}`}>{city}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
+                  {serviceCities.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {serviceCities.map(city => (
+                        <span key={city} className="inline-flex items-center gap-1 px-3 py-1 bg-brand/10 text-brand rounded-full text-sm font-medium">
+                          {city}
+                          <button onClick={() => toggleCity(city)} className="hover:bg-brand/20 rounded-full p-0.5">
+                            <HiX className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {serviceCities.length > 0 && (
-                  <p className="text-sm text-gray-500 mt-2">Valt: {serviceCities.join(', ')}</p>
-                )}
+
+                {/* Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Adress <span className="text-gray-400 text-xs">(valfritt)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Gatuadress 123, Postnummer Stad"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                  />
+                </div>
               </div>
 
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Adress</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Gatuadress 123"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Beskrivning * (minst 20 tecken)</label>
+              {/* Description Section */}
+              <div className="bg-gradient-to-br from-purple-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">📝</span> Beskrivning <span className="text-red-500">*</span>
+                </h3>
                 <textarea
                   value={description}
                   onChange={(e) => {
                     setDescription(e.target.value)
                     if (e.target.value.trim().length >= 20) setFieldErrors(prev => ({ ...prev, description: '' }))
                   }}
-                  placeholder="Berätta om ditt företag..."
-                  rows={4}
-                  className={`w-full px-4 py-3 border rounded-xl focus:border-brand outline-none resize-none ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
+                  placeholder="Berätta om ditt företag, era tjänster och vad som gör er unika..."
+                  rows={5}
+                  className={`w-full px-4 py-3 border-2 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none resize-none transition ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                 />
-                {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
-                <p className="text-xs text-gray-400 mt-1">{description.length}/20 tecken minimum</p>
-              </div>
-
-              {/* RUT/ROT */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Skatteavdrag</label>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={rutAvdrag}
-                      onChange={(e) => setRutAvdrag(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="font-medium">RUT-avdrag</span>
-                    <span className="text-xs text-gray-500">(Hushållstjänster)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={rotAvdrag}
-                      onChange={(e) => setRotAvdrag(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="font-medium">ROT-avdrag</span>
-                    <span className="text-xs text-gray-500">(Renovering)</span>
-                  </label>
+                {fieldErrors.description && (
+                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                    <HiExclamationCircle className="w-3 h-3" />{fieldErrors.description}
+                  </p>
+                )}
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-gray-400">{description.length} tecken</p>
+                  <p className={`text-xs ${description.length >= 20 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {description.length >= 20 ? '✓ Minimum uppnått' : `${20 - description.length} tecken kvar`}
+                  </p>
                 </div>
               </div>
 
-              {/* Payment methods */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Betalningsmetoder</label>
-                <div className="flex flex-wrap gap-2">
-                  {paymentMethods.map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => togglePaymentMethod(method.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition ${
-                        selectedPaymentMethods.includes(method.id)
-                          ? 'border-brand bg-brand/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <span>{method.icon}</span>
-                      <span className="text-sm font-medium">{method.name}</span>
-                    </button>
-                  ))}
+              {/* Business Features Section */}
+              <div className="bg-gradient-to-br from-amber-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">💰</span> Betalning & Skatteavdrag
+                </h3>
+                
+                {/* RUT/ROT */}
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Erbjuder ni skatteavdrag?</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition ${rutAvdrag ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input
+                        type="checkbox"
+                        checked={rutAvdrag}
+                        onChange={(e) => setRutAvdrag(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <div>
+                        <span className="font-semibold text-green-700">RUT-avdrag</span>
+                        <p className="text-xs text-gray-500">Hushållstjänster (städ, trädgård)</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition ${rotAvdrag ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input
+                        type="checkbox"
+                        checked={rotAvdrag}
+                        onChange={(e) => setRotAvdrag(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="font-semibold text-blue-700">ROT-avdrag</span>
+                        <p className="text-xs text-gray-500">Renovering & reparation</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Payment methods */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Accepterade betalningsmetoder</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {paymentMethods.map((method) => (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => togglePaymentMethod(method.id)}
+                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${
+                          selectedPaymentMethods.includes(method.id)
+                            ? 'border-brand bg-brand/5 shadow-sm'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-xl">{method.icon}</span>
+                        <span className={`text-sm font-medium ${selectedPaymentMethods.includes(method.id) ? 'text-brand' : ''}`}>{method.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
+              {/* Next Button */}
               <button
                 onClick={() => {
                   const errors: Record<string, string> = {}
@@ -892,175 +1002,228 @@ export default function CreatePage() {
 
           {/* Step 2: Contact & Media */}
           {step === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">📞 Kontakt & Media</h2>
-
-              {/* Logo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Logotyp</label>
-                <div className="flex items-center gap-4">
-                  {logoPreview ? (
-                    <div className="relative">
-                      <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover" />
-                      <button
-                        onClick={() => { setLogoFile(null); setLogoPreview(null) }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                      >
-                        <HiTrash className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-brand">
-                      <HiPlus className="w-6 h-6 text-gray-400" />
-                      <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
-                    </label>
-                  )}
-                  <p className="text-sm text-gray-500">Max 2 MB. Rekommenderat: 200x200px</p>
-                </div>
+            <div className="space-y-8">
+              {/* Section Header */}
+              <div className="border-b border-gray-100 pb-4">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">📞</span>
+                  Kontakt & Media
+                </h2>
+                <p className="text-gray-500 mt-1 ml-13">Lägg till bilder och kontaktuppgifter för ditt företag</p>
               </div>
 
-              {/* Images */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bilder (max 5)</label>
-                {imageFiles.length > 0 && (
-                  <div className="flex gap-2 flex-wrap mb-3">
-                    {imageFiles.map((file, index) => (
-                      <div key={index} className="relative w-24 h-24">
-                        <Image
-                          src={URL.createObjectURL(file)}
-                          alt={`Bild ${index + 1}`}
-                          fill
-                          className="object-cover rounded-lg"
-                        />
+              {/* Media Section */}
+              <div className="bg-gradient-to-br from-pink-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">🖼️</span> Bilder & Logotyp
+                </h3>
+
+                {/* Logo */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Företagslogotyp</label>
+                  <div className="flex items-center gap-4">
+                    {logoPreview ? (
+                      <div className="relative group">
+                        <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover border-2 border-gray-200" />
                         <button
-                          onClick={() => setImageFiles(imageFiles.filter((_, i) => i !== index))}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                          onClick={() => { setLogoFile(null); setLogoPreview(null) }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition"
                         >
                           <HiTrash className="w-3 h-3" />
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {imageFiles.length < 5 && (
-                  <label className="block w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand flex items-center justify-center">
-                    <div className="text-center">
-                      <HiPlus className="w-6 h-6 text-gray-400 mx-auto" />
-                      <p className="text-sm text-gray-500 mt-1">{imageFiles.length}/5 bilder</p>
+                    ) : (
+                      <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand hover:bg-brand/5 transition group">
+                        <HiPlus className="w-6 h-6 text-gray-400 group-hover:text-brand" />
+                        <span className="text-xs text-gray-400 mt-1">Logo</span>
+                        <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+                      </label>
+                    )}
+                    <div className="text-sm text-gray-500">
+                      <p className="font-medium text-gray-700">Ladda upp din logotyp</p>
+                      <p className="text-xs">Max 2 MB • Rekommenderat: 200×200 px</p>
                     </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []).filter(f => f.size <= 5 * 1024 * 1024)
-                        const newFiles = [...imageFiles, ...files].slice(0, 5)
-                        setImageFiles(newFiles)
-                      }}
-                      className="hidden"
-                    />
+                  </div>
+                </div>
+
+                {/* Images */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Galleri <span className="text-gray-400 font-normal">(max 5 bilder)</span>
                   </label>
-                )}
-              </div>
-
-              {/* Contact fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefon *</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value)
-                      if (e.target.value.trim().length >= 8) setFieldErrors(prev => ({ ...prev, phone: '' }))
-                    }}
-                    placeholder="08-123 45 67"
-                    className={`w-full px-4 py-3 border rounded-xl focus:border-brand outline-none ${fieldErrors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
-                  />
-                  {fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="info@example.se"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hemsida</label>
-                  <input
-                    type="url"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="www.example.se"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Social media */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
-                  <input
-                    type="url"
-                    value={facebook}
-                    onChange={(e) => setFacebook(e.target.value)}
-                    placeholder="facebook.com/dittforetag"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
-                  <input
-                    type="url"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    placeholder="instagram.com/dittforetag"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                  />
+                  <div className="grid grid-cols-5 gap-3 mb-3">
+                    {imageFiles.map((file, index) => (
+                      <div key={index} className="relative aspect-square group">
+                        <Image
+                          src={URL.createObjectURL(file)}
+                          alt={`Bild ${index + 1}`}
+                          fill
+                          className="object-cover rounded-xl border-2 border-gray-200"
+                        />
+                        <button
+                          onClick={() => setImageFiles(imageFiles.filter((_, i) => i !== index))}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <HiTrash className="w-3 h-3" />
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">Huvudbild</span>
+                        )}
+                      </div>
+                    ))}
+                    {imageFiles.length < 5 && (
+                      <label className="aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-brand hover:bg-brand/5 flex flex-col items-center justify-center transition group">
+                        <HiPlus className="w-6 h-6 text-gray-400 group-hover:text-brand" />
+                        <span className="text-xs text-gray-400 mt-1">{imageFiles.length}/5</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []).filter(f => f.size <= 5 * 1024 * 1024)
+                            const newFiles = [...imageFiles, ...files].slice(0, 5)
+                            setImageFiles(newFiles)
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">💡 Tips: Ladda upp högkvalitativa bilder av era tjänster, lokaler eller team</p>
                 </div>
               </div>
 
-              {/* Insurance */}
-              <div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hasInsurance}
-                    onChange={(e) => setHasInsurance(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-brand focus:ring-brand"
-                  />
-                  <span className="font-medium">Företaget har försäkring</span>
-                </label>
-                {hasInsurance && (
+              {/* Contact Section */}
+              <div className="bg-gradient-to-br from-blue-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">📱</span> Kontaktuppgifter
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Telefon <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value)
+                        if (e.target.value.trim().length >= 8) setFieldErrors(prev => ({ ...prev, phone: '' }))
+                      }}
+                      placeholder="08-123 45 67"
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition ${fieldErrors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    />
+                    {fieldErrors.phone && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><HiExclamationCircle className="w-3 h-3" />{fieldErrors.phone}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      E-post <span className="text-gray-400 text-xs">(valfritt)</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="info@example.se"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Hemsida <span className="text-gray-400 text-xs">(valfritt)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://www.example.se"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Media Section */}
+              <div className="bg-gradient-to-br from-indigo-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">🌐</span> Sociala medier
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+                      <span className="text-blue-600">📘</span> Facebook
+                    </label>
+                    <input
+                      type="url"
+                      value={facebook}
+                      onChange={(e) => setFacebook(e.target.value)}
+                      placeholder="facebook.com/dittforetag"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition hover:border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+                      <span className="text-pink-600">📷</span> Instagram
+                    </label>
+                    <input
+                      type="url"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      placeholder="instagram.com/dittforetag"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 outline-none transition hover:border-gray-300"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Trust & Guarantee Section */}
+              <div className="bg-gradient-to-br from-green-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">🛡️</span> Försäkring & Garanti
+                </h3>
+                
+                {/* Insurance */}
+                <div className="mb-4">
+                  <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition ${hasInsurance ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="checkbox"
+                      checked={hasInsurance}
+                      onChange={(e) => setHasInsurance(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <div>
+                      <span className="font-semibold text-gray-800">Företaget har försäkring</span>
+                      <p className="text-xs text-gray-500">Ger kunderna extra trygghet</p>
+                    </div>
+                  </label>
+                  {hasInsurance && (
+                    <input
+                      type="text"
+                      value={insuranceInfo}
+                      onChange={(e) => setInsuranceInfo(e.target.value)}
+                      placeholder="t.ex. Ansvarsförsäkring via Trygg Hansa, 10 MSEK"
+                      className="w-full mt-3 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                    />
+                  )}
+                </div>
+
+                {/* Guarantee */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Garanti <span className="text-gray-400 text-xs">(valfritt)</span>
+                  </label>
                   <input
                     type="text"
-                    value={insuranceInfo}
-                    onChange={(e) => setInsuranceInfo(e.target.value)}
-                    placeholder="t.ex. Ansvarsförsäkring via Trygg Hansa"
-                    className="w-full mt-2 px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                    value={guarantee}
+                    onChange={(e) => setGuarantee(e.target.value)}
+                    placeholder="t.ex. 100% nöjd-garanti, omgörning utan kostnad"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
                   />
-                )}
+                </div>
               </div>
 
-              {/* Guarantee */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Garanti</label>
-                <input
-                  type="text"
-                  value={guarantee}
-                  onChange={(e) => setGuarantee(e.target.value)}
-                  placeholder="t.ex. 100% nöjd-garanti"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
+              {/* Navigation Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-semibold hover:bg-gray-200 transition flex items-center justify-center gap-2">
                   ← Tillbaka
                 </button>
                 <button
@@ -1073,7 +1236,7 @@ export default function CreatePage() {
                       setStep(3)
                     }
                   }}
-                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+                  className="flex-1 bg-gradient-to-r from-brand to-blue-600 text-white py-3.5 rounded-xl font-semibold hover:from-brand-dark hover:to-blue-700 transition shadow-lg shadow-brand/30 flex items-center justify-center gap-2"
                 >
                   Nästa: Tjänster →
                 </button>
@@ -1083,119 +1246,173 @@ export default function CreatePage() {
 
           {/* Step 3: Services */}
           {step === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">💈 Tjänster & Priser</h2>
+            <div className="space-y-8">
+              {/* Section Header */}
+              <div className="border-b border-gray-100 pb-4">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">�</span>
+                  Tjänster & Priser
+                </h2>
+                <p className="text-gray-500 mt-1 ml-13">Lägg till de tjänster ditt företag erbjuder</p>
+              </div>
 
-              {services.map((service, index) => (
-                <div key={service.id} className="p-4 bg-gray-50 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-700">Tjänst {index + 1}</span>
-                    {services.length > 1 && (
-                      <button onClick={() => removeService(service.id)} className="text-red-500 hover:text-red-700">
-                        <HiTrash className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-
-                  <input
-                    type="text"
-                    value={service.name}
-                    onChange={(e) => updateService(service.id, 'name', e.target.value)}
-                    placeholder="Namn på tjänsten"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                  />
-
-                  <input
-                    type="text"
-                    value={service.category}
-                    onChange={(e) => updateService(service.id, 'category', e.target.value)}
-                    placeholder="Kategori (t.ex. Städning, Flytthjälp)"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                  />
-
-                  {/* Price type */}
-                  <div className="flex gap-2">
-                    {[
-                      { id: 'fixed', label: 'Fast pris' },
-                      { id: 'range', label: 'Prisintervall' },
-                      { id: 'quote', label: 'Enligt offert' },
-                    ].map((type) => (
-                      <button
-                        key={type.id}
-                        type="button"
-                        onClick={() => updateService(service.id, 'priceType', type.id)}
-                        className={`px-3 py-1 rounded-lg text-sm ${
-                          service.priceType === type.id
-                            ? 'bg-brand text-white'
-                            : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {type.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {service.priceType !== 'quote' && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="number"
-                        value={service.price}
-                        onChange={(e) => updateService(service.id, 'price', e.target.value)}
-                        placeholder={service.priceType === 'range' ? 'Från (SEK)' : 'Pris (SEK)'}
-                        className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                      />
-                      {service.priceType === 'range' && (
-                        <input
-                          type="number"
-                          value={service.priceMax}
-                          onChange={(e) => updateService(service.id, 'priceMax', e.target.value)}
-                          placeholder="Till (SEK)"
-                          className="px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                        />
+              {/* Services List */}
+              <div className="space-y-4">
+                {services.map((service, index) => (
+                  <div key={service.id} className="bg-gradient-to-br from-gray-50 to-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center text-brand font-bold text-sm">
+                          {index + 1}
+                        </span>
+                        <span className="font-semibold text-gray-800">
+                          {service.name || `Tjänst ${index + 1}`}
+                        </span>
+                      </div>
+                      {services.length > 1 && (
+                        <button 
+                          onClick={() => removeService(service.id)} 
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition"
+                        >
+                          <HiTrash className="w-5 h-5" />
+                        </button>
                       )}
                     </div>
-                  )}
 
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      value={service.duration}
-                      onChange={(e) => updateService(service.id, 'duration', e.target.value)}
-                      placeholder="Tid (min)"
-                      disabled={service.durationFlexible}
-                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none disabled:bg-gray-100"
-                    />
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={service.durationFlexible}
-                        onChange={(e) => updateService(service.id, 'durationFlexible', e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-brand"
-                      />
-                      Varierar
-                    </label>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Tjänstens namn *</label>
+                          <input
+                            type="text"
+                            value={service.name}
+                            onChange={(e) => updateService(service.id, 'name', e.target.value)}
+                            placeholder="t.ex. Hemstädning"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
+                          <input
+                            type="text"
+                            value={service.category}
+                            onChange={(e) => updateService(service.id, 'category', e.target.value)}
+                            placeholder="t.ex. Städning"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Price type */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-2">Pristyp</label>
+                        <div className="flex gap-2">
+                          {[
+                            { id: 'fixed', label: '💵 Fast pris', desc: 'Ett fast pris' },
+                            { id: 'range', label: '📊 Prisintervall', desc: 'Från-till' },
+                            { id: 'quote', label: '📋 Offert', desc: 'Enligt offert' },
+                          ].map((type) => (
+                            <button
+                              key={type.id}
+                              type="button"
+                              onClick={() => updateService(service.id, 'priceType', type.id)}
+                              className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                                service.priceType === type.id
+                                  ? 'bg-brand text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {type.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {service.priceType !== 'quote' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">
+                              {service.priceType === 'range' ? 'Från (SEK)' : 'Pris (SEK)'}
+                            </label>
+                            <input
+                              type="number"
+                              value={service.price}
+                              onChange={(e) => updateService(service.id, 'price', e.target.value)}
+                              placeholder="0"
+                              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                            />
+                          </div>
+                          {service.priceType === 'range' && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Till (SEK)</label>
+                              <input
+                                type="number"
+                                value={service.priceMax}
+                                onChange={(e) => updateService(service.id, 'priceMax', e.target.value)}
+                                placeholder="0"
+                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Tid (minuter)</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={service.duration}
+                              onChange={(e) => updateService(service.id, 'duration', e.target.value)}
+                              placeholder="60"
+                              disabled={service.durationFlexible}
+                              className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand outline-none disabled:bg-gray-100 transition hover:border-gray-300"
+                            />
+                            <label className="flex items-center gap-2 text-sm cursor-pointer whitespace-nowrap px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                              <input
+                                type="checkbox"
+                                checked={service.durationFlexible}
+                                onChange={(e) => updateService(service.id, 'durationFlexible', e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300 text-brand"
+                              />
+                              Varierar
+                            </label>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Beskrivning</label>
+                          <input
+                            type="text"
+                            value={service.description}
+                            onChange={(e) => updateService(service.id, 'description', e.target.value)}
+                            placeholder="Kort beskrivning..."
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
-                  <input
-                    type="text"
-                    value={service.description}
-                    onChange={(e) => updateService(service.id, 'description', e.target.value)}
-                    placeholder="Kort beskrivning (valfritt)"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-brand outline-none"
-                  />
-                </div>
-              ))}
+                ))}
+              </div>
 
               <button
                 onClick={addService}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-brand hover:text-brand transition flex items-center justify-center gap-2"
+                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-brand hover:text-brand hover:bg-brand/5 transition flex items-center justify-center gap-2 font-medium"
               >
                 <HiPlus className="w-5 h-5" />
-                Lägg till tjänst
+                Lägg till ny tjänst
               </button>
 
-              <div className="flex gap-3">
-                <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
+              {fieldErrors.services && (
+                <p className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-xl flex items-center justify-center gap-2">
+                  <HiExclamationCircle className="w-4 h-4" />{fieldErrors.services}
+                </p>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-semibold hover:bg-gray-200 transition">
                   ← Tillbaka
                 </button>
                 <button
@@ -1208,86 +1425,127 @@ export default function CreatePage() {
                     setFieldErrors({})
                     setStep(4)
                   }}
-                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
+                  className="flex-1 bg-gradient-to-r from-brand to-blue-600 text-white py-3.5 rounded-xl font-semibold hover:from-brand-dark hover:to-blue-700 transition shadow-lg shadow-brand/30"
                 >
                   Nästa: Öppettider →
                 </button>
               </div>
-              {fieldErrors.services && <p className="text-red-500 text-sm text-center mt-2">{fieldErrors.services}</p>}
             </div>
           )}
 
           {/* Step 4: Opening Hours & Publish */}
           {step === 4 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900">🕐 Öppettider</h2>
-
-              <div className="space-y-3">
-                {Object.entries(openingHours).map(([day, hours]) => (
-                  <div key={day} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <div className="w-24 font-medium text-gray-700">{dayNames[day]}</div>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={!hours.closed}
-                        onChange={(e) => updateHours(day, 'closed', !e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
-                      />
-                      <span className="text-sm text-gray-600">Öppet</span>
-                    </label>
-                    {!hours.closed && (
-                      <>
-                        <input
-                          type="time"
-                          value={hours.open}
-                          onChange={(e) => updateHours(day, 'open', e.target.value)}
-                          className="px-3 py-1 border border-gray-200 rounded-lg text-sm"
-                        />
-                        <span className="text-gray-400">-</span>
-                        <input
-                          type="time"
-                          value={hours.close}
-                          onChange={(e) => updateHours(day, 'close', e.target.value)}
-                          className="px-3 py-1 border border-gray-200 rounded-lg text-sm"
-                        />
-                      </>
-                    )}
-                    {hours.closed && <span className="text-red-500 text-sm">Stängt</span>}
-                  </div>
-                ))}
+            <div className="space-y-8">
+              {/* Section Header */}
+              <div className="border-b border-gray-100 pb-4">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center">�</span>
+                  Öppettider & Publicera
+                </h2>
+                <p className="text-gray-500 mt-1 ml-13">Ange era öppettider och publicera din annons</p>
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setStep(3)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
+              {/* Opening Hours Section */}
+              <div className="bg-gradient-to-br from-cyan-50/50 to-white p-5 rounded-xl border border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-lg">🕐</span> Öppettider
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(openingHours).map(([day, hours]) => (
+                    <div key={day} className={`flex items-center gap-3 p-3 rounded-xl transition ${hours.closed ? 'bg-gray-50' : 'bg-green-50/50 border border-green-100'}`}>
+                      <div className="w-20 font-semibold text-gray-700">{dayNames[day]}</div>
+                      <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition ${!hours.closed ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                        <input
+                          type="checkbox"
+                          checked={!hours.closed}
+                          onChange={(e) => updateHours(day, 'closed', !e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        />
+                        <span className="text-sm font-medium">{hours.closed ? 'Stängt' : 'Öppet'}</span>
+                      </label>
+                      {!hours.closed && (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="time"
+                            value={hours.open}
+                            onChange={(e) => updateHours(day, 'open', e.target.value)}
+                            className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-sm focus:border-brand outline-none"
+                          />
+                          <span className="text-gray-400 font-medium">→</span>
+                          <input
+                            type="time"
+                            value={hours.close}
+                            onChange={(e) => updateHours(day, 'close', e.target.value)}
+                            className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-sm focus:border-brand outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary Card */}
+              <div className="bg-gradient-to-br from-brand/5 to-blue-50 p-5 rounded-xl border border-brand/20">
+                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="text-lg">📋</span> Sammanfattning
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-gray-500 text-xs">Företag</p>
+                    <p className="font-semibold text-gray-800 truncate">{name || '—'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-gray-500 text-xs">Kategori</p>
+                    <p className="font-semibold text-gray-800">{categories.find(c => c.id === category)?.name || '—'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-gray-500 text-xs">Tjänster</p>
+                    <p className="font-semibold text-gray-800">{services.filter(s => s.name).length} st</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-gray-500 text-xs">Bilder</p>
+                    <p className="font-semibold text-gray-800">{imageFiles.length} st</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview Button */}
+              <button
+                onClick={() => setShowPreview(true)}
+                className="w-full py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl font-semibold hover:from-gray-900 hover:to-black transition flex items-center justify-center gap-2 shadow-lg"
+              >
+                <HiEye className="w-5 h-5" />
+                👁️ Förhandsgranska din annons
+              </button>
+
+              {/* Navigation & Publish Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setStep(3)} className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-semibold hover:bg-gray-200 transition">
                   ← Tillbaka
                 </button>
                 <button
-                  onClick={() => setShowPreview(true)}
-                  className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-900 transition flex items-center justify-center gap-2"
-                >
-                  <HiEye className="w-5 h-5" />
-                  Förhandsgranska
-                </button>
-              </div>
-
-              <div className="flex gap-3">
-                <button
                   onClick={() => handleSubmit(true)}
                   disabled={isSubmitting}
-                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                  className="flex-1 bg-amber-500 text-white py-3.5 rounded-xl font-semibold hover:bg-amber-600 transition flex items-center justify-center gap-2"
                 >
-                  💾 Spara som utkast
+                  💾 Spara utkast
                 </button>
                 <button
                   onClick={() => handleSubmit(false)}
                   disabled={isSubmitting}
-                  className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-lg shadow-green-500/30 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? 'Publicerar...' : '🚀 Publicera'}
+                  {isSubmitting ? '⏳ Publicerar...' : '🚀 Publicera'}
                 </button>
               </div>
             </div>
           )}
+        </div>
+
+        {/* Trust Footer */}
+        <div className="mt-6 text-center text-xs text-gray-400">
+          <p>🔒 Dina uppgifter är säkra och skyddas enligt GDPR</p>
         </div>
       </div>
     </div>
