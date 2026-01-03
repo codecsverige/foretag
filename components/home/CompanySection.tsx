@@ -28,24 +28,41 @@ const allowedCategories = new Set(['stadning', 'flytt', 'hantverk', 'hem-fastigh
 export default function CompanySection() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     
     async function loadCompanies() {
       try {
+        console.log('[CompanySection] Fetching companies...')
         const data = await getCompanies()
+        console.log('[CompanySection] Raw data:', data.length, 'companies')
+        
         if (mounted) {
-          const filtered = data
-            .filter((c) => allowedCategories.has(c.category || ''))
+          // Show all companies if no category filter matches, otherwise filter
+          let filtered = data.filter((c) => allowedCategories.has(c.category || ''))
+          
+          // If no companies match the filter, show all companies
+          if (filtered.length === 0 && data.length > 0) {
+            console.log('[CompanySection] No category matches, showing all companies')
+            filtered = data
+          }
+          
+          const sorted = filtered
             .sort((a, b) => (b.premium ? 1 : 0) - (a.premium ? 1 : 0))
-            .slice(0, 3)
-          setCompanies(filtered)
+            .slice(0, 6)
+          
+          console.log('[CompanySection] Filtered:', sorted.length, 'companies')
+          setCompanies(sorted)
           setLoading(false)
         }
-      } catch (error) {
-        console.error('Error:', error)
-        if (mounted) setLoading(false)
+      } catch (err: any) {
+        console.error('[CompanySection] Error:', err)
+        if (mounted) {
+          setError(err.message || 'Kunde inte ladda företag')
+          setLoading(false)
+        }
       }
     }
 
@@ -66,7 +83,12 @@ export default function CompanySection() {
           </Link>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-200">
+            <p className="text-red-600 mb-2">Fel vid laddning av företag</p>
+            <p className="text-red-500 text-sm">{error}</p>
+          </div>
+        ) : loading ? (
           <div className="grid grid-cols-1 gap-5">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-gray-200 overflow-hidden animate-pulse">

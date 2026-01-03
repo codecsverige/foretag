@@ -126,6 +126,7 @@ export default function CreatePage() {
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   // Step 1: Basic info
   const [name, setName] = useState('')
@@ -283,6 +284,22 @@ export default function CreatePage() {
       return
     }
 
+    // Validate all required fields before submit
+    const validationErrors: string[] = []
+    if (!name.trim()) validationErrors.push('Företagsnamn saknas')
+    if (!category) validationErrors.push('Kategori saknas')
+    if (serviceCities.length === 0) validationErrors.push('Serviceområden saknas')
+    if (!description.trim() || description.trim().length < 20) validationErrors.push('Beskrivning saknas eller är för kort')
+    if (!phone.trim() || phone.trim().length < 8) validationErrors.push('Telefonnummer saknas eller är ogiltigt')
+    
+    const hasValidService = services.some(s => s.name.trim() && (s.price || s.priceType === 'quote'))
+    if (!hasValidService) validationErrors.push('Minst en tjänst med namn och pris krävs')
+
+    if (validationErrors.length > 0 && !asDraft) {
+      setError(`Kan inte publicera: ${validationErrors.join(', ')}`)
+      return
+    }
+
     setIsSubmitting(true)
     setError('')
 
@@ -291,10 +308,11 @@ export default function CreatePage() {
       let uploadedLogo: string | null = null
 
       if (storage) {
+        const storageInstance = storage
         // Upload logo
         if (logoFile) {
           const logoId = `logo-${Date.now()}-${Math.random().toString(36).slice(2)}`
-          const logoRef = storageRef(storage, `companies/${user.uid}/${logoId}`)
+          const logoRef = storageRef(storageInstance, `companies/${user.uid}/${logoId}`)
           await uploadBytes(logoRef, logoFile)
           uploadedLogo = await getDownloadURL(logoRef)
         }
@@ -305,7 +323,7 @@ export default function CreatePage() {
             imageFiles.map(async (file, index) => {
               const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
               const fileId = `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}-${safeName}`
-              const fileRef = storageRef(storage, `companies/${user.uid}/${fileId}`)
+              const fileRef = storageRef(storageInstance, `companies/${user.uid}/${fileId}`)
               await uploadBytes(fileRef, file)
               return await getDownloadURL(fileRef)
             })
@@ -630,10 +648,14 @@ export default function CreatePage() {
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      if (e.target.value.trim()) setFieldErrors(prev => ({ ...prev, name: '' }))
+                    }}
                     placeholder="t.ex. Städ & Flytt AB"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                    className={`w-full px-4 py-3 border rounded-xl focus:border-brand outline-none ${fieldErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
+                  {fieldErrors.name && <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Organisationsnummer</label>
@@ -650,6 +672,7 @@ export default function CreatePage() {
               {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Kategori *</label>
+                {fieldErrors.category && <p className="text-red-500 text-xs mb-2">{fieldErrors.category}</p>}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {categories.map((cat) => (
                     <button
@@ -671,8 +694,9 @@ export default function CreatePage() {
 
               {/* Service cities (multiple) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Serviceområden * (välj städer)</label>
-                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Serviceområden * (välj minst en stad)</label>
+                {fieldErrors.serviceCities && <p className="text-red-500 text-xs mb-2">{fieldErrors.serviceCities}</p>}
+                <div className={`max-h-48 overflow-y-auto border rounded-xl p-3 ${fieldErrors.serviceCities ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {allCities.map((city) => (
                       <label key={city} className="flex items-center gap-2 cursor-pointer">
@@ -706,14 +730,19 @@ export default function CreatePage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Beskrivning *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Beskrivning * (minst 20 tecken)</label>
                 <textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value)
+                    if (e.target.value.trim().length >= 20) setFieldErrors(prev => ({ ...prev, description: '' }))
+                  }}
                   placeholder="Berätta om ditt företag..."
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none resize-none"
+                  className={`w-full px-4 py-3 border rounded-xl focus:border-brand outline-none resize-none ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
+                {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
+                <p className="text-xs text-gray-400 mt-1">{description.length}/20 tecken minimum</p>
               </div>
 
               {/* RUT/ROT */}
@@ -766,9 +795,19 @@ export default function CreatePage() {
               </div>
 
               <button
-                onClick={() => setStep(2)}
-                disabled={!name || !category || serviceCities.length === 0 || !description}
-                className="w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  const errors: Record<string, string> = {}
+                  if (!name.trim()) errors.name = 'Företagsnamn krävs'
+                  if (!category) errors.category = 'Välj en kategori'
+                  if (serviceCities.length === 0) errors.serviceCities = 'Välj minst en stad'
+                  if (!description.trim() || description.trim().length < 20) errors.description = 'Beskrivning måste vara minst 20 tecken'
+                  
+                  setFieldErrors(errors)
+                  if (Object.keys(errors).length === 0) {
+                    setStep(2)
+                  }
+                }}
+                className="w-full bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
               >
                 Nästa: Kontakt & Media →
               </button>
@@ -855,10 +894,14 @@ export default function CreatePage() {
                   <input
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value)
+                      if (e.target.value.trim().length >= 8) setFieldErrors(prev => ({ ...prev, phone: '' }))
+                    }}
                     placeholder="08-123 45 67"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none"
+                    className={`w-full px-4 py-3 border rounded-xl focus:border-brand outline-none ${fieldErrors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
+                  {fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
@@ -945,9 +988,16 @@ export default function CreatePage() {
                   ← Tillbaka
                 </button>
                 <button
-                  onClick={() => setStep(3)}
-                  disabled={!phone}
-                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50"
+                  onClick={() => {
+                    const errors: Record<string, string> = {}
+                    if (!phone.trim() || phone.trim().length < 8) errors.phone = 'Ange ett giltigt telefonnummer (minst 8 siffror)'
+                    
+                    setFieldErrors(errors)
+                    if (Object.keys(errors).length === 0) {
+                      setStep(3)
+                    }
+                  }}
+                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
                 >
                   Nästa: Tjänster →
                 </button>
@@ -1073,13 +1123,21 @@ export default function CreatePage() {
                   ← Tillbaka
                 </button>
                 <button
-                  onClick={() => setStep(4)}
-                  disabled={!services.some(s => s.name && (s.price || s.priceType === 'quote'))}
-                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition disabled:opacity-50"
+                  onClick={() => {
+                    const hasValidService = services.some(s => s.name.trim() && (s.price || s.priceType === 'quote'))
+                    if (!hasValidService) {
+                      setFieldErrors({ services: 'Lägg till minst en tjänst med namn och pris' })
+                      return
+                    }
+                    setFieldErrors({})
+                    setStep(4)
+                  }}
+                  className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"
                 >
                   Nästa: Öppettider →
                 </button>
               </div>
+              {fieldErrors.services && <p className="text-red-500 text-sm text-center mt-2">{fieldErrors.services}</p>}
             </div>
           )}
 

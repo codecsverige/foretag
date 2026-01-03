@@ -128,7 +128,9 @@ function SearchContent() {
   useEffect(() => {
     let results = [...allCompanies]
 
-    results = results.filter((c) => allowedCategories.has(c.category || ''))
+    // Filter by allowed categories, but show all if none match
+    const filtered = results.filter((c) => allowedCategories.has(c.category || ''))
+    results = filtered.length > 0 ? filtered : results
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase()

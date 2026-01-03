@@ -80,14 +80,53 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
   isFetching = true
   fetchPromise = (async () => {
     try {
-      const companiesQuery = query(
-        collection(db, 'companies'),
-        where('status', '==', 'active'),
-        orderBy('createdAt', 'desc'),
-        limit(20) // Reduced from 50 to 20 for faster loading
-      )
+      console.log('[companiesCache] Fetching companies from Firestore...')
       
-      const snapshot = await getDocs(companiesQuery)
+      let snapshot;
+      try {
+        // Try with composite index first (status + createdAt)
+        const companiesQuery = query(
+          collection(db, 'companies'),
+          where('status', '==', 'active'),
+          orderBy('createdAt', 'desc'),
+          limit(20)
+        )
+        snapshot = await getDocs(companiesQuery)
+        console.log('[companiesCache] Query with index succeeded')
+      } catch (indexError: any) {
+        console.warn('[companiesCache] Index query failed, trying simple query:', indexError.message)
+        // Fallback: query without orderBy (doesn't require composite index)
+        const simpleQuery = query(
+          collection(db, 'companies'),
+          where('status', '==', 'active'),
+          limit(50)
+        )
+        snapshot = await getDocs(simpleQuery)
+        console.log('[companiesCache] Simple query succeeded')
+      }
+      
+      console.log('[companiesCache] Found', snapshot.docs.length, 'active companies')
+      
+      // If no active companies found, try fetching all companies as fallback
+      if (snapshot.docs.length === 0) {
+        console.log('[companiesCache] No active companies, fetching all companies...')
+        const allQuery = query(
+          collection(db, 'companies'),
+          limit(50)
+        )
+        const allSnapshot = await getDocs(allQuery)
+        console.log('[companiesCache] Found', allSnapshot.docs.length, 'total companies')
+        
+        // Use all companies that are not explicitly archived
+        snapshot = {
+          docs: allSnapshot.docs.filter(d => {
+            const status = d.data()?.status
+            return status !== 'archived'
+          })
+        } as any
+        console.log('[companiesCache] After filtering archived:', snapshot.docs.length, 'companies')
+      }
+      
       const data = snapshot.docs.map(doc => {
         const raw: any = doc.data() || {}
         return ({
