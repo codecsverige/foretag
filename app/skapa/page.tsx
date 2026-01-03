@@ -135,6 +135,7 @@ export default function CreatePage() {
   const [customCategoryName, setCustomCategoryName] = useState('')
   const [customSubServices, setCustomSubServices] = useState<string[]>([''])
   const [selectedSubServices, setSelectedSubServices] = useState<string[]>([])
+  const [city, setCity] = useState('')
   const [serviceCities, setServiceCities] = useState<string[]>([])
   const [address, setAddress] = useState('')
   const [description, setDescription] = useState('')
@@ -174,6 +175,7 @@ export default function CreatePage() {
         if (draft.name) setName(draft.name)
         if (draft.orgNumber) setOrgNumber(draft.orgNumber)
         if (draft.category) setCategory(draft.category)
+        if (draft.city) setCity(draft.city)
         if (draft.serviceCities) setServiceCities(draft.serviceCities)
         if (draft.address) setAddress(draft.address)
         if (draft.description) setDescription(draft.description)
@@ -199,7 +201,7 @@ export default function CreatePage() {
   // Save draft
   const saveDraft = () => {
     const draft = {
-      name, orgNumber, category, serviceCities, address, description,
+      name, orgNumber, category, city, serviceCities, address, description,
       phone, email, website, facebook, instagram,
       rutAvdrag, rotAvdrag, selectedPaymentMethods,
       hasInsurance, insuranceInfo, guarantee,
@@ -366,7 +368,7 @@ export default function CreatePage() {
         subServiceNames,
         
         // Location
-        city: serviceCities[0] || '',
+        city: city || serviceCities[0] || '',
         serviceCities,
         address,
         description,
@@ -874,6 +876,23 @@ export default function CreatePage() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Main City */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Huvudstad <span className="text-gray-400 text-xs">(var företaget är baserat)</span>
+                  </label>
+                  <select
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300 bg-white"
+                  >
+                    <option value="">Välj huvudstad...</option>
+                    {allCities.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Address */}

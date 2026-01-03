@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
-import { db } from '@/lib/firebase'
+import { db, storage } from '@/lib/firebase'
+import { ref as storageRef, deleteObject } from 'firebase/storage'
 import { clearCache } from '@/lib/companiesCache'
 import { collection, query, where, getDocs, doc, deleteDoc, getDoc, updateDoc, orderBy, limit, startAfter, getCountFromServer } from 'firebase/firestore'
 import { 
@@ -222,6 +223,37 @@ function AccountPageContent() {
 
   const handleDelete = async (id: string) => {
     if (!db) return
+    
+    // Get company data to find images to delete
+    const companyToDelete = companies.find(c => c.id === id)
+    
+    // Delete images from Storage if they exist
+    if (storage && companyToDelete) {
+      const storageInstance = storage as NonNullable<typeof storage>
+      const imagesToDelete: string[] = []
+      
+      // Collect all image URLs
+      if (companyToDelete.images && Array.isArray(companyToDelete.images)) {
+        imagesToDelete.push(...companyToDelete.images)
+      }
+      
+      // Try to delete each image from Storage
+      for (const imageUrl of imagesToDelete) {
+        try {
+          // Extract the path from the URL if it's a Firebase Storage URL
+          if (imageUrl.includes('firebase') || imageUrl.includes('googleapis')) {
+            const fileRef = storageRef(storageInstance, imageUrl)
+            await deleteObject(fileRef).catch(() => {
+              // Ignore errors if file doesn't exist
+            })
+          }
+        } catch (err) {
+          console.warn('Could not delete image:', err)
+        }
+      }
+    }
+    
+    // Delete the company document
     await deleteDoc(doc(db, 'companies', id))
     setCompanies(companies.filter(c => c.id !== id))
     setDeleteConfirm(null)

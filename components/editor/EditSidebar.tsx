@@ -1,7 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { HiCog, HiEye, HiOfficeBuilding } from 'react-icons/hi'
+import { useState, useRef } from 'react'
+import { HiCog, HiEye, HiOfficeBuilding, HiPhotograph, HiTrash } from 'react-icons/hi'
+import Image from 'next/image'
+import { storage } from '@/lib/firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { useAuth } from '@/context/AuthContext'
 
 const allCities = [
   'Stockholm', 'Göteborg', 'Malmö', 'Uppsala', 'Västerås',
@@ -85,6 +89,9 @@ export default function EditSidebar({ company, activeSection, onUpdate, onSave }
 }
 
 function SettingsTab({ company, onUpdate }: any) {
+  const { user } = useAuth()
+  const [uploading, setUploading] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
   const serviceCities = company.serviceCities || []
 
   const handleCityToggle = (city: string) => {
@@ -101,9 +108,87 @@ function SettingsTab({ company, onUpdate }: any) {
     })
   }
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !storage || !user) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logotypen får max vara 2 MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const storageInstance = storage as NonNullable<typeof storage>
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileId = `logo-${Date.now()}-${safeName}`
+      const fileRef = storageRef(storageInstance, `companies/${user.uid}/${fileId}`)
+      await uploadBytes(fileRef, file)
+      const url = await getDownloadURL(fileRef)
+      onUpdate('logo', url)
+    } catch (error) {
+      console.error('Logo upload error:', error)
+      alert('Kunde inte ladda upp logotypen')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Logo Section */}
       <div>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Logotyp</h3>
+        <div className="flex items-center gap-4">
+          {company.logo ? (
+            <div className="relative group">
+              <Image 
+                src={company.logo} 
+                alt="Logo" 
+                width={64} 
+                height={64} 
+                className="rounded-xl object-cover border-2 border-gray-200" 
+              />
+              <button
+                onClick={() => onUpdate('logo', null)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+              >
+                <HiTrash className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <div 
+              onClick={() => logoInputRef.current?.click()}
+              className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-brand hover:bg-brand/5 transition"
+            >
+              {uploading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand"></div>
+              ) : (
+                <HiPhotograph className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+          )}
+          <div className="flex-1">
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => logoInputRef.current?.click()}
+              disabled={uploading}
+              className="text-sm text-brand hover:text-brand-dark font-medium disabled:opacity-50"
+            >
+              {uploading ? 'Laddar upp...' : company.logo ? 'Byt logotyp' : 'Ladda upp'}
+            </button>
+            <p className="text-xs text-gray-500 mt-1">Max 2 MB</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-gray-200 pt-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Grundinformation</h3>
         
         <div className="space-y-4">
@@ -153,6 +238,39 @@ function SettingsTab({ company, onUpdate }: any) {
               value={company.address || ''}
               onChange={(e) => onUpdate('address', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Owner Information */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Ägare / Kontaktperson</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Namn
+            </label>
+            <input
+              type="text"
+              value={company.ownerName || ''}
+              onChange={(e) => onUpdate('ownerName', e.target.value)}
+              placeholder="Ditt namn"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Om ägaren
+            </label>
+            <textarea
+              value={company.ownerBio || ''}
+              onChange={(e) => onUpdate('ownerBio', e.target.value)}
+              placeholder="Kort beskrivning om dig eller företagets grundare..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand resize-none"
             />
           </div>
         </div>
