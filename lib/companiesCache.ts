@@ -127,7 +127,7 @@ export async function getCompanies(forceRefresh = false): Promise<Company[]> {
         console.log('[companiesCache] After filtering archived:', snapshot.docs.length, 'companies')
       }
       
-      const data = snapshot.docs.map(doc => {
+      const data = snapshot.docs.map((doc: any) => {
         const raw: any = doc.data() || {}
         return ({
         ...raw,
