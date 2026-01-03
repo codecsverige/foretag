@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { db, storage } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed, HiEye, HiSave } from 'react-icons/hi'
+import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed, HiEye, HiSave, HiX } from 'react-icons/hi'
 
 const categories = [
   { 
