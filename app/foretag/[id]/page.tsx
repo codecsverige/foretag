@@ -36,11 +36,16 @@ interface Company {
   category?: string
   categoryName?: string
   city?: string
+  serviceCities?: string[]
   address?: string
   description?: string
   phone?: string
   email?: string
   website?: string
+  socialMedia?: {
+    facebook?: string
+    instagram?: string
+  }
   rating?: number
   reviewCount?: number
   discountPercent?: number
@@ -67,6 +72,7 @@ interface Company {
   }
   image?: string
   images?: string[]
+  logo?: string
   openingHours?: Record<string, { open: string; close: string; closed: boolean }>
   excludedDates?: string[]
   excludedTimes?: Record<string, string[]>
@@ -74,6 +80,14 @@ interface Company {
   premium?: boolean
   bookingCount?: number
   createdAt?: any
+  // Business info
+  rutAvdrag?: boolean
+  rotAvdrag?: boolean
+  paymentMethods?: string[]
+  hasInsurance?: boolean
+  insuranceInfo?: string
+  guarantee?: string
+  orgNumber?: string
 }
 
 interface Review {
@@ -653,7 +667,17 @@ export default function CompanyPage() {
                 website: company.website,
                 address: company.address,
                 city: company.city,
-                openingHours: company.openingHours
+                serviceCities: company.serviceCities,
+                openingHours: company.openingHours,
+                rutAvdrag: company.rutAvdrag,
+                rotAvdrag: company.rotAvdrag,
+                paymentMethods: company.paymentMethods,
+                hasInsurance: company.hasInsurance,
+                insuranceInfo: company.insuranceInfo,
+                guarantee: company.guarantee,
+                orgNumber: company.orgNumber,
+                logo: company.logo,
+                socialMedia: company.socialMedia,
               }}
               lowestPrice={lowestPrice}
               discountedPrice={discountedLowestPrice}

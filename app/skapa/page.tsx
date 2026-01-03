@@ -489,62 +489,102 @@ export default function CreatePage() {
     )
   }
 
-  // Preview Modal
+  // Preview Modal - Complete preview of the ad before publishing
   if (showPreview) {
+    const selectedCat = categories.find(c => c.id === category)
+    const previewImages = imageFiles.length > 0 ? imageFiles.map(f => URL.createObjectURL(f)) : []
+    
     return (
       <div className="min-h-screen bg-gray-50 py-6 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            {/* Header */}
             <div className="bg-brand text-white p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold">Förhandsgranskning</h2>
-              <button onClick={() => setShowPreview(false)} className="text-white/80 hover:text-white">
-                Stäng ✕
+              <h2 className="text-lg font-bold">👁️ Förhandsgranskning av din annons</h2>
+              <button onClick={() => setShowPreview(false)} className="text-white/80 hover:text-white text-xl">
+                ✕
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              {/* Preview content */}
-              <div className="flex items-start gap-4">
-                {logoPreview ? (
-                  <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover" />
-                ) : (
-                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center text-2xl">
-                    {categories.find(c => c.id === category)?.emoji || '🏢'}
-                  </div>
-                )}
-                <div>
-                  <h1 className="text-2xl font-bold">{name || 'Företagsnamn'}</h1>
-                  <p className="text-gray-500">{categories.find(c => c.id === category)?.name || 'Kategori'}</p>
-                  {orgNumber && <p className="text-sm text-gray-400">Org.nr: {orgNumber}</p>}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="font-medium">Städer</p>
-                  <p className="text-gray-600">{serviceCities.join(', ') || 'Ej angiven'}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="font-medium">Telefon</p>
-                  <p className="text-gray-600">{phone || 'Ej angiven'}</p>
-                </div>
-              </div>
-
-              {(rutAvdrag || rotAvdrag) && (
-                <div className="flex gap-2">
-                  {rutAvdrag && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">RUT-avdrag</span>}
-                  {rotAvdrag && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">ROT-avdrag</span>}
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Images Preview */}
+              {previewImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {previewImages.map((img, i) => (
+                    <div key={i} className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
+                      <Image src={img} alt={`Bild ${i + 1}`} fill className="object-cover" />
+                    </div>
+                  ))}
                 </div>
               )}
 
+              {/* Company Header */}
+              <div className="flex items-start gap-4 pb-4 border-b">
+                {logoPreview ? (
+                  <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover" />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center text-3xl">
+                    {selectedCat?.emoji || '🏢'}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900">{name || 'Företagsnamn'}</h1>
+                  <p className="text-brand font-medium">{selectedCat?.name || 'Kategori'}</p>
+                  {orgNumber && <p className="text-sm text-gray-400 mt-1">Org.nr: {orgNumber}</p>}
+                </div>
+              </div>
+
+              {/* Description */}
+              {description && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">📝 Om företaget</h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">{description}</p>
+                </div>
+              )}
+
+              {/* Location & Contact */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-3">📍 Plats & Kontakt</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="text-gray-500">Städer:</span> <span className="font-medium">{serviceCities.join(', ') || 'Ej angiven'}</span></p>
+                    {address && <p><span className="text-gray-500">Adress:</span> <span className="font-medium">{address}</span></p>}
+                    <p><span className="text-gray-500">Telefon:</span> <span className="font-medium">{phone || 'Ej angiven'}</span></p>
+                    {email && <p><span className="text-gray-500">E-post:</span> <span className="font-medium">{email}</span></p>}
+                    {website && <p><span className="text-gray-500">Hemsida:</span> <span className="font-medium">{website}</span></p>}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-3">ℹ️ Företagsinfo</h3>
+                  <div className="space-y-2 text-sm">
+                    {(rutAvdrag || rotAvdrag) && (
+                      <div className="flex gap-2 flex-wrap">
+                        {rutAvdrag && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">RUT-avdrag</span>}
+                        {rotAvdrag && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">ROT-avdrag</span>}
+                      </div>
+                    )}
+                    {hasInsurance && <p><span className="text-gray-500">Försäkring:</span> <span className="font-medium text-green-600">✓ {insuranceInfo || 'Ja'}</span></p>}
+                    {guarantee && <p><span className="text-gray-500">Garanti:</span> <span className="font-medium">{guarantee}</span></p>}
+                    {(facebook || instagram) && (
+                      <div className="flex gap-2 mt-2">
+                        {facebook && <span className="text-blue-600 text-xs">📘 Facebook</span>}
+                        {instagram && <span className="text-pink-600 text-xs">📷 Instagram</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Methods */}
               {selectedPaymentMethods.length > 0 && (
                 <div>
-                  <p className="font-medium mb-2">Betalningsmetoder</p>
+                  <h3 className="font-semibold text-gray-900 mb-2">💳 Betalningsmetoder</h3>
                   <div className="flex gap-2 flex-wrap">
                     {selectedPaymentMethods.map(id => {
                       const method = paymentMethods.find(p => p.id === id)
                       return method ? (
-                        <span key={id} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                        <span key={id} className="bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium">
                           {method.icon} {method.name}
                         </span>
                       ) : null
@@ -553,16 +593,26 @@ export default function CreatePage() {
                 </div>
               )}
 
+              {/* Services */}
               {services.filter(s => s.name).length > 0 && (
                 <div>
-                  <p className="font-medium mb-2">Tjänster</p>
+                  <h3 className="font-semibold text-gray-900 mb-3">💼 Tjänster & Priser</h3>
                   <div className="space-y-2">
                     {services.filter(s => s.name).map(s => (
-                      <div key={s.id} className="bg-gray-50 p-3 rounded-lg flex justify-between">
-                        <span>{s.name}</span>
-                        <span className="font-medium">
-                          {s.priceType === 'quote' ? 'Enligt offert' : 
-                           s.priceType === 'range' ? `${s.price} - ${s.priceMax} kr` : 
+                      <div key={s.id} className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{s.name}</p>
+                          {s.category && <p className="text-xs text-gray-500">{s.category}</p>}
+                          {s.description && <p className="text-sm text-gray-600 mt-1">{s.description}</p>}
+                          {(s.duration || s.durationFlexible) && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              ⏱️ {s.durationFlexible ? 'Tid varierar' : `${s.duration} min`}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-bold text-brand text-lg">
+                          {s.priceType === 'quote' ? 'Offert' : 
+                           s.priceType === 'range' ? `${s.price}-${s.priceMax} kr` : 
                            `${s.price} kr`}
                         </span>
                       </div>
@@ -570,22 +620,48 @@ export default function CreatePage() {
                   </div>
                 </div>
               )}
+
+              {/* Opening Hours */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">🕐 Öppettider</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {Object.entries(openingHours).map(([day, hours]) => (
+                    <div key={day} className={`p-2 rounded-lg text-center text-sm ${hours.closed ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      <p className="font-medium">{dayNames[day]}</p>
+                      <p>{hours.closed ? 'Stängt' : `${hours.open}-${hours.close}`}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t flex gap-3">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold"
-              >
-                ← Fortsätt redigera
-              </button>
-              <button
-                onClick={() => { setShowPreview(false); handleSubmit() }}
-                disabled={isSubmitting}
-                className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold"
-              >
-                🚀 Publicera
-              </button>
+            {/* Action Buttons */}
+            <div className="p-4 bg-gray-50 border-t space-y-3">
+              <p className="text-center text-sm text-gray-600">
+                Granska din annons noggrant innan du publicerar
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition"
+                >
+                  ← Redigera
+                </button>
+                <button
+                  onClick={() => handleSubmit(true)}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-semibold hover:bg-amber-600 transition"
+                >
+                  💾 Spara utkast
+                </button>
+                <button
+                  onClick={() => { setShowPreview(false); handleSubmit(false) }}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition"
+                >
+                  {isSubmitting ? '...' : '🚀 Publicera'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
