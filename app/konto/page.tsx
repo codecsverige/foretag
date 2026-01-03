@@ -1063,23 +1063,165 @@ function AccountPageContent() {
           {/* SUBSCRIPTION */}
           {activeTab === 'subscription' && <>
             <h1 className="text-2xl font-bold">Abonnemang</h1>
-            <div className="bg-gradient-to-r from-brand to-brand-dark rounded-2xl p-5 text-white flex justify-between items-center">
-              <div><p className="text-white/80 text-sm">Nuvarande plan</p><p className="text-2xl font-bold">{PLANS.find(p => p.id === plan)?.name}</p></div>
+            
+            {/* Current Plan Banner */}
+            <div className={`rounded-2xl p-5 flex justify-between items-center ${
+              plan === 'premium' ? 'bg-gradient-to-r from-purple-600 to-purple-700' :
+              plan === 'pro' ? 'bg-gradient-to-r from-brand to-brand-dark' :
+              'bg-gradient-to-r from-gray-600 to-gray-700'
+            } text-white`}>
+              <div>
+                <p className="text-white/80 text-sm">Nuvarande plan</p>
+                <p className="text-2xl font-bold flex items-center gap-2">
+                  {PLANS.find(p => p.id === plan)?.name}
+                  {plan === 'pro' && <span>⭐</span>}
+                  {plan === 'premium' && <span>💎</span>}
+                </p>
+                {userData?.subscriptionEnd && plan !== 'free' && (
+                  <p className="text-white/70 text-sm mt-1">
+                    Förnyas: {new Date(userData.subscriptionEnd).toLocaleDateString('sv-SE')}
+                  </p>
+                )}
+              </div>
               <HiOutlineCreditCard className="w-12 h-12 text-white/50" />
             </div>
-            <div className="bg-white rounded-2xl border p-4 text-sm text-gray-600">
-              Betalning och uppgradering kommer snart. Just nu visar vi planerna som en översikt.
-            </div>
-            <div className="grid md:grid-cols-3 gap-4">
-              {PLANS.map(p => (
-                <div key={p.id} className={`bg-white rounded-2xl border-2 p-5 ${p.id === plan ? 'border-brand' : 'border-gray-200'} ${p.popular ? 'ring-2 ring-brand ring-offset-2' : ''} relative`}>
-                  {p.popular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-xs px-3 py-1 rounded-full">Populärast</span>}
-                  <h3 className="text-lg font-bold">{p.name}</h3>
-                  <p className="mt-2"><span className="text-3xl font-bold">{p.price}</span>{p.price > 0 && <span className="text-gray-500"> kr{p.period}</span>}</p>
-                  <ul className="mt-4 space-y-2">{p.features.map((f, i) => <li key={i} className="flex items-center gap-2 text-sm"><HiCheck className="w-4 h-4 text-green-500" />{f}</li>)}</ul>
-                  <button disabled className="w-full mt-4 py-2.5 rounded-xl font-medium bg-gray-100 text-gray-400">Kommer snart</button>
+
+            {/* Manage Subscription Button (for paying users) */}
+            {plan !== 'free' && (
+              <div className="bg-white rounded-2xl border p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Hantera abonnemang</h3>
+                    <p className="text-sm text-gray-500">Ändra betalningsmetod, se fakturor eller avsluta</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/stripe/portal', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: user.uid }),
+                        })
+                        const data = await res.json()
+                        if (data.url) window.location.href = data.url
+                      } catch (err) {
+                        console.error('Portal error:', err)
+                      }
+                    }}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition"
+                  >
+                    Hantera →
+                  </button>
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Plans Grid */}
+            <div className="grid md:grid-cols-3 gap-4">
+              {PLANS.map(p => {
+                const isCurrentPlan = p.id === plan
+                const isUpgrade = (plan === 'free' && p.id !== 'free') || (plan === 'pro' && p.id === 'premium')
+                const isDowngrade = (plan === 'premium' && p.id === 'pro') || (plan !== 'free' && p.id === 'free')
+                
+                return (
+                <div key={p.id} className={`bg-white rounded-2xl border-2 p-5 ${isCurrentPlan ? 'border-brand ring-2 ring-brand/20' : 'border-gray-200'} ${p.popular && !isCurrentPlan ? 'ring-2 ring-brand ring-offset-2' : ''} relative`}>
+                  {p.popular && !isCurrentPlan && <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-xs px-3 py-1 rounded-full font-semibold">Populärast</span>}
+                  {isCurrentPlan && <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full font-semibold">Din plan</span>}
+                  
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    {p.name}
+                    {p.id === 'pro' && <span>⭐</span>}
+                    {p.id === 'premium' && <span>💎</span>}
+                  </h3>
+                  <p className="mt-2">
+                    <span className="text-3xl font-bold">{p.price}</span>
+                    {p.price > 0 && <span className="text-gray-500"> kr{p.period}</span>}
+                    {p.price === 0 && <span className="text-gray-500"> kr</span>}
+                  </p>
+                  
+                  <ul className="mt-4 space-y-2">
+                    {p.features.map((f, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <HiCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {isCurrentPlan ? (
+                    <button disabled className="w-full mt-4 py-2.5 rounded-xl font-medium bg-green-100 text-green-700">
+                      <HiCheck className="w-5 h-5 inline mr-1" />Aktiv
+                    </button>
+                  ) : isUpgrade ? (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/stripe/checkout', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              userId: user.uid,
+                              userEmail: user.email,
+                              planId: p.id,
+                            }),
+                          })
+                          const data = await res.json()
+                          if (data.url) window.location.href = data.url
+                          else if (data.error) alert(data.error)
+                        } catch (err) {
+                          console.error('Checkout error:', err)
+                          alert('Något gick fel. Försök igen.')
+                        }
+                      }}
+                      className={`w-full mt-4 py-2.5 rounded-xl font-semibold transition ${
+                        p.id === 'premium' 
+                          ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                          : 'bg-brand text-white hover:bg-brand-dark'
+                      }`}
+                    >
+                      Uppgradera till {p.name}
+                    </button>
+                  ) : isDowngrade ? (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/stripe/portal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: user.uid }),
+                          })
+                          const data = await res.json()
+                          if (data.url) window.location.href = data.url
+                        } catch (err) {
+                          console.error('Portal error:', err)
+                        }
+                      }}
+                      className="w-full mt-4 py-2.5 rounded-xl font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                    >
+                      Nedgradera
+                    </button>
+                  ) : (
+                    <button disabled className="w-full mt-4 py-2.5 rounded-xl font-medium bg-gray-100 text-gray-400">
+                      Gratis
+                    </button>
+                  )}
+                </div>
+              )})}
+            </div>
+
+            {/* FAQ */}
+            <div className="bg-gray-50 rounded-2xl p-5">
+              <h3 className="font-semibold mb-4">Vanliga frågor</h3>
+              <div className="space-y-3 text-sm">
+                <details className="bg-white rounded-xl p-3 group">
+                  <summary className="font-medium cursor-pointer">Kan jag avbryta när som helst?</summary>
+                  <p className="mt-2 text-gray-600">Ja, du kan avbryta din prenumeration när som helst. Du behåller tillgång till alla funktioner fram till slutet av din betalda period.</p>
+                </details>
+                <details className="bg-white rounded-xl p-3 group">
+                  <summary className="font-medium cursor-pointer">Hur fungerar betalningen?</summary>
+                  <p className="mt-2 text-gray-600">Vi använder Stripe för säker betalning. Du kan betala med kort och din prenumeration förnyas automatiskt varje månad.</p>
+                </details>
+              </div>
             </div>
           </>}
 
