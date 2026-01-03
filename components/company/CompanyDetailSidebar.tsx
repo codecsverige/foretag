@@ -1,7 +1,26 @@
 'use client'
 
-import { HiPhone, HiMail, HiGlobe, HiClock, HiLocationMarker, HiShieldCheck, HiBadgeCheck, HiCreditCard } from 'react-icons/hi'
+import { HiPhone, HiMail, HiGlobe, HiClock, HiLocationMarker, HiShieldCheck, HiBadgeCheck, HiCreditCard, HiLockClosed } from 'react-icons/hi'
 import Image from 'next/image'
+import Link from 'next/link'
+
+// Format phone number (hide middle digits for free users)
+function formatPhoneDisplay(phone: string, showFull: boolean): string {
+  if (!phone) return ''
+  if (showFull) return phone
+  
+  const cleaned = phone.replace(/\D/g, '')
+  if (cleaned.length < 6) return phone
+  
+  const start = cleaned.slice(0, 3)
+  const end = cleaned.slice(-2)
+  
+  if (cleaned.length === 10) {
+    return `${start} XXX XX ${end}`
+  }
+  
+  return `${start}${'X'.repeat(Math.max(0, cleaned.length - 5))}${end}`
+}
 
 interface CompanyDetailSidebarProps {
   company: {
@@ -20,6 +39,8 @@ interface CompanyDetailSidebarProps {
     guarantee?: string
     orgNumber?: string
     logo?: string
+    ownerId?: string
+    ownerPlan?: 'free' | 'pro' | 'premium'
     socialMedia?: {
       facebook?: string
       instagram?: string
@@ -120,13 +141,29 @@ export default function CompanyDetailSidebar({
           </button>
           
           {company.phone && (
-            <a
-              href={`tel:${company.phone}`}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition"
-            >
-              <HiPhone className="w-5 h-5" />
-              Ring {company.phone}
-            </a>
+            (() => {
+              const showFullPhone = company.ownerPlan === 'pro' || company.ownerPlan === 'premium'
+              const displayPhone = formatPhoneDisplay(company.phone, showFullPhone)
+              
+              return showFullPhone ? (
+                <a
+                  href={`tel:${company.phone}`}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 text-gray-900 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition"
+                >
+                  <HiPhone className="w-5 h-5" />
+                  Ring {displayPhone}
+                </a>
+              ) : (
+                <div className="w-full flex flex-col items-center gap-2 px-5 py-3 bg-gray-50 border-2 border-gray-200 text-gray-500 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <HiPhone className="w-5 h-5" />
+                    <span className="font-medium">{displayPhone}</span>
+                    <HiLockClosed className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-xs text-gray-400">Boka direkt via formuläret ovan</p>
+                </div>
+              )
+            })()
           )}
         </div>
 

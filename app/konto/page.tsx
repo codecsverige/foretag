@@ -70,10 +70,85 @@ const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
 ]
 
 const PLANS = [
-  { id: 'free', name: 'Gratis', price: 0, period: '', features: ['1 aktiv annons', 'Bokningar i panelen', 'Grundläggande statistik'], popular: false },
-  { id: 'pro', name: 'Pro', price: 299, period: '/mån', features: ['5 aktiva annonser', 'Kampanjer (rabatt)', 'Avancerad statistik'], popular: true },
-  { id: 'premium', name: 'Premium', price: 599, period: '/mån', features: ['Obegränsade aktiva annonser', 'Kampanjer (rabatt)', 'Full statistik'], popular: false }
+  { 
+    id: 'free', 
+    name: 'Gratis', 
+    price: 0, 
+    period: '', 
+    features: [
+      'Upp till 3 annonser',
+      'Första 3 bokningar gratis',
+      'Telefonnummer delvis dolt',
+      '1 redigering ingår',
+      'Grundläggande statistik'
+    ],
+    limits: {
+      freeBookings: 3,
+      freeEdits: 1,
+      freeDeletes: 1,
+      showFullPhone: false,
+      canUseDiscounts: false,
+      searchPriority: 0
+    },
+    popular: false 
+  },
+  { 
+    id: 'pro', 
+    name: 'Pro', 
+    price: 199, 
+    period: '/mån', 
+    features: [
+      'Upp till 3 annonser',
+      'Obegränsade bokningar',
+      'Telefonnummer visas helt',
+      'Obegränsade redigeringar',
+      'Avancerad statistik',
+      'Pro-märke ⭐'
+    ],
+    limits: {
+      freeBookings: Infinity,
+      freeEdits: Infinity,
+      freeDeletes: Infinity,
+      showFullPhone: true,
+      canUseDiscounts: false,
+      searchPriority: 1
+    },
+    popular: true 
+  },
+  { 
+    id: 'premium', 
+    name: 'Premium', 
+    price: 399, 
+    period: '/mån', 
+    features: [
+      'Upp till 3 annonser',
+      'Obegränsade bokningar',
+      'Telefonnummer visas helt',
+      'Obegränsade redigeringar',
+      'Full statistik & rapporter',
+      'Kampanjer & rabatter',
+      'Prioriterad i sökresultat',
+      'Premium-märke 💎'
+    ],
+    limits: {
+      freeBookings: Infinity,
+      freeEdits: Infinity,
+      freeDeletes: Infinity,
+      showFullPhone: true,
+      canUseDiscounts: true,
+      searchPriority: 2
+    },
+    popular: false 
+  }
 ]
+
+// Subscription limits configuration
+const SUBSCRIPTION_LIMITS = {
+  maxAdsPerAccount: 3,
+  freeBookingsLimit: 3,
+  freeEditsLimit: 1,
+  freeDeletesLimit: 1
+}
 
 function AccountPageContent() {
   const router = useRouter()
@@ -835,6 +910,33 @@ function AccountPageContent() {
           {activeTab === 'bookings' && <>
             <h1 className="text-2xl font-bold">Bokningar</h1>
             <p className="text-sm text-gray-500">Visar senaste {bookings.length} av {stats.total}</p>
+            
+            {/* Subscription warning for free users */}
+            {plan === 'free' && bookings.length > SUBSCRIPTION_LIMITS.freeBookingsLimit && (
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-amber-100">
+                    <HiOutlineBell className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-amber-800 text-lg mb-1">
+                      Du har {bookings.length - SUBSCRIPTION_LIMITS.freeBookingsLimit} låsta bokningar!
+                    </h3>
+                    <p className="text-sm text-amber-700 mb-4">
+                      Som gratisanvändare kan du se dina första {SUBSCRIPTION_LIMITS.freeBookingsLimit} bokningar. 
+                      Uppgradera för att låsa upp alla bokningar och aldrig missa en kund.
+                    </p>
+                    <Link 
+                      href="/konto?tab=subscription" 
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition"
+                    >
+                      <HiOutlineStar className="w-4 h-4" />
+                      Uppgradera nu - från 199 kr/mån
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-4 gap-3">
               {(['all', 'active', 'completed', 'cancelled'] as const).map(f => (
                 <button key={f} onClick={() => setBookingFilter(f)} className={`p-3 rounded-xl text-center ${bookingFilter === f ? (f === 'active' ? 'bg-yellow-500 text-white' : f === 'completed' ? 'bg-blue-500 text-white' : f === 'cancelled' ? 'bg-red-500 text-white' : 'bg-brand text-white') : 'bg-white border'}`}>
@@ -843,7 +945,39 @@ function AccountPageContent() {
                 </button>
               ))}
             </div>
-            {filtered.length > 0 ? filtered.map(b => { const s = statusConfig(b.status); return (
+            {filtered.length > 0 ? filtered.map((b, index) => { 
+              const s = statusConfig(b.status)
+              const isLocked = plan === 'free' && index >= SUBSCRIPTION_LIMITS.freeBookingsLimit
+              
+              // Locked booking card for free users
+              if (isLocked) {
+                return (
+                  <div key={b.id} className="bg-gray-100 rounded-2xl border-2 border-dashed border-gray-300 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-200/50 to-transparent" />
+                    <div className="relative p-4 sm:p-5 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gray-300 flex items-center justify-center flex-shrink-0">
+                        <HiOutlineEye className="w-6 h-6 text-gray-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-300 rounded w-32 mb-2" />
+                        <div className="h-3 bg-gray-200 rounded w-48" />
+                      </div>
+                      <div className="text-right">
+                        <div className="h-4 bg-gray-300 rounded w-20 mb-2" />
+                        <div className="h-3 bg-gray-200 rounded w-16" />
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
+                      <span className="px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold flex items-center gap-2">
+                        <HiOutlineEye className="w-4 h-4" />
+                        Bokning #{index + 1} - Låst
+                      </span>
+                    </div>
+                  </div>
+                )
+              }
+              
+              return (
               <div key={b.id} className="bg-white rounded-2xl border overflow-hidden">
                 <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${s.bg} flex-shrink-0`}>

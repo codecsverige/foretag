@@ -1,136 +1,250 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { HiCheck, HiX, HiStar, HiSparkles, HiLockOpen } from 'react-icons/hi'
 
 export const metadata: Metadata = {
   title: 'Priser | BokaNära',
-  description: 'Se våra prisnivåer för företag. Kom igång gratis eller uppgradera för fler funktioner.',
+  description: 'Se våra prisnivåer för företag. Kom igång gratis och betala bara när du får kunder.',
 }
+
+const plans = [
+  {
+    id: 'free',
+    name: 'Gratis',
+    price: 0,
+    period: '',
+    description: 'Perfekt för att testa och komma igång',
+    badge: null,
+    features: [
+      { text: 'Upp till 3 annonser', included: true },
+      { text: 'Första 3 bokningar gratis', included: true },
+      { text: 'Telefonnummer delvis dolt', included: true, note: '07X XXX XX XX' },
+      { text: '1 gratis redigering', included: true },
+      { text: 'Grundläggande statistik', included: true },
+      { text: 'Obegränsade bokningar', included: false },
+      { text: 'Kampanjer & rabatter', included: false },
+      { text: 'Prioriterad i sökresultat', included: false },
+    ],
+    cta: 'Kom igång gratis',
+    ctaLink: '/skapa',
+    popular: false,
+    color: 'gray'
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 199,
+    period: '/mån',
+    description: 'För aktiva företag med många kunder',
+    badge: '⭐ Pro',
+    features: [
+      { text: 'Upp till 3 annonser', included: true },
+      { text: 'Obegränsade bokningar', included: true, highlight: true },
+      { text: 'Telefonnummer visas helt', included: true, highlight: true },
+      { text: 'Obegränsade redigeringar', included: true },
+      { text: 'Avancerad statistik', included: true },
+      { text: 'Pro-märke på profilen', included: true },
+      { text: 'Kampanjer & rabatter', included: false },
+      { text: 'Prioriterad i sökresultat', included: false },
+    ],
+    cta: 'Uppgradera till Pro',
+    ctaLink: '/konto?tab=subscription',
+    popular: true,
+    color: 'brand'
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 399,
+    period: '/mån',
+    description: 'För företag som vill dominera marknaden',
+    badge: '💎 Premium',
+    features: [
+      { text: 'Upp till 3 annonser', included: true },
+      { text: 'Obegränsade bokningar', included: true },
+      { text: 'Telefonnummer visas helt', included: true },
+      { text: 'Obegränsade redigeringar', included: true },
+      { text: 'Full statistik & rapporter', included: true },
+      { text: 'Premium-märke på profilen', included: true, highlight: true },
+      { text: 'Kampanjer & rabatter', included: true, highlight: true },
+      { text: 'Prioriterad i sökresultat', included: true, highlight: true },
+    ],
+    cta: 'Uppgradera till Premium',
+    ctaLink: '/konto?tab=subscription',
+    popular: false,
+    color: 'purple'
+  }
+]
 
 export default function PriserPage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
-        <Link href="/" className="text-blue-600 hover:underline mb-6 inline-block">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+      <div className="max-w-6xl mx-auto px-4">
+        <Link href="/" className="text-brand hover:text-brand-dark mb-8 inline-flex items-center gap-2 font-medium">
           ← Tillbaka till startsidan
         </Link>
         
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Priser för företag</h1>
-        <p className="text-gray-600 mb-8">
-          Välj den plan som passar ditt företag bäst. Börja gratis och uppgradera när du behöver.
-        </p>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Priser som passar alla företag</h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Skapa din annons gratis. Betala bara när du börjar få kunder.
+          </p>
+        </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Free Tier */}
-          <div className="bg-white rounded-lg shadow-sm p-8 border-2 border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Gratis</h2>
-            <p className="text-gray-600 mb-4">Perfekt för att komma igång</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold text-gray-900">0 kr</span>
-              <span className="text-gray-600">/månad</span>
+        {/* How it works */}
+        <div className="bg-brand/5 rounded-2xl p-6 mb-12">
+          <h2 className="text-lg font-bold text-center mb-6 flex items-center justify-center gap-2">
+            <HiLockOpen className="w-5 h-5 text-brand" />
+            Så fungerar det
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-brand text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">1</div>
+              <h3 className="font-semibold mb-1">Skapa annons</h3>
+              <p className="text-sm text-gray-600">Gratis & komplett</p>
             </div>
-            
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Grundläggande företagsprofil
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Upp till 5 tjänster
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Online-bokning
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                E-postpåminnelser
-              </li>
-            </ul>
-
-            <Link
-              href="/foretag/registrera"
-              className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-            >
-              Kom igång gratis
-            </Link>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-brand text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">2</div>
+              <h3 className="font-semibold mb-1">Få bokningar</h3>
+              <p className="text-sm text-gray-600">3 första gratis</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-brand text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">3</div>
+              <h3 className="font-semibold mb-1">Se resultatet</h3>
+              <p className="text-sm text-gray-600">Bekräfta att det fungerar</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-amber-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">4</div>
+              <h3 className="font-semibold mb-1">Uppgradera</h3>
+              <p className="text-sm text-gray-600">För fler bokningar</p>
+            </div>
           </div>
+        </div>
 
-          {/* Premium Tier */}
-          <div className="bg-white rounded-lg shadow-sm p-8 border-2 border-blue-500 relative">
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-              <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-                Populärast
-              </span>
-            </div>
-            
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Premium</h2>
-            <p className="text-gray-600 mb-4">För växande företag</p>
-            <div className="mb-6">
-              <span className="text-4xl font-bold text-gray-900">299 kr</span>
-              <span className="text-gray-600">/månad</span>
-            </div>
-            
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Allt i Gratis-planen
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Obegränsat antal tjänster
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                SMS-påminnelser
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Prioriterad synlighet i sökresultat
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Detaljerad statistik och rapporter
-              </li>
-              <li className="flex items-center text-gray-700">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Prioriterad support
-              </li>
-            </ul>
-
-            <Link
-              href="/foretag/registrera"
-              className="block w-full text-center bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        {/* Plans */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {plans.map((plan) => (
+            <div 
+              key={plan.id} 
+              className={`bg-white rounded-2xl border-2 p-6 relative ${
+                plan.popular ? 'border-brand shadow-xl shadow-brand/10 scale-105' : 'border-gray-200'
+              }`}
             >
-              Starta 14 dagars gratis provperiod
-            </Link>
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-brand text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">
+                    <HiStar className="w-4 h-4" />
+                    Populärast
+                  </span>
+                </div>
+              )}
+              
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">{plan.name}</h2>
+                {plan.badge && (
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                    plan.id === 'pro' ? 'bg-brand/10 text-brand' : 'bg-purple-100 text-purple-700'
+                  }`}>
+                    {plan.badge}
+                  </span>
+                )}
+                <p className="text-gray-500 text-sm mt-2">{plan.description}</p>
+              </div>
+
+              <div className="text-center mb-6">
+                <span className="text-5xl font-bold text-gray-900">{plan.price}</span>
+                {plan.price > 0 && <span className="text-gray-500 ml-1">kr{plan.period}</span>}
+                {plan.price === 0 && <span className="text-gray-500 ml-1">kr</span>}
+              </div>
+              
+              <ul className="space-y-3 mb-6">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    {feature.included ? (
+                      <HiCheck className={`w-5 h-5 flex-shrink-0 mt-0.5 ${feature.highlight ? 'text-brand' : 'text-green-500'}`} />
+                    ) : (
+                      <HiX className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" />
+                    )}
+                    <span className={`text-sm ${feature.included ? (feature.highlight ? 'text-gray-900 font-medium' : 'text-gray-700') : 'text-gray-400'}`}>
+                      {feature.text}
+                      {feature.note && <span className="text-gray-400 ml-1">({feature.note})</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href={plan.ctaLink}
+                className={`block w-full text-center py-3 rounded-xl font-semibold transition ${
+                  plan.popular 
+                    ? 'bg-brand text-white hover:bg-brand-dark' 
+                    : plan.id === 'premium'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                }`}
+              >
+                {plan.cta}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* FAQ Section */}
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-8">Vanliga frågor</h2>
+          
+          <div className="space-y-4">
+            <details className="bg-white rounded-xl border p-4 group">
+              <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                Vad händer efter 3 gratis bokningar?
+                <span className="text-brand group-open:rotate-180 transition">▼</span>
+              </summary>
+              <p className="mt-3 text-gray-600 text-sm">
+                Du kan fortfarande ta emot bokningar, men de blir låsta tills du uppgraderar. 
+                Du ser att du har nya bokningar, men kan inte se kundernas information förrän du prenumererar.
+              </p>
+            </details>
+
+            <details className="bg-white rounded-xl border p-4 group">
+              <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                Varför är telefonnumret delvis dolt?
+                <span className="text-brand group-open:rotate-180 transition">▼</span>
+              </summary>
+              <p className="mt-3 text-gray-600 text-sm">
+                För gratisanvändare visas telefonnumret som 07X XXX XX XX för att skydda din integritet. 
+                Kunder kan fortfarande boka direkt via plattformen. Uppgradera till Pro för att visa hela numret.
+              </p>
+            </details>
+
+            <details className="bg-white rounded-xl border p-4 group">
+              <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                Kan jag avbryta när som helst?
+                <span className="text-brand group-open:rotate-180 transition">▼</span>
+              </summary>
+              <p className="mt-3 text-gray-600 text-sm">
+                Ja! Du kan avbryta din prenumeration när som helst. Du behåller tillgång till alla funktioner 
+                fram till slutet av din betalda period.
+              </p>
+            </details>
+
+            <details className="bg-white rounded-xl border p-4 group">
+              <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
+                Vad är skillnaden mellan Pro och Premium?
+                <span className="text-brand group-open:rotate-180 transition">▼</span>
+              </summary>
+              <p className="mt-3 text-gray-600 text-sm">
+                Pro ger dig obegränsade bokningar och full telefonnummervisning. 
+                Premium ger dig dessutom möjlighet att skapa kampanjer och rabatter, 
+                samt prioriterad placering i sökresultaten så fler kunder hittar dig.
+              </p>
+            </details>
           </div>
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">Har du frågor om våra priser?</p>
-          <Link href="/kontakt" className="text-blue-600 hover:underline font-medium">
-            Kontakta oss så hjälper vi dig
+          <p className="text-gray-600 mb-4">Har du fler frågor?</p>
+          <Link href="/kontakt" className="text-brand hover:text-brand-dark font-medium">
+            Kontakta oss så hjälper vi dig →
           </Link>
         </div>
       </div>
