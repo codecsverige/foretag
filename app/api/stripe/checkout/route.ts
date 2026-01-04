@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, STRIPE_PRICES, getBaseUrl } from '@/lib/stripe'
-import { adminDb } from '@/lib/firebase-admin'
+import Stripe from 'stripe'
+
+// Initialize Stripe directly in this file to avoid import issues
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2023-10-16',
+})
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('STRIPE_SECRET_KEY is not set')
+      return NextResponse.json(
+        { error: 'Stripe is not configured' },
+        { status: 500 }
+      )
+    }
+
     const { userId, userEmail, planId } = await request.json()
 
     if (!userId || !userEmail || !planId) {
@@ -14,30 +27,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the price ID for the selected plan
-    const priceId = planId === 'pro' ? STRIPE_PRICES.pro : STRIPE_PRICES.premium
+    const priceId = planId === 'pro' 
+      ? process.env.STRIPE_PRO_PRICE_ID 
+      : process.env.STRIPE_PREMIUM_PRICE_ID
 
     if (!priceId) {
+      console.error('Price ID not found for plan:', planId)
       return NextResponse.json(
         { error: 'Invalid plan selected' },
         { status: 400 }
       )
     }
 
-    const baseUrl = getBaseUrl()
-
-    // Check if user already has a Stripe customer ID
-    let customerId: string | undefined
-
-    if (adminDb) {
-      const userDoc = await adminDb.collection('users').doc(userId).get()
-      const userData = userDoc.data()
-      customerId = userData?.stripeCustomerId
-    }
+    // Get base URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : userEmail,
+      customer_email: userEmail,
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
