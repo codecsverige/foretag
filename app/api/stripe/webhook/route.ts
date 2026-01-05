@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { stripe } from '@/lib/stripe'
+import { adminDb } from '@/lib/firebase-admin'
 import Stripe from 'stripe'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-12-15.clover',
-})
 
 export const runtime = 'nodejs'
 
@@ -32,33 +30,32 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        console.log('Checkout completed for user:', session.metadata?.userId)
-        console.log('Plan:', session.metadata?.planId)
         // TODO: Update user plan in database when Firebase Admin is configured
+        await handleCheckoutCompleted(session)
         break
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
-        console.log('Subscription updated:', subscription.id)
+        await handleSubscriptionUpdated(subscription)
         break
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
-        console.log('Subscription deleted:', subscription.id)
+        await handleSubscriptionDeleted(subscription)
         break
       }
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log('Payment succeeded for invoice:', invoice.id)
+        await handlePaymentSucceeded(invoice)
         break
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log('Payment failed for invoice:', invoice.id)
+        await handlePaymentFailed(invoice)
         break
       }
 
@@ -71,4 +68,173 @@ export async function POST(request: NextRequest) {
     console.error('Webhook processing error:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
+}
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (!adminDb) {
+    console.error('Firebase Admin not initialized')
+    return
+  }
+
+  const userId = session.metadata?.userId
+  const planId = session.metadata?.planId
+
+  if (!userId || !planId) {
+    console.error('Missing metadata in checkout session')
+    return
+  }
+
+  if (!session.subscription) {
+    console.error('Missing subscription on checkout session')
+    return
+  }
+
+  const subscriptionResponse = await stripe.subscriptions.retrieve(
+    session.subscription as string
+  )
+
+  const subscription =
+    (subscriptionResponse as any).data ?? (subscriptionResponse as any)
+
+  const customerIdFromSession =
+    typeof session.customer === 'string'
+      ? session.customer
+      : session.customer?.id
+
+  const customerIdFromSubscription =
+    typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id
+
+  const customerId = customerIdFromSession || customerIdFromSubscription
+
+  if (!customerId) {
+    console.error('Missing customer ID on checkout session/subscription')
+    return
+  }
+
+  const firstItem = subscription.items?.data?.[0]
+  const periodStart = firstItem?.current_period_start
+  const periodEnd = firstItem?.current_period_end
+
+  const userUpdate: Record<string, any> = {
+    plan: planId,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscription.id,
+    subscriptionStatus: subscription.status,
+    updatedAt: new Date(),
+  }
+
+  if (periodStart != null) {
+    userUpdate.subscriptionStart = new Date(periodStart * 1000)
+  }
+
+  if (periodEnd != null) {
+    userUpdate.subscriptionEnd = new Date(periodEnd * 1000)
+  }
+
+  await adminDb.collection('users').doc(userId).set(userUpdate, { merge: true })
+
+  console.log(`User ${userId} upgraded to ${planId}`)
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  if (!adminDb) return
+
+  const userId = subscription.metadata?.userId
+
+  if (!userId) {
+    const usersSnapshot = await adminDb
+      .collection('users')
+      .where('stripeCustomerId', '==', subscription.customer)
+      .limit(1)
+      .get()
+
+    if (usersSnapshot.empty) {
+      console.error('User not found for subscription update')
+      return
+    }
+
+    const userDoc = usersSnapshot.docs[0]
+    await updateUserSubscription(userDoc.id, subscription)
+  } else {
+    await updateUserSubscription(userId, subscription)
+  }
+}
+
+async function updateUserSubscription(
+  userId: string,
+  subscription: Stripe.Subscription
+) {
+  if (!adminDb) return
+
+  const planId =
+    subscription.metadata?.planId ||
+    (subscription.items.data[0]?.price.id === process.env.STRIPE_PRO_PRICE_ID
+      ? 'pro'
+      : 'premium')
+
+  const periodEnd = subscription.items.data[0]?.current_period_end
+
+  const userUpdate: Record<string, any> = {
+    plan:
+      subscription.status === 'active' || subscription.status === 'trialing'
+        ? planId
+        : 'free',
+    subscriptionStatus: subscription.status,
+    updatedAt: new Date(),
+  }
+
+  if (periodEnd != null) {
+    userUpdate.subscriptionEnd = new Date(periodEnd * 1000)
+  }
+
+  await adminDb.collection('users').doc(userId).set(userUpdate, { merge: true })
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  if (!adminDb) return
+
+  const userId = subscription.metadata?.userId
+
+  if (!userId) {
+    const usersSnapshot = await adminDb
+      .collection('users')
+      .where('stripeSubscriptionId', '==', subscription.id)
+      .limit(1)
+      .get()
+
+    if (!usersSnapshot.empty) {
+      const userDoc = usersSnapshot.docs[0]
+      await downgradeUser(userDoc.id)
+    }
+  } else {
+    await downgradeUser(userId)
+  }
+}
+
+async function downgradeUser(userId: string) {
+  if (!adminDb) return
+
+  await adminDb
+    .collection('users')
+    .doc(userId)
+    .set(
+      {
+        plan: 'free',
+        subscriptionStatus: 'canceled',
+        updatedAt: new Date(),
+      },
+      { merge: true }
+    )
+
+  console.log(`User ${userId} downgraded to free`)
+}
+
+async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  console.log(`Payment succeeded for invoice ${invoice.id}`)
+}
+
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  console.log(`Payment failed for invoice ${invoice.id}`)
 }
