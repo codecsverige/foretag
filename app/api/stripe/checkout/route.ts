@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
-
-// Initialize Stripe directly in this file to avoid import issues
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-12-15.clover',
-})
+import { getStripe } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +37,8 @@ export async function POST(request: NextRequest) {
     // Get base URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+    const stripe = getStripe()
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({

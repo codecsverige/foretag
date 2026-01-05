@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { HiCheckCircle, HiSparkles } from 'react-icons/hi'
 import confetti from 'canvas-confetti'
 
-export default function SubscriptionSuccessPage() {
+function SubscriptionSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -120,5 +120,24 @@ export default function SubscriptionSuccessPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+function SubscriptionSuccessFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-600">Laddar...</p>
+      </div>
+    </div>
+  )
+}
+
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={<SubscriptionSuccessFallback />}>
+      <SubscriptionSuccessContent />
+    </Suspense>
   )
 }

@@ -1,9 +1,23 @@
 import Stripe from 'stripe'
 
 // Initialize Stripe with secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
-})
+let stripeClient: Stripe | null = null
+
+export function getStripe() {
+  if (stripeClient) return stripeClient
+
+  const secretKey = process.env.STRIPE_SECRET_KEY
+
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not set')
+  }
+
+  stripeClient = new Stripe(secretKey, {
+    apiVersion: '2025-12-15.clover',
+  })
+
+  return stripeClient
+}
 
 // Price IDs from Stripe Dashboard
 export const STRIPE_PRICES = {

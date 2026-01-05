@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import Stripe from 'stripe'
 
@@ -11,6 +11,15 @@ export async function POST(request: NextRequest) {
 
   if (!signature) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
+  }
+
+  let stripe: ReturnType<typeof getStripe>
+
+  try {
+    stripe = getStripe()
+  } catch (error: any) {
+    console.error('Stripe is not configured:', error?.message || error)
+    return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
   }
 
   let event: Stripe.Event
@@ -88,6 +97,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     console.error('Missing subscription on checkout session')
     return
   }
+
+  const stripe = getStripe()
 
   const subscriptionResponse = await stripe.subscriptions.retrieve(
     session.subscription as string

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, getBaseUrl } from '@/lib/stripe'
+import { getStripe, getBaseUrl } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 
 export async function POST(request: NextRequest) {
@@ -32,6 +32,18 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = getBaseUrl()
+
+    let stripe: ReturnType<typeof getStripe>
+
+    try {
+      stripe = getStripe()
+    } catch (error: any) {
+      console.error('Stripe is not configured:', error?.message || error)
+      return NextResponse.json(
+        { error: 'Stripe is not configured' },
+        { status: 500 }
+      )
+    }
 
     // Create billing portal session
     const session = await stripe.billingPortal.sessions.create({
