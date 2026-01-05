@@ -56,6 +56,10 @@ interface Booking {
 interface UserData {
   displayName?: string; email?: string; photoURL?: string; createdAt?: any
   plan?: 'free' | 'pro' | 'premium'
+  subscriptionEnd?: any
+  subscriptionStatus?: string
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
 }
 
 type TabType = 'overview' | 'companies' | 'bookings' | 'analytics' | 'subscription' | 'settings'
