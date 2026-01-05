@@ -7,7 +7,28 @@ export const metadata: Metadata = {
   description: 'Se våra prisnivåer för företag. Kom igång gratis och betala bara när du får kunder.',
 }
 
-const plans = [
+type PlanFeature = {
+  text: string
+  included: boolean
+  note?: string
+  highlight?: boolean
+}
+
+type Plan = {
+  id: 'free' | 'pro' | 'premium'
+  name: string
+  price: number
+  period: string
+  description: string
+  badge: string | null
+  features: PlanFeature[]
+  cta: string
+  ctaLink: string
+  popular: boolean
+  color: string
+}
+
+const plans: Plan[] = [
   {
     id: 'free',
     name: 'Gratis',
