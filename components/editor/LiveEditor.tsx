@@ -10,6 +10,7 @@ import EditableServices from './sections/EditableServices'
 import EditableAbout from './sections/EditableAbout'
 import EditableContact from './sections/EditableContact'
 import PreviewMode from './PreviewMode'
+import EditableFAQ from './sections/EditableFAQ'
 
 interface LiveEditorProps {
   company: any
@@ -119,6 +120,13 @@ export default function LiveEditor({ company, onUpdate }: LiveEditorProps) {
               isActive={activeSection === 'about'}
               onActivate={() => setActiveSection('about')}
               onUpdate={handleUpdate}
+            />
+
+            <EditableFAQ
+              faqs={currentData.faqs || []}
+              isActive={activeSection === 'faq'}
+              onActivate={() => setActiveSection('faq')}
+              onUpdate={(faqs) => handleUpdate('faqs', faqs)}
             />
 
             {/* Contact Section */}

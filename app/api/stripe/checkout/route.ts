@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Stripe is configured
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('STRIPE_SECRET_KEY is not set')
-      return NextResponse.json(
-        { error: 'Stripe is not configured' },
-        { status: 500 }
-      )
-    }
-
     const { userId, userEmail, planId } = await request.json()
 
     if (!userId || !userEmail || !planId) {
@@ -21,18 +12,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the price ID for the selected plan
-    const priceId = planId === 'pro' 
-      ? process.env.STRIPE_PRO_PRICE_ID 
-      : process.env.STRIPE_PREMIUM_PRICE_ID
-
-    if (!priceId) {
-      console.error('Price ID not found for plan:', planId)
-      return NextResponse.json(
-        { error: 'Invalid plan selected' },
-        { status: 400 }
-      )
-    }
+    // Get the price ID for the selected plan (uses fallback values from lib/stripe.ts)
+    const priceId = planId === 'pro' ? STRIPE_PRICES.pro : STRIPE_PRICES.premium
 
     // Get base URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 

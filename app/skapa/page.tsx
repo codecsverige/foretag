@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { db, storage } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed, HiEye, HiSave, HiX } from 'react-icons/hi'
+import { HiPlus, HiTrash, HiCheck, HiExclamationCircle, HiLockClosed, HiEye, HiSave, HiX, HiArrowLeft, HiPhone, HiMail, HiGlobe, HiLocationMarker, HiClock } from 'react-icons/hi'
 
 const categories = [
   { 
@@ -17,6 +17,7 @@ const categories = [
     emoji: '🧼',
     subServices: [
       { id: 'hemstadning', name: 'Hemstädning' },
+      { id: 'storstadning', name: 'Storstädning' },
       { id: 'flyttstadning', name: 'Flyttstädning' },
       { id: 'kontorsstadning', name: 'Kontorsstädning' },
       { id: 'trappstadning', name: 'Trappstädning' },
@@ -30,6 +31,7 @@ const categories = [
     emoji: '🚚',
     subServices: [
       { id: 'flytthjalp', name: 'Flytthjälp' },
+      { id: 'packning', name: 'Packning' },
       { id: 'flytt-stadning', name: 'Flytt med städning' },
       { id: 'transport', name: 'Transport småjobb' },
       { id: 'bortforsling', name: 'Bortforsling' },
@@ -81,6 +83,13 @@ const paymentMethods = [
   { id: 'kontant', name: 'Kontant', icon: '💵' },
 ]
 
+interface ServiceOption {
+  id: string
+  name: string
+  price: string
+  included: boolean // true = inclus dans le prix, false = supplément
+}
+
 interface Service {
   id: string
   name: string
@@ -91,6 +100,7 @@ interface Service {
   duration: string
   durationFlexible: boolean
   description: string
+  options: ServiceOption[]
 }
 
 const defaultOpeningHours = {
@@ -162,7 +172,7 @@ export default function CreatePage() {
   
   // Services
   const [services, setServices] = useState<Service[]>([
-    { id: '1', name: '', category: '', priceType: 'fixed', price: '', priceMax: '', duration: '', durationFlexible: false, description: '' }
+    { id: '1', name: '', category: '', priceType: 'fixed', price: '', priceMax: '', duration: '', durationFlexible: false, description: '', options: [] }
   ])
   const [openingHours, setOpeningHours] = useState(defaultOpeningHours)
 
@@ -232,7 +242,7 @@ export default function CreatePage() {
   const addService = () => {
     setServices([
       ...services,
-      { id: Date.now().toString(), name: '', category: '', priceType: 'fixed', price: '', priceMax: '', duration: '', durationFlexible: false, description: '' }
+      { id: Date.now().toString(), name: '', category: '', priceType: 'fixed', price: '', priceMax: '', duration: '', durationFlexible: false, description: '', options: [] }
     ])
   }
 
@@ -244,6 +254,51 @@ export default function CreatePage() {
 
   const updateService = (id: string, field: keyof Service, value: any) => {
     setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s))
+  }
+
+  // Check if service name already exists (for duplicate prevention)
+  const isServiceNameDuplicate = (name: string, currentId: string) => {
+    const normalizedName = name.trim().toLowerCase()
+    return services.some(s => s.id !== currentId && s.name.trim().toLowerCase() === normalizedName)
+  }
+
+  // Add option to a service
+  const addServiceOption = (serviceId: string) => {
+    setServices(services.map(s => {
+      if (s.id === serviceId) {
+        return {
+          ...s,
+          options: [...s.options, { id: Date.now().toString(), name: '', price: '', included: false }]
+        }
+      }
+      return s
+    }))
+  }
+
+  // Remove option from a service
+  const removeServiceOption = (serviceId: string, optionId: string) => {
+    setServices(services.map(s => {
+      if (s.id === serviceId) {
+        return {
+          ...s,
+          options: s.options.filter(o => o.id !== optionId)
+        }
+      }
+      return s
+    }))
+  }
+
+  // Update option in a service
+  const updateServiceOption = (serviceId: string, optionId: string, field: keyof ServiceOption, value: any) => {
+    setServices(services.map(s => {
+      if (s.id === serviceId) {
+        return {
+          ...s,
+          options: s.options.map(o => o.id === optionId ? { ...o, [field]: value } : o)
+        }
+      }
+      return s
+    }))
   }
 
   const updateHours = (day: string, field: string, value: string | boolean) => {
@@ -345,6 +400,11 @@ export default function CreatePage() {
           duration: s.durationFlexible ? null : (parseInt(s.duration) || 30),
           durationFlexible: s.durationFlexible,
           description: s.description || '',
+          options: s.options.filter(o => o.name.trim()).map(o => ({
+            name: o.name,
+            price: parseInt(o.price) || 0,
+            included: o.included
+          }))
         }))
 
       const selectedCat = categories.find(c => c.id === category)
@@ -491,102 +551,418 @@ export default function CreatePage() {
     )
   }
 
-  // Preview Modal - Complete preview of the ad before publishing
+  // Preview Modal - Complete preview of the ad EXACTLY as it will appear when published
   if (showPreview) {
     const selectedCat = categories.find(c => c.id === category)
     const previewImages = imageFiles.length > 0 ? imageFiles.map(f => URL.createObjectURL(f)) : []
+    const mainImage = previewImages[0] || null
+    const validServices = services.filter(s => s.name.trim())
+    
+    // Check what's missing for a complete profile
+    const missingItems: { label: string; step: number }[] = []
+    if (!name.trim()) missingItems.push({ label: 'Företagsnamn', step: 1 })
+    if (!category) missingItems.push({ label: 'Kategori', step: 1 })
+    if (serviceCities.length === 0) missingItems.push({ label: 'Serviceområden', step: 1 })
+    if (!description.trim() || description.length < 20) missingItems.push({ label: 'Beskrivning', step: 1 })
+    if (!phone.trim()) missingItems.push({ label: 'Telefonnummer', step: 2 })
+    if (validServices.length === 0) missingItems.push({ label: 'Minst en tjänst', step: 3 })
+    if (imageFiles.length === 0) missingItems.push({ label: 'Bilder (rekommenderat)', step: 2 })
     
     return (
-      <div className="min-h-screen bg-gray-50 py-6 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="bg-brand text-white p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold">👁️ Förhandsgranskning av din annons</h2>
-              <button onClick={() => setShowPreview(false)} className="text-white/80 hover:text-white text-xl">
-                ✕
-              </button>
+      <div className="min-h-screen bg-gray-100">
+        {/* Sticky Header with Actions */}
+        <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
+          <div className="max-w-6xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setShowPreview(false)} 
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
+                >
+                  <HiArrowLeft className="w-5 h-5" />
+                  <span className="font-medium">Tillbaka till redigering</span>
+                </button>
+                <div className="h-6 w-px bg-gray-300" />
+                <span className="text-sm text-gray-500 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                  Förhandsgranskningsläge
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleSubmit(true)}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition flex items-center gap-2"
+                >
+                  <span>💾</span> Spara utkast
+                </button>
+                <button
+                  onClick={() => { handleSubmit(false) }}
+                  disabled={isSubmitting || missingItems.filter(m => m.label !== 'Bilder (rekommenderat)').length > 0}
+                  className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Publicerar...
+                    </>
+                  ) : (
+                    <>🚀 Publicera nu</>
+                  )}
+                </button>
+              </div>
             </div>
-            
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-              {/* Images Preview */}
-              {previewImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {previewImages.map((img, i) => (
-                    <div key={i} className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
-                      <Image src={img} alt={`Bild ${i + 1}`} fill className="object-cover" />
+          </div>
+        </div>
+
+        {/* Missing Items Warning */}
+        {missingItems.length > 0 && (
+          <div className="bg-amber-50 border-b border-amber-200">
+            <div className="max-w-6xl mx-auto px-4 py-3">
+              <div className="flex items-start gap-3">
+                <HiExclamationCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    {missingItems.filter(m => m.label !== 'Bilder (rekommenderat)').length > 0 
+                      ? 'Följande krävs innan publicering:' 
+                      : 'Rekommendation för bättre synlighet:'}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {missingItems.map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setShowPreview(false); setStep(item.step) }}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-amber-300 text-amber-700 rounded-full text-sm hover:bg-amber-100 transition"
+                      >
+                        {item.label}
+                        <span className="text-xs text-amber-500">→ Steg {item.step}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* FULL PAGE PREVIEW - Exactly like the published company page */}
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {/* Hero Section with Images */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
+            {/* Main Image / Gallery */}
+            <div className="relative h-64 md:h-80 bg-gradient-to-br from-gray-200 to-gray-300">
+              {mainImage ? (
+                <Image src={mainImage} alt={name || 'Preview'} fill className="object-cover" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <span className="text-6xl">{selectedCat?.emoji || '🏢'}</span>
+                    <p className="text-gray-500 mt-2">Lägg till bilder för bättre synlighet</p>
+                  </div>
+                </div>
+              )}
+              {previewImages.length > 1 && (
+                <div className="absolute bottom-4 right-4 flex gap-2">
+                  {previewImages.slice(1, 4).map((img, i) => (
+                    <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white shadow-lg">
+                      <Image src={img} alt={`Bild ${i + 2}`} width={64} height={64} className="object-cover w-full h-full" />
+                    </div>
+                  ))}
+                  {previewImages.length > 4 && (
+                    <div className="w-16 h-16 rounded-lg bg-black/60 flex items-center justify-center text-white font-bold border-2 border-white">
+                      +{previewImages.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Premium Badge Preview */}
+              <div className="absolute top-4 left-4 flex gap-2">
+                <span className="px-3 py-1 bg-white/90 backdrop-blur rounded-full text-sm font-medium text-gray-700 shadow">
+                  {selectedCat?.emoji} {selectedCat?.name || 'Kategori'}
+                </span>
+              </div>
+            </div>
+
+            {/* Company Header */}
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row md:items-start gap-6">
+                {/* Logo & Name */}
+                <div className="flex items-start gap-4 flex-1">
+                  {logoPreview ? (
+                    <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover border-2 border-gray-100 shadow-sm" />
+                  ) : (
+                    <div className="w-20 h-20 bg-gradient-to-br from-brand/20 to-blue-100 rounded-xl flex items-center justify-center text-4xl shadow-sm">
+                      {selectedCat?.emoji || '🏢'}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{name || 'Ditt Företagsnamn'}</h1>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <HiLocationMarker className="w-4 h-4 text-brand" />
+                        {serviceCities.length > 0 ? serviceCities.slice(0, 3).join(', ') : 'Ange städer'}
+                        {serviceCities.length > 3 && ` +${serviceCities.length - 3}`}
+                      </span>
+                      {orgNumber && (
+                        <span className="text-gray-400">Org.nr: {orgNumber}</span>
+                      )}
+                    </div>
+                    {/* Trust Badges */}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {rutAvdrag && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          ✓ RUT-avdrag
+                        </span>
+                      )}
+                      {rotAvdrag && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          ✓ ROT-avdrag
+                        </span>
+                      )}
+                      {hasInsurance && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                          🛡️ Försäkrad
+                        </span>
+                      )}
+                      {guarantee && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                          ⭐ Garanti
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Buttons Preview */}
+                <div className="flex flex-col gap-2 md:w-48">
+                  <button className="w-full py-3 bg-brand text-white rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-brand/30">
+                    <HiPhone className="w-5 h-5" />
+                    Ring {phone ? phone.substring(0, 6) + '...' : 'XXX XXX XX XX'}
+                  </button>
+                  <button className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium flex items-center justify-center gap-2">
+                    📅 Boka tid
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* About Section */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center">📝</span>
+                  Om oss
+                </h2>
+                <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">
+                  {description || 'Lägg till en beskrivning av ditt företag för att berätta för kunder vad ni gör och vad som gör er unika.'}
+                </p>
+                
+                {/* Owner Info */}
+                {ownerName && (
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl">
+                        👤
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{ownerName}</p>
+                        <p className="text-sm text-gray-500">Ägare</p>
+                      </div>
+                    </div>
+                    {ownerBio && <p className="mt-3 text-sm text-gray-600">{ownerBio}</p>}
+                  </div>
+                )}
+              </div>
+
+              {/* Services Section */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center">💼</span>
+                  Tjänster & Priser
+                  <span className="ml-auto text-sm font-normal text-gray-500">{validServices.length} tjänster</span>
+                </h2>
+                
+                {validServices.length > 0 ? (
+                  <div className="space-y-3">
+                    {validServices.map((s, i) => (
+                      <div key={s.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-gray-900">{s.name}</h3>
+                              {s.category && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{s.category}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <HiClock className="w-4 h-4" />
+                                {s.durationFlexible ? 'Tid varierar' : `${s.duration || 30} min`}
+                              </span>
+                            </div>
+                            {s.description && (
+                              <p className="text-sm text-gray-600 mt-2">{s.description}</p>
+                            )}
+                            {/* Options Display */}
+                            {s.options && s.options.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <p className="text-xs font-medium text-gray-500 mb-2">Tillval & alternativ:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {s.options.map((opt, idx) => (
+                                    <span
+                                      key={idx}
+                                      className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+                                        opt.included ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-700'
+                                      }`}
+                                    >
+                                      {opt.included ? '✓' : '+'} {opt.name}
+                                      {!opt.included && opt.price && <span className="font-medium">+{opt.price} kr</span>}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xl font-bold text-gray-900">
+                              {s.priceType === 'quote' ? (
+                                <span className="text-base text-gray-600">Enligt offert</span>
+                              ) : s.priceType === 'range' ? (
+                                `${s.price}-${s.priceMax} kr`
+                              ) : (
+                                `${s.price} kr`
+                              )}
+                            </span>
+                            <button className="mt-2 block w-full py-2 px-4 bg-brand text-white text-sm rounded-lg font-medium">
+                              Boka
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <p className="text-gray-500">Lägg till tjänster för att visa dem här</p>
+                    <button
+                      onClick={() => { setShowPreview(false); setStep(3) }}
+                      className="mt-2 text-brand font-medium hover:underline"
+                    >
+                      + Lägg till tjänst
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Opening Hours */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center">🕐</span>
+                  Öppettider
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                  {Object.entries(openingHours).map(([day, hours]) => (
+                    <div 
+                      key={day} 
+                      className={`p-3 rounded-xl text-center ${
+                        hours.closed 
+                          ? 'bg-gray-50 text-gray-400' 
+                          : 'bg-green-50 text-green-700 border border-green-200'
+                      }`}
+                    >
+                      <p className="font-semibold text-sm">{dayNames[day].substring(0, 3)}</p>
+                      <p className="text-xs mt-1">
+                        {hours.closed ? 'Stängt' : `${hours.open}-${hours.close}`}
+                      </p>
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
+            </div>
 
-              {/* Company Header */}
-              <div className="flex items-start gap-4 pb-4 border-b">
-                {logoPreview ? (
-                  <Image src={logoPreview} alt="Logo" width={80} height={80} className="rounded-xl object-cover" />
-                ) : (
-                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center text-3xl">
-                    {selectedCat?.emoji || '🏢'}
+            {/* Right Column - Sidebar */}
+            <div className="space-y-6">
+              {/* Contact Card */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4">📞 Kontaktuppgifter</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-10 h-10 bg-brand/10 rounded-lg flex items-center justify-center">
+                      <HiPhone className="w-5 h-5 text-brand" />
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Telefon</p>
+                      <p className="font-medium text-gray-900">{phone || 'Ej angiven'}</p>
+                    </div>
+                  </div>
+                  {email && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <HiMail className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">E-post</p>
+                        <p className="font-medium text-gray-900">{email}</p>
+                      </div>
+                    </div>
+                  )}
+                  {website && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                        <HiGlobe className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Hemsida</p>
+                        <p className="font-medium text-gray-900 truncate">{website}</p>
+                      </div>
+                    </div>
+                  )}
+                  {address && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                        <HiLocationMarker className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Adress</p>
+                        <p className="font-medium text-gray-900">{address}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Social Media */}
+                {(facebook || instagram) && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-2">Sociala medier</p>
+                    <div className="flex gap-2">
+                      {facebook && (
+                        <span className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium">
+                          📘 Facebook
+                        </span>
+                      )}
+                      {instagram && (
+                        <span className="px-3 py-2 bg-pink-50 text-pink-600 rounded-lg text-sm font-medium">
+                          📷 Instagram
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900">{name || 'Företagsnamn'}</h1>
-                  <p className="text-brand font-medium">{selectedCat?.name || 'Kategori'}</p>
-                  {orgNumber && <p className="text-sm text-gray-400 mt-1">Org.nr: {orgNumber}</p>}
-                </div>
-              </div>
-
-              {/* Description */}
-              {description && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">📝 Om företaget</h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{description}</p>
-                </div>
-              )}
-
-              {/* Location & Contact */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-3">📍 Plats & Kontakt</h3>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="text-gray-500">Städer:</span> <span className="font-medium">{serviceCities.join(', ') || 'Ej angiven'}</span></p>
-                    {address && <p><span className="text-gray-500">Adress:</span> <span className="font-medium">{address}</span></p>}
-                    <p><span className="text-gray-500">Telefon:</span> <span className="font-medium">{phone || 'Ej angiven'}</span></p>
-                    {email && <p><span className="text-gray-500">E-post:</span> <span className="font-medium">{email}</span></p>}
-                    {website && <p><span className="text-gray-500">Hemsida:</span> <span className="font-medium">{website}</span></p>}
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-3">ℹ️ Företagsinfo</h3>
-                  <div className="space-y-2 text-sm">
-                    {(rutAvdrag || rotAvdrag) && (
-                      <div className="flex gap-2 flex-wrap">
-                        {rutAvdrag && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">RUT-avdrag</span>}
-                        {rotAvdrag && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">ROT-avdrag</span>}
-                      </div>
-                    )}
-                    {hasInsurance && <p><span className="text-gray-500">Försäkring:</span> <span className="font-medium text-green-600">✓ {insuranceInfo || 'Ja'}</span></p>}
-                    {guarantee && <p><span className="text-gray-500">Garanti:</span> <span className="font-medium">{guarantee}</span></p>}
-                    {(facebook || instagram) && (
-                      <div className="flex gap-2 mt-2">
-                        {facebook && <span className="text-blue-600 text-xs">📘 Facebook</span>}
-                        {instagram && <span className="text-pink-600 text-xs">📷 Instagram</span>}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Payment Methods */}
               {selectedPaymentMethods.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">💳 Betalningsmetoder</h3>
-                  <div className="flex gap-2 flex-wrap">
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="font-bold text-gray-900 mb-3">💳 Betalning</h3>
+                  <div className="flex flex-wrap gap-2">
                     {selectedPaymentMethods.map(id => {
                       const method = paymentMethods.find(p => p.id === id)
                       return method ? (
-                        <span key={id} className="bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium">
+                        <span key={id} className="inline-flex items-center gap-1 px-3 py-2 bg-gray-50 rounded-lg text-sm">
                           {method.icon} {method.name}
                         </span>
                       ) : null
@@ -595,76 +971,70 @@ export default function CreatePage() {
                 </div>
               )}
 
-              {/* Services */}
-              {services.filter(s => s.name).length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">💼 Tjänster & Priser</h3>
-                  <div className="space-y-2">
-                    {services.filter(s => s.name).map(s => (
-                      <div key={s.id} className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{s.name}</p>
-                          {s.category && <p className="text-xs text-gray-500">{s.category}</p>}
-                          {s.description && <p className="text-sm text-gray-600 mt-1">{s.description}</p>}
-                          {(s.duration || s.durationFlexible) && (
-                            <p className="text-xs text-gray-400 mt-1">
-                              ⏱️ {s.durationFlexible ? 'Tid varierar' : `${s.duration} min`}
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-bold text-brand text-lg">
-                          {s.priceType === 'quote' ? 'Offert' : 
-                           s.priceType === 'range' ? `${s.price}-${s.priceMax} kr` : 
-                           `${s.price} kr`}
-                        </span>
-                      </div>
+              {/* Service Areas */}
+              {serviceCities.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="font-bold text-gray-900 mb-3">📍 Serviceområden</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {serviceCities.map(city => (
+                      <span key={city} className="px-3 py-1 bg-brand/10 text-brand rounded-full text-sm font-medium">
+                        {city}
+                      </span>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Opening Hours */}
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-3">🕐 Öppettider</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {Object.entries(openingHours).map(([day, hours]) => (
-                    <div key={day} className={`p-2 rounded-lg text-center text-sm ${hours.closed ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                      <p className="font-medium">{dayNames[day]}</p>
-                      <p>{hours.closed ? 'Stängt' : `${hours.open}-${hours.close}`}</p>
-                    </div>
-                  ))}
+              {/* Quick Edit Buttons */}
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border-2 border-dashed border-gray-200 p-4">
+                <p className="text-sm font-medium text-gray-700 mb-3">✏️ Snabbredigering</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { setShowPreview(false); setStep(1) }}
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition"
+                  >
+                    📋 Grundinfo
+                  </button>
+                  <button
+                    onClick={() => { setShowPreview(false); setStep(2) }}
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition"
+                  >
+                    📞 Kontakt
+                  </button>
+                  <button
+                    onClick={() => { setShowPreview(false); setStep(3) }}
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition"
+                  >
+                    💼 Tjänster
+                  </button>
+                  <button
+                    onClick={() => { setShowPreview(false); setStep(4) }}
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition"
+                  >
+                    🕐 Öppettider
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Action Buttons */}
-            <div className="p-4 bg-gray-50 border-t space-y-3">
-              <p className="text-center text-sm text-gray-600">
-                Granska din annons noggrant innan du publicerar
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition"
-                >
-                  ← Redigera
-                </button>
-                <button
-                  onClick={() => handleSubmit(true)}
-                  disabled={isSubmitting}
-                  className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-semibold hover:bg-amber-600 transition"
-                >
-                  💾 Spara utkast
-                </button>
-                <button
-                  onClick={() => { setShowPreview(false); handleSubmit(false) }}
-                  disabled={isSubmitting}
-                  className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition"
-                >
-                  {isSubmitting ? '...' : '🚀 Publicera'}
-                </button>
-              </div>
-            </div>
+        {/* Bottom Action Bar (Mobile) */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 lg:hidden">
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowPreview(false)}
+              className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold"
+            >
+              ✏️ Redigera
+            </button>
+            <button
+              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting || missingItems.filter(m => m.label !== 'Bilder (rekommenderat)').length > 0}
+              className="flex-1 py-3 bg-green-500 text-white rounded-xl font-semibold disabled:opacity-50"
+            >
+              {isSubmitting ? '...' : '🚀 Publicera'}
+            </button>
           </div>
         </div>
       </div>
@@ -1307,8 +1677,16 @@ export default function CreatePage() {
                             value={service.name}
                             onChange={(e) => updateService(service.id, 'name', e.target.value)}
                             placeholder="t.ex. Hemstädning"
-                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
+                            className={`w-full px-4 py-2.5 border-2 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300 ${
+                              isServiceNameDuplicate(service.name, service.id) ? 'border-amber-400 bg-amber-50' : 'border-gray-200'
+                            }`}
                           />
+                          {isServiceNameDuplicate(service.name, service.id) && (
+                            <p className="text-amber-600 text-xs mt-1 flex items-center gap-1">
+                              <HiExclamationCircle className="w-3 h-3" />
+                              Denna tjänst finns redan - välj ett unikt namn
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
@@ -1409,6 +1787,72 @@ export default function CreatePage() {
                             className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition hover:border-gray-300"
                           />
                         </div>
+                      </div>
+
+                      {/* Service Options Section */}
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-xs font-medium text-gray-600 flex items-center gap-2">
+                            <span>⚙️</span> Tillval & Alternativ
+                            <span className="text-gray-400 font-normal">(valfritt)</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => addServiceOption(service.id)}
+                            className="text-xs text-brand hover:text-brand-dark font-medium flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-brand/10 transition"
+                          >
+                            <HiPlus className="w-3 h-3" />
+                            Lägg till tillval
+                          </button>
+                        </div>
+                        
+                        {service.options.length > 0 && (
+                          <div className="space-y-2">
+                            {service.options.map((option) => (
+                              <div key={option.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <input
+                                  type="text"
+                                  value={option.name}
+                                  onChange={(e) => updateServiceOption(service.id, option.id, 'name', e.target.value)}
+                                  placeholder="Tillvalsnamn (t.ex. Fönsterputs)"
+                                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand outline-none"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    value={option.price}
+                                    onChange={(e) => updateServiceOption(service.id, option.id, 'price', e.target.value)}
+                                    placeholder="Pris"
+                                    className="w-20 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand outline-none"
+                                  />
+                                  <span className="text-xs text-gray-500">SEK</span>
+                                </div>
+                                <label className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${option.included ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={option.included}
+                                    onChange={(e) => updateServiceOption(service.id, option.id, 'included', e.target.checked)}
+                                    className="w-3 h-3 rounded border-gray-300 text-green-600"
+                                  />
+                                  {option.included ? 'Ingår' : 'Tillägg'}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => removeServiceOption(service.id, option.id)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                >
+                                  <HiTrash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {service.options.length === 0 && (
+                          <p className="text-xs text-gray-400 italic">
+                            Lägg till tillval som kunden kan välja, t.ex. "Fönsterputs +200 kr" eller "Strykning ingår"
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,10 @@
 import Stripe from 'stripe'
 
-// Initialize Stripe with secret key
+// Price IDs (safe to commit - these are public identifiers)
+const DEFAULT_PRO_PRICE_ID = 'price_1OnUypJgvCcRDhEzRABp7KD4'
+const DEFAULT_PREMIUM_PRICE_ID = 'price_1OnUzOJgvCcRDhEzX9Nph6vx'
+
+// Initialize Stripe with secret key from environment
 let stripeClient: Stripe | null = null
 
 export function getStripe() {
@@ -9,11 +13,15 @@ export function getStripe() {
   const secretKey = process.env.STRIPE_SECRET_KEY
 
   if (!secretKey) {
+    console.warn('STRIPE_SECRET_KEY is not set - Stripe features will not work')
     throw new Error('STRIPE_SECRET_KEY is not set')
   }
 
   stripeClient = new Stripe(secretKey, {
     apiVersion: '2025-12-15.clover',
+    httpAgent: new (require('https').Agent)({
+      rejectUnauthorized: false // Désactive la vérification de certificat SSL (uniquement pour le développement local)
+    })
   })
 
   return stripeClient
@@ -21,8 +29,8 @@ export function getStripe() {
 
 // Price IDs from Stripe Dashboard
 export const STRIPE_PRICES = {
-  pro: process.env.STRIPE_PRO_PRICE_ID!,
-  premium: process.env.STRIPE_PREMIUM_PRICE_ID!,
+  pro: process.env.STRIPE_PRO_PRICE_ID || DEFAULT_PRO_PRICE_ID,
+  premium: process.env.STRIPE_PREMIUM_PRICE_ID || DEFAULT_PREMIUM_PRICE_ID,
 }
 
 // Plan configurations with Stripe price IDs

@@ -5,12 +5,28 @@ import { HiClock, HiLocationMarker, HiPhone, HiMail, HiGlobe } from 'react-icons
 import ServiceCard from './ServiceCard'
 import ReviewSection from './ReviewSection'
 
+interface ServiceOption {
+  name: string
+  price: number
+  included: boolean
+}
+
 interface Service {
   name?: string
   price?: number
+  priceType?: 'fixed' | 'range' | 'quote'
+  priceMax?: number
   duration?: number
+  durationFlexible?: boolean
   description?: string
   category?: string
+  options?: ServiceOption[]
+}
+
+interface FAQItem {
+  id: string
+  question: string
+  answer: string
 }
 
 interface Review {
@@ -35,6 +51,10 @@ interface CompanyTabsProps {
   phone?: string
   email?: string
   website?: string
+  faqs?: FAQItem[]
+  cancellationPolicy?: string
+  terms?: string
+  privacyPolicy?: string
   requestedTab?: TabId
   requestedTabNonce?: number
   onBookService?: (service: Service) => void
@@ -44,6 +64,7 @@ interface CompanyTabsProps {
     about?: boolean
     reviews?: boolean
     contact?: boolean
+    faq?: boolean
   }
 }
 
@@ -57,7 +78,7 @@ const dayNames: Record<string, string> = {
   sunday: 'Söndag',
 }
 
-type TabId = 'services' | 'about' | 'reviews' | 'contact'
+type TabId = 'services' | 'about' | 'reviews' | 'contact' | 'faq'
 
 export default function CompanyTabs({
   services,
@@ -73,12 +94,16 @@ export default function CompanyTabs({
   phone,
   email,
   website,
+  faqs = [],
+  cancellationPolicy,
+  terms,
+  privacyPolicy,
   requestedTab,
   requestedTabNonce,
   onBookService = () => {},
   applyDiscount = (price: number) => price,
   hasDiscount = false,
-  visibleSections = { about: true, reviews: true, contact: true },
+  visibleSections = { about: true, reviews: true, contact: true, faq: true },
 }: CompanyTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('services')
   const [showHours, setShowHours] = useState(false)
@@ -87,6 +112,7 @@ export default function CompanyTabs({
   const aboutRef = useRef<HTMLDivElement | null>(null)
   const reviewsRef = useRef<HTMLDivElement | null>(null)
   const contactRef = useRef<HTMLDivElement | null>(null)
+  const faqRef = useRef<HTMLDivElement | null>(null)
 
   const scrollToSection = (tabId: TabId) => {
     const sectionMap: Record<TabId, { current: HTMLDivElement | null }> = {
@@ -94,6 +120,7 @@ export default function CompanyTabs({
       about: aboutRef,
       reviews: reviewsRef,
       contact: contactRef,
+      faq: faqRef,
     }
 
     const sectionRef = sectionMap[tabId]
@@ -123,6 +150,7 @@ export default function CompanyTabs({
     ...(visibleSections.contact ? [{ id: 'contact' as const, label: 'Kontakt' }] : []),
     ...(visibleSections.about ? [{ id: 'about' as const, label: 'Om' }] : []),
     ...(visibleSections.reviews ? [{ id: 'reviews' as const, label: 'Omdömen', count: reviewCount }] : []),
+    ...(visibleSections.faq && faqs.length > 0 ? [{ id: 'faq' as const, label: 'FAQ', count: faqs.length }] : []),
   ]
 
   // Group services by category
@@ -309,6 +337,30 @@ export default function CompanyTabs({
             {description && (
               <p className="text-gray-600 leading-relaxed whitespace-pre-line lg:text-sm">{description}</p>
             )}
+
+            {(cancellationPolicy || terms || privacyPolicy) && (
+              <div className="mt-4 space-y-3">
+                <h3 className="text-base lg:text-sm font-semibold text-gray-900">Policyer</h3>
+                {cancellationPolicy && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="font-medium text-gray-900 mb-1">Avbokningspolicy</div>
+                    <div className="text-sm text-gray-700 whitespace-pre-line">{cancellationPolicy}</div>
+                  </div>
+                )}
+                {terms && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="font-medium text-gray-900 mb-1">Villkor</div>
+                    <div className="text-sm text-gray-700 whitespace-pre-line">{terms}</div>
+                  </div>
+                )}
+                {privacyPolicy && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="font-medium text-gray-900 mb-1">Integritetspolicy</div>
+                    <div className="text-sm text-gray-700 whitespace-pre-line">{privacyPolicy}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -321,6 +373,20 @@ export default function CompanyTabs({
               reviewCount={reviewCount} 
               reviews={reviews}
             />
+          </div>
+        )}
+
+        {visibleSections.faq && faqs.length > 0 && (
+          <div ref={faqRef} id="faq-section" className="pt-6 border-t border-gray-200 px-4 sm:px-6">
+            <h2 className="text-xl lg:text-lg font-bold text-gray-900 mb-4">Frågor & Svar</h2>
+            <div className="space-y-3">
+              {faqs.map((f) => (
+                <div key={f.id} className="bg-gray-50 rounded-xl p-4">
+                  <div className="font-semibold text-gray-900 mb-1">{f.question}</div>
+                  <div className="text-sm text-gray-700 whitespace-pre-line">{f.answer}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

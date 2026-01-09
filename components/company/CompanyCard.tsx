@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { memo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { HiStar, HiLocationMarker, HiBadgeCheck, HiClock, HiPhone } from 'react-icons/hi'
+import { HiStar, HiLocationMarker, HiBadgeCheck, HiClock } from 'react-icons/hi'
 import { getCategoryImage, categoryNames } from '@/lib/categoryImages'
 import { getCompanyById } from '@/lib/companiesCache'
 
@@ -18,6 +18,8 @@ interface Company {
   reviewCount?: number
   image?: string
   images?: string[]
+  logo?: string
+  staffCount?: number
   priceFrom?: number
   discountPercent?: number
   discountText?: string
@@ -44,9 +46,10 @@ interface Company {
 interface CompanyCardProps {
   company: Company
   priority?: boolean
+  variant?: 'row' | 'grid'
 }
 
-function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
+function CompanyCardComponent({ company, priority = false, variant = 'row' }: CompanyCardProps) {
   const router = useRouter()
   const prefetched = useRef(false)
 
@@ -66,6 +69,7 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
   const locationLabel = [address?.trim(), city?.trim()].filter(Boolean).join(', ')
   const isNew = rating <= 0
   const topSubServices = (company.subServiceNames || []).slice(0, 2)
+  const staffCount = Number(company.staffCount || 0)
   const filledStars = reviewCount > 0 ? Math.round(rating) : 5
 
   // Calcul horaires d'ouverture
@@ -81,6 +85,28 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
     const now = new Date()
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
     return currentTime >= todayHours.open && currentTime <= todayHours.close
+  })()
+
+  const nextOpenInfo = (() => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayNamesSv = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag']
+    const now = new Date()
+    const nowStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    const todayIndex = now.getDay()
+
+    const canUseToday = Boolean(todayHours && !todayHours.closed && nowStr <= (todayHours?.close || '00:00'))
+    const startOffset = canUseToday ? 0 : 1
+
+    for (let offset = startOffset; offset < 7; offset++) {
+      const idx = (todayIndex + offset) % 7
+      const dayKey = days[idx]
+      const hours = company.openingHours?.[dayKey]
+      if (!hours || hours.closed) continue
+
+      const label = offset === 0 ? 'Idag' : (offset === 1 ? 'Imorgon' : `På ${dayNamesSv[idx]}`)
+      return { open: hours.open, label, offset }
+    }
+    return null
   })()
 
   const todayIso = new Date().toLocaleDateString('sv-SE')
@@ -131,6 +157,7 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
   const showStrike = hasDiscount && discountedFrom > 0 && originalFrom > 0 && discountedFrom < originalFrom
   
   const imageUrl: string = (company.image || company.images?.[0] || getCategoryImage(company.category, company.id))
+  const logoUrl: string = (company.logo || company.images?.[1] || imageUrl)
 
   // Texte d'état d'ouverture plus professionnel (Öppnar kl / Öppet till / Stängt idag)
   const openText: string = (() => {
@@ -147,16 +174,26 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
   const openTextClass = openText.startsWith('Öppet')
     ? 'text-green-700 font-medium'
     : (openText.startsWith('Stäng') ? 'text-red-600 font-medium' : 'text-gray-600')
+  const tiderTextClass = nextOpenInfo?.offset === 0 ? 'text-green-700 font-medium' : 'text-gray-600'
 
   // Formatage pro des prix en suédois (ex: 1 200)
   const formatKr = (n: number) => new Intl.NumberFormat('sv-SE').format(n)
   const hasMetaRight = Boolean(company.premium)
+  const isGrid = variant === 'grid'
+
+  // Description adaptable et professionnelle si aucune description n'est fournie
+  const rawDescription = (company.description || '').trim()
+  const looksBrokenDescription = /no such price|price_[a-z0-9]+/i.test(rawDescription)
+  const hasDescription = rawDescription.length > 0 && !looksBrokenDescription
+  const popularServicesText = topSubServices.length > 0 ? ` Populära tjänster: ${topSubServices.join(' · ')}.` : ''
+  const fallbackDescription = `Hitta och boka ${categoryName.toLowerCase()}${city ? ` i ${city}` : ''}. Jämför företag, läs omdömen och boka enkelt online.${popularServicesText}`
+  const descriptionText = hasDescription ? rawDescription : fallbackDescription
  
   return (
     <article
       itemScope
       itemType="https://schema.org/LocalBusiness"
-      className="group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 h-full flex flex-row cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+      className={`group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 h-full flex ${isGrid ? 'flex-col' : 'flex-row items-stretch'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30`}
       onMouseEnter={prefetch}
       onFocus={prefetch}
       onTouchStart={prefetch}
@@ -171,14 +208,14 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
       tabIndex={0}
       aria-label={`Öppna ${company.name}`}
     >
-      {/* Image - à gauche (horizontal) */}
-      <div className="relative w-36 sm:w-44 md:w-52 aspect-[4/3] overflow-hidden bg-gray-100 flex-shrink-0">
+      {/* Image */}
+      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-44 sm:w-56 md:w-72 aspect-[4/3] flex-shrink-0'}`}>
         <Image
           src={imageUrl}
           alt={company.name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className="object-cover brightness-[1.02] contrast-[1.05] group-hover:scale-105 transition-transform duration-500"
           loading={priority ? 'eager' : 'lazy'}
           priority={priority}
           quality={85}
@@ -191,7 +228,7 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
         {hasDiscount && (
           <div className="absolute top-3 left-3">
             <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md">
-              -{effectiveValue}{effectiveType === 'percent' ? '%' : ' kr'}
+              {effectiveType === 'percent' ? `-${effectiveValue}%` : 'Rabatt'}
             </span>
           </div>
         )}
@@ -216,111 +253,121 @@ function CompanyCardComponent({ company, priority = false }: CompanyCardProps) {
       </div>
 
       {/* Contenu */}
-      <div className="px-4 py-3 flex-1 flex flex-col min-h-[130px]">
-        {/* En-tête: Titre + meta à droite (statut, premium, CTA) */}
-        <div className={`flex items-start ${hasMetaRight ? 'justify-between' : ''} gap-3`}>
-          <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg sm:text-xl leading-tight line-clamp-2">
+      <div className={`px-4 md:px-6 py-3 md:py-4 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
+        {/* Titre */}
+        <div className="flex items-start justify-between gap-3">
+          <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg md:text-xl lg:text-2xl leading-tight line-clamp-2">
             <span className="inline-flex items-center gap-1.5">
               {company.name}
               {company.verified && (
-                <HiBadgeCheck className="w-4 h-4 text-blue-600" aria-label="Verifierad" />
+                <HiBadgeCheck className="w-5 h-5 md:w-6 md:h-6 text-blue-600" aria-label="Verifierad" />
               )}
             </span>
           </h3>
-          {company.premium && (
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
+        </div>
+
+        {/* Prix accessible uniquement (non affiché visuellement) */}
+        {originalFrom > 0 && (
+          <div className="sr-only">
+            <span>Från {formatKr(showStrike ? discountedFrom : originalFrom)} kr</span>
+          </div>
+        )}
+
+        {/* Bloc logo + infos (style Bokadirekt) */}
+        <div className="flex items-start md:items-center gap-3 md:gap-4 mt-3 md:mt-4">
+          {/* Petit logo carré */}
+          <div className="relative w-12 h-12 md:w-16 md:h-16 lg:w-18 lg:h-18 rounded-lg overflow-hidden bg-white flex-shrink-0 border border-gray-200">
+            <Image
+              src={logoUrl}
+              alt={`${company.name} logo`}
+              fill
+              sizes="(max-width: 768px) 56px, (max-width: 1024px) 64px, 72px"
+              className="object-contain p-1"
+              loading="lazy"
+            />
+          </div>
+
+          {/* Infos à droite du logo */}
+          <div className="flex-1 min-w-0 space-y-1 md:space-y-1.5">
+            {/* Adresse */}
+            <div className="flex items-center gap-1.5 text-gray-600 text-sm md:text-base">
+              <HiLocationMarker className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 text-brand/70" />
+              <span itemProp="address" className="truncate font-medium">{locationLabel || city}</span>
             </div>
-          )}
+
+            {/* Rating (style Bokadirekt: note + 5 étoiles + nombre betyg) */}
+            <div className="flex items-center gap-1.5 text-sm md:text-base">
+              {reviewCount > 0 ? (
+                <>
+                  <span className="font-bold text-gray-900">{rating.toFixed(1)}</span>
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <HiStar
+                        key={star}
+                        className={`w-3.5 h-3.5 md:w-4 md:h-4 ${star <= filledStars ? 'text-amber-400' : 'text-gray-200'}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs md:text-sm text-gray-500 font-medium">{reviewCount} betyg</span>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <HiStar key={star} className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-400" />
+                    ))}
+                  </div>
+                  <span className="text-sm md:text-base text-blue-600 font-semibold">Ny</span>
+                </>
+              )}
+              <div className="sr-only" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
+                <meta itemProp="ratingValue" content={rating.toFixed(1)} />
+                <meta itemProp="reviewCount" content={String(reviewCount)} />
+              </div>
+            </div>
+
+            {/* Horaires (style Bokadirekt: Tider fr. HH:MM, Idag) */}
+            {nextOpenInfo && (
+              <div className="flex items-center gap-1.5 text-sm md:text-base">
+                <HiClock className="w-4 h-4 md:w-5 md:h-5 text-brand/70 flex-shrink-0" />
+                <span className={tiderTextClass}>Tider fr. {nextOpenInfo.open}, {nextOpenInfo.label}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Prix sous le titre - masqué (affiché sur l'image) */}
-        <div className="mt-1 sr-only">
-          <span>Från {formatKr(showStrike ? discountedFrom : originalFrom)} kr</span>
-        </div>
+        {/* Description adaptée à toutes les catégories */}
+        {descriptionText && (
+          <p className={`mt-3 md:mt-4 text-sm md:text-base text-gray-700 leading-relaxed ${isGrid ? 'line-clamp-2' : 'line-clamp-2 md:line-clamp-3 lg:line-clamp-4'}`}>{descriptionText}</p>
+        )}
 
-        {/* Catégorie discrète + éventuelle offre */}
-        {(categoryName || showDiscountLabel) && (
-          <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+        {/* Badges en bas (style Bokadirekt: Qliro, Presentkort, Branschorg.) */}
+        {(categoryName || showDiscountLabel || topSubServices.length > 0 || staffCount > 0) && (
+          <div className={`${isGrid ? 'mt-3 md:mt-4' : 'mt-auto pt-3 md:pt-4'} flex flex-wrap gap-2 md:gap-3 items-center`}>
             {categoryName && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
+              <span className="inline-flex items-center px-3 py-1.5 md:py-2 rounded-full text-xs md:text-sm bg-brand/5 text-brand border border-brand/20 font-semibold">
                 {categoryName}
               </span>
             )}
             {showDiscountLabel && (
-              <span className="text-xs font-medium text-red-600 truncate max-w-[60%]">
+              <span className="inline-flex items-center px-3 py-1.5 md:py-2 rounded-full text-xs md:text-sm bg-red-50 text-red-600 border border-red-200 font-semibold">
                 {discountLabel}
               </span>
             )}
-          </div>
-        )}
-
-        {/* Adresse */}
-        <div className="flex items-center gap-1.5 text-gray-600 text-base mt-2">
-          <HiLocationMarker className="w-4 h-4 flex-shrink-0 text-gray-400" />
-          <span itemProp="address" className="truncate">{locationLabel || city}</span>
-        </div>
-
-        {company.phone && (
-          <div className="flex items-center gap-1.5 text-gray-600 text-sm mt-1">
-            <HiPhone className="w-4 h-4 flex-shrink-0 text-gray-400" />
-            <span className="truncate">{company.phone}</span>
-          </div>
-        )}
-
-        {/* Services clés (tags) */}
-        {topSubServices.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
             {topSubServices.map((s) => (
-              <span key={s} className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700 border border-gray-200">
+              <span key={s} className="inline-flex items-center px-3 py-1.5 md:py-2 rounded-full text-xs md:text-sm bg-gray-100 text-gray-700 border border-gray-200 font-medium">
                 {s}
               </span>
             ))}
-          </div>
-        )}
-
-        {/* Rating avec étoiles */}
-        <div className="flex items-center gap-2 mt-3">
-          <div className="flex items-center">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <HiStar
-                key={star}
-                className={`w-5 h-5 ${star <= filledStars ? 'text-amber-400' : 'text-gray-200'}`}
-              />
-            ))}
-          </div>
-          {reviewCount > 0 ? (
-            <>
-              <span className="text-sm font-semibold text-gray-900">{rating.toFixed(1)}</span>
-              <span className="text-xs text-gray-500">· {reviewCount} {reviewCount === 1 ? 'omdöme' : 'omdömen'}</span>
-            </>
-          ) : (
-            <span className="text-sm text-blue-600 font-medium">Ny</span>
-          )}
-          <div className="sr-only" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
-            <meta itemProp="ratingValue" content={rating.toFixed(1)} />
-            <meta itemProp="reviewCount" content={String(reviewCount)} />
-          </div>
-        </div>
-
-        {/* Horaires d'ouverture */}
-        {todayHours && (
-          <div className="flex items-center gap-2 mt-2 text-sm sm:text-base">
-            <HiClock className="w-4 h-4 text-gray-400" />
-            {!todayHours.closed ? (
-              <>
-                <span className={openTextClass}>{openText}</span>
-                <span className="text-xs sm:text-sm text-gray-500">· {todayHours.open} - {todayHours.close}</span>
-              </>
-            ) : (
-              <span className={openTextClass}>{openText}</span>
+            {staffCount > 0 && (
+              <span className="inline-flex items-center px-3 py-1.5 md:py-2 rounded-full text-xs md:text-sm bg-gray-100 text-gray-700 border border-gray-200 font-medium">
+                {staffCount} anställda
+              </span>
+            )}
+            {company.premium && (
+              <span className="inline-flex items-center px-3 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
             )}
           </div>
-        )}
-
-        {/* Description masquée sur la liste */}
-        {false && company.description && (
-          <p className="mt-2 text-sm text-gray-600 line-clamp-2">{company.description}</p>
         )}
       </div>
     </article>

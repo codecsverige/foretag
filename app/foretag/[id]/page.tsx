@@ -4,13 +4,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import Head from 'next/head'
 import { 
   HiArrowLeft, HiPhone, HiMail, HiLocationMarker, HiStar, HiShare,
   HiClock, HiCheckCircle, HiGlobe, HiCalendar, HiShieldCheck,
   HiChevronLeft, HiChevronRight, HiBadgeCheck, HiExternalLink,
   HiExclamationCircle, HiLockClosed
 } from 'react-icons/hi'
-import BookingFormWizard from '@/components/booking/BookingFormWizard'
+import dynamic from 'next/dynamic'
 import CompanyTabs from '@/components/company/CompanyTabs'
 import HeroGallery from '@/components/company/HeroGallery'
 import CompanyDetailSidebar from '@/components/company/CompanyDetailSidebar'
@@ -20,11 +21,30 @@ import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
 import { collection, getDocs, orderBy, query, doc, updateDoc, increment, getDoc } from 'firebase/firestore'
 
+const BookingFormWizard = dynamic(() => import('@/components/booking/BookingFormWizard'), { ssr: false })
+
+interface ServiceOption {
+  name: string
+  price: number
+  included: boolean
+}
+
 interface Service {
   name?: string
   price?: number
+  priceType?: 'fixed' | 'range' | 'quote'
+  priceMax?: number
   duration?: number
+  durationFlexible?: boolean
   description?: string
+  category?: string
+  options?: ServiceOption[]
+}
+
+interface FAQItem {
+  id: string
+  question: string
+  answer: string
 }
 
 interface Company {
@@ -39,6 +59,9 @@ interface Company {
   serviceCities?: string[]
   address?: string
   description?: string
+  seoTitle?: string
+  seoDescription?: string
+  slug?: string
   phone?: string
   email?: string
   website?: string
@@ -62,6 +85,7 @@ interface Company {
     showBadge?: boolean
   }
   services?: Service[]
+  faqs?: FAQItem[]
   status?: 'active' | 'draft' | 'archived'
   published?: boolean
   settings?: {
@@ -69,6 +93,7 @@ interface Company {
     showReviews?: boolean
     showMap?: boolean
     showContact?: boolean
+    showFAQ?: boolean
   }
   image?: string
   images?: string[]
@@ -88,6 +113,10 @@ interface Company {
   insuranceInfo?: string
   guarantee?: string
   orgNumber?: string
+  // Policies
+  cancellationPolicy?: string
+  terms?: string
+  privacyPolicy?: string
 }
 
 interface Review {
@@ -152,6 +181,14 @@ export default function CompanyPage() {
         if (mounted) {
           setCompany(data)
           setLoading(false)
+          
+          // Save to recently viewed
+          try {
+            const viewed = JSON.parse(localStorage.getItem('recentlyViewedCompanies') || '[]')
+            const filtered = viewed.filter((vid: string) => vid !== id)
+            const updated = [id, ...filtered].slice(0, 10)
+            localStorage.setItem('recentlyViewedCompanies', JSON.stringify(updated))
+          } catch {}
         }
 
         if (db) {
@@ -350,6 +387,69 @@ export default function CompanyPage() {
   const now = new Date()
   const today = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
   const todayHours = company.openingHours?.[today]
+  const metaTitle = (company.seoTitle || `${company.name} – ${categoryName} i ${company.city || 'Sverige'}`)
+  const metaDescription = (company.seoDescription || company.description || `${company.name} – ${categoryName}.`).slice(0, 160)
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const canonicalUrl = `${origin}/foretag/${company.slug || company.id}`
+  const siteName = typeof window !== 'undefined' ? window.location.hostname : 'Website'
+  const dayKeyToSchema: Record<string, string> = {
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+  }
+  const openingHoursSpecification = company.openingHours
+    ? Object.entries(company.openingHours).filter(([_, v]) => v && !v.closed).map(([k, v]) => ({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: dayKeyToSchema[k] || k,
+        opens: v.open,
+        closes: v.close,
+      }))
+    : undefined
+  const offers = (company.services || [])
+    .filter((s) => Number(s.price || 0) > 0)
+    .map((s) => ({
+      '@type': 'Offer',
+      priceCurrency: 'SEK',
+      price: Number(s.price || 0),
+      itemOffered: {
+        '@type': 'Service',
+        name: s.name,
+        description: s.description,
+      },
+    }))
+  const ldLocalBusiness: any = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: company.name,
+    image: images && images[0],
+    address: (company.address || company.city) ? {
+      '@type': 'PostalAddress',
+      streetAddress: company.address,
+      addressLocality: company.city,
+      addressCountry: 'SE',
+    } : undefined,
+    telephone: company.phone,
+    url: company.website,
+    openingHoursSpecification,
+    makesOffer: offers.length > 0 ? offers : undefined,
+  }
+  const faqsData = (company.faqs || []).filter((f: any) => f && f.question && f.answer)
+  const ldFAQ = faqsData.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqsData.map((f: any) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.answer,
+      },
+    })),
+  } : null
   
   // Check if currently open based on actual time
   const checkIsOpenNow = () => {
@@ -379,6 +479,7 @@ export default function CompanyPage() {
   const showReviews = company?.settings?.showReviews !== false
   const showMap = company?.settings?.showMap !== false
   const showContact = company?.settings?.showContact !== false
+  const showFAQ = company?.settings?.showFAQ !== false
 
   const handlePublish = async () => {
     if (!company || !user || !db) return
@@ -449,6 +550,23 @@ export default function CompanyPage() {
     return Math.max(0, Math.round(original * (100 - effectiveValue) / 100))
   }
 
+  // Compute OG image params after discount vars are initialized
+  const discountBadge = (() => {
+    if (!hasDiscount) return ''
+    const value = effectiveValue
+    const label = effectiveLabel
+    return (effectiveType === 'amount' ? `-${value} kr` : `-${value}%`) + (label ? ` ${label}` : '')
+  })()
+  const ogParams = new URLSearchParams({
+    n: company.name || '',
+    c: company.city || '',
+    r: reviewsRating ? reviewsRating.toFixed(1) : '',
+    rc: String(reviewsCount || 0),
+    d: discountBadge,
+    cat: categoryName,
+  })
+  const ogImage = `${canonicalUrl}/opengraph-image?${ogParams.toString()}`
+
   const discountedLowestPrice = hasDiscount && servicePrices.length > 0
     ? Math.min(...servicePrices.map((s) => applyDiscountToPrice(s.price, s.name)))
     : 0
@@ -457,6 +575,33 @@ export default function CompanyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Head>
+        <title>{metaTitle}</title>
+        {metaDescription && <meta name="description" content={metaDescription} />}
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:title" content={metaTitle} />
+        {metaDescription && <meta property="og:description" content={metaDescription} />}
+        {ogImage && <meta property="og:image" content={ogImage} />}        
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content={siteName} />
+        <meta property="og:locale" content="sv_SE" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        {metaDescription && <meta name="twitter:description" content={metaDescription} />}
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+        {ogImage && <meta name="twitter:image:alt" content={`${company.name} – ${categoryName}`} />}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ldLocalBusiness) }}
+        />
+        {ldFAQ && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(ldFAQ) }}
+          />
+        )}
+      </Head>
       {/* Top Navigation Bar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
@@ -570,6 +715,10 @@ export default function CompanyPage() {
                 rating={reviewsRating}
                 reviewCount={reviewsCount}
                 reviews={reviews}
+                faqs={company.faqs || []}
+                cancellationPolicy={company.cancellationPolicy}
+                terms={company.terms}
+                privacyPolicy={company.privacyPolicy}
                 openingHours={company.openingHours}
                 address={company.address}
                 city={company.city}
@@ -588,7 +737,8 @@ export default function CompanyPage() {
                 visibleSections={{
                   about: showAbout,
                   reviews: showReviews,
-                  contact: showContact
+                  contact: showContact,
+                  faq: showFAQ
                 }}
               />
             </div>

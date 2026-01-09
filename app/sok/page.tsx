@@ -3,9 +3,11 @@
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { HiSearch, HiAdjustments, HiX } from 'react-icons/hi'
 import { getCompanies } from '@/lib/companiesCache'
 import CompanyCard from '@/components/company/CompanyCard'
+import { getCategoryImage } from '@/lib/categoryImages'
 
 const categories = [
   { id: '', name: 'Alla kategorier', subServices: [] },
@@ -14,6 +16,7 @@ const categories = [
     name: 'Städning',
     subServices: [
       { id: 'hemstadning', name: 'Hemstädning' },
+      { id: 'storstadning', name: 'Storstädning' },
       { id: 'flyttstadning', name: 'Flyttstädning' },
       { id: 'kontorsstadning', name: 'Kontorsstädning' },
       { id: 'trappstadning', name: 'Trappstädning' },
@@ -26,6 +29,7 @@ const categories = [
     name: 'Flytt & Transport',
     subServices: [
       { id: 'flytthjalp', name: 'Flytthjälp' },
+      { id: 'packning', name: 'Packning' },
       { id: 'flytt-stadning', name: 'Flytt med städning' },
       { id: 'transport', name: 'Transport småjobb' },
       { id: 'bortforsling', name: 'Bortforsling' },
@@ -82,7 +86,12 @@ interface Company {
   description?: string
   verified?: boolean
   services?: Array<{ price?: number }>
+  subServices?: string[]
   subServiceNames?: string[]
+}
+
+function normalizeText(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
 function SearchContent() {
@@ -133,13 +142,13 @@ function SearchContent() {
     results = filtered.length > 0 ? filtered : results
     
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      results = results.filter(c => 
-        c.name?.toLowerCase().includes(query) ||
-        c.categoryName?.toLowerCase().includes(query) ||
-        c.description?.toLowerCase().includes(query) ||
-        c.city?.toLowerCase().includes(query) ||
-        c.subServiceNames?.some((s: string) => s.toLowerCase().includes(query))
+      const query = normalizeText(searchQuery)
+      results = results.filter(c =>
+        normalizeText(c.name || '').includes(query) ||
+        normalizeText(c.categoryName || '').includes(query) ||
+        normalizeText(c.description || '').includes(query) ||
+        normalizeText(c.city || '').includes(query) ||
+        c.subServiceNames?.some((s: string) => normalizeText(s).includes(query))
       )
     }
     
@@ -148,8 +157,10 @@ function SearchContent() {
     }
     
     if (selectedSubService) {
-      results = results.filter(c => 
-        c.subServiceNames?.some((s: string) => s.toLowerCase().includes(selectedSubService.toLowerCase()))
+      const sub = normalizeText(selectedSubService)
+      results = results.filter(c =>
+        (Array.isArray(c.subServices) && c.subServices.some((s) => normalizeText(s) === sub)) ||
+        c.subServiceNames?.some((s: string) => normalizeText(s).includes(sub))
       )
     }
     
@@ -160,12 +171,6 @@ function SearchContent() {
     switch (sortBy) {
       case 'rating':
         results.sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        break
-      case 'price_low':
-        results.sort((a, b) => (a.priceFrom || 0) - (b.priceFrom || 0))
-        break
-      case 'price_high':
-        results.sort((a, b) => (b.priceFrom || 0) - (a.priceFrom || 0))
         break
     }
     
@@ -257,8 +262,6 @@ function SearchContent() {
               >
                 <option value="newest">Senaste</option>
                 <option value="rating">Högst betyg</option>
-                <option value="price_low">Lägst pris</option>
-                <option value="price_high">Högst pris</option>
               </select>
             </div>
           </div>
@@ -299,8 +302,6 @@ function SearchContent() {
                 >
                   <option value="newest">Senaste</option>
                   <option value="rating">Högst betyg</option>
-                  <option value="price_low">Lägst pris</option>
-                  <option value="price_high">Högst pris</option>
                 </select>
               </div>
             </div>
@@ -310,7 +311,16 @@ function SearchContent() {
           {(selectedCategory || selectedCity || selectedSubService) && (
             <div className="flex flex-wrap gap-2 mt-3">
               {selectedCategory && (
-                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-sm">
+                <span className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm">
+                  <span className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-blue-100 flex-shrink-0">
+                    <Image
+                      src={getCategoryImage(selectedCategory)}
+                      alt={categories.find((c) => c.id === selectedCategory)?.name || 'Kategori'}
+                      fill
+                      sizes="28px"
+                      className="object-cover"
+                    />
+                  </span>
                   {categories.find((c) => c.id === selectedCategory)?.name}
                   <button onClick={() => handleCategoryChange('')} className="hover:text-blue-900">
                     <HiX className="w-4 h-4" />
@@ -318,7 +328,16 @@ function SearchContent() {
                 </span>
               )}
               {selectedSubService && (
-                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-sm">
+                <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm">
+                  <span className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-green-100 flex-shrink-0">
+                    <Image
+                      src={getCategoryImage(selectedSubService)}
+                      alt={currentCategorySubServices.find((s) => s.id === selectedSubService)?.name || 'Tjänst'}
+                      fill
+                      sizes="28px"
+                      className="object-cover"
+                    />
+                  </span>
                   {currentCategorySubServices.find((s) => s.id === selectedSubService)?.name}
                   <button onClick={() => setSelectedSubService('')} className="hover:text-green-900">
                     <HiX className="w-4 h-4" />
@@ -350,12 +369,23 @@ function SearchContent() {
                 <button
                   key={sub.id}
                   onClick={() => setSelectedSubService(selectedSubService === sub.id ? '' : sub.id)}
-                  className={`px-3 py-1.5 rounded-full text-sm transition ${
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition ${
                     selectedSubService === sub.id
                       ? 'bg-brand text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
+                  <span className={`relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${
+                    selectedSubService === sub.id ? 'ring-2 ring-white/50' : 'ring-1 ring-gray-200'
+                  }`}>
+                    <Image
+                      src={getCategoryImage(sub.id)}
+                      alt={sub.name}
+                      fill
+                      sizes="32px"
+                      className="object-cover"
+                    />
+                  </span>
                   {sub.name}
                 </button>
               ))}
@@ -367,14 +397,14 @@ function SearchContent() {
       {/* Results */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="grid grid-cols-1 gap-5">
+          <div className="flex flex-col gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
-                <div className="h-48 bg-gray-100"></div>
-                <div className="p-4">
-                  <div className="h-3 bg-gray-100 rounded w-1/4 mb-3"></div>
-                  <div className="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+              <div key={i} className="bg-white rounded-2xl border border-gray-200 overflow-hidden animate-pulse flex flex-row">
+                <div className="w-48 sm:w-60 md:w-80 aspect-[4/3] bg-gray-100 flex-shrink-0" />
+                <div className="px-4 py-3 flex-1">
+                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-3"></div>
+                  <div className="h-3 bg-gray-100 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-100 rounded w-1/4"></div>
                 </div>
               </div>
             ))}
@@ -389,9 +419,9 @@ function SearchContent() {
             </div>
 
             {companies.length > 0 ? (
-              <div className="grid grid-cols-1 gap-5">
+              <div className="flex flex-col gap-4">
                 {companies.map((company) => (
-                  <CompanyCard key={company.id} company={company} />
+                  <CompanyCard key={company.id} company={company} variant="row" />
                 ))}
               </div>
             ) : (

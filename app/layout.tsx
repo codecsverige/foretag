@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sv">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-slate-50 text-gray-900`}>
         <ReactQueryProvider>
           <AuthProvider>
             <div className="min-h-screen flex flex-col">

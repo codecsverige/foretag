@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { HiCog, HiEye, HiOfficeBuilding, HiPhotograph, HiTrash } from 'react-icons/hi'
+import { HiCog, HiEye, HiOfficeBuilding, HiPhotograph, HiTrash, HiSparkles, HiClock, HiPlus } from 'react-icons/hi'
 import Image from 'next/image'
 import { storage } from '@/lib/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
@@ -17,10 +17,44 @@ const allCities = [
 ]
 
 const paymentMethodOptions = [
-  { value: 'swish', label: 'Swish' },
-  { value: 'kort', label: 'Kort' },
-  { value: 'faktura', label: 'Faktura' },
-  { value: 'kontant', label: 'Kontant' }
+  { value: 'swish', label: '📱 Swish', icon: '📱' },
+  { value: 'kort', label: '💳 Kort', icon: '💳' },
+  { value: 'faktura', label: '📄 Faktura', icon: '📄' },
+  { value: 'kontant', label: '💵 Kontant', icon: '💵' },
+  { value: 'klarna', label: '🛒 Klarna', icon: '🛒' },
+]
+
+// Städ-specific features
+const stadFeatures = [
+  { id: 'eco_friendly', label: '🌿 Miljövänliga produkter', description: 'Vi använder miljövänliga städprodukter' },
+  { id: 'own_equipment', label: '🧹 Egen utrustning', description: 'Vi tar med all städutrustning' },
+  { id: 'flexible_booking', label: '📅 Flexibel bokning', description: 'Samma dag bokning möjlig' },
+  { id: 'satisfaction_guarantee', label: '✨ Nöjdhetsgaranti', description: 'Vi åtgärdar utan extra kostnad' },
+  { id: 'key_service', label: '🔑 Nyckelservice', description: 'Vi kan städa när du inte är hemma' },
+  { id: 'recurring', label: '🔄 Abonnemangstjänster', description: 'Vecko- eller månadsstädning' },
+  { id: 'weekend_service', label: '📆 Helgservice', description: 'Vi städar även på helger' },
+  { id: 'emergency_service', label: '🚨 Akuttjänst', description: 'Snabb utryckning vid behov' },
+]
+
+// Equipment that company provides
+const equipmentOptions = [
+  { id: 'vacuum', label: 'Dammsugare' },
+  { id: 'mop', label: 'Mopp & hink' },
+  { id: 'cleaning_products', label: 'Rengöringsmedel' },
+  { id: 'window_cleaning', label: 'Fönsterputsverktyg' },
+  { id: 'steam_cleaner', label: 'Ångtvättare' },
+  { id: 'floor_machine', label: 'Golvvårdsmaskin' },
+]
+
+// Opening hours days
+const weekDays = [
+  { key: 'monday', label: 'Måndag' },
+  { key: 'tuesday', label: 'Tisdag' },
+  { key: 'wednesday', label: 'Onsdag' },
+  { key: 'thursday', label: 'Torsdag' },
+  { key: 'friday', label: 'Fredag' },
+  { key: 'saturday', label: 'Lördag' },
+  { key: 'sunday', label: 'Söndag' },
 ]
 
 interface EditSidebarProps {
@@ -31,45 +65,69 @@ interface EditSidebarProps {
 }
 
 export default function EditSidebar({ company, activeSection, onUpdate, onSave }: EditSidebarProps) {
-  const [activeTab, setActiveTab] = useState<'settings' | 'business' | 'visibility'>('settings')
+  const [activeTab, setActiveTab] = useState<'settings' | 'business' | 'stad' | 'hours' | 'visibility'>('settings')
 
   return (
     <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 bg-white border-l border-gray-200 shadow-lg overflow-y-auto">
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-            activeTab === 'settings'
-              ? 'text-brand border-b-2 border-brand bg-brand/5'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <HiCog className="w-5 h-5 mx-auto mb-1" />
-          Inställningar
-        </button>
-        <button
-          onClick={() => setActiveTab('business')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-            activeTab === 'business'
-              ? 'text-brand border-b-2 border-brand bg-brand/5'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <HiOfficeBuilding className="w-5 h-5 mx-auto mb-1" />
-          Företag
-        </button>
-        <button
-          onClick={() => setActiveTab('visibility')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-            activeTab === 'visibility'
-              ? 'text-brand border-b-2 border-brand bg-brand/5'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <HiEye className="w-5 h-5 mx-auto mb-1" />
-          Synlighet
-        </button>
+      {/* Tabs - 2 rows for better organization */}
+      <div className="border-b border-gray-200">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${
+              activeTab === 'settings'
+                ? 'text-brand border-b-2 border-brand bg-brand/5'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <HiCog className="w-4 h-4 mx-auto mb-0.5" />
+            Grundinfo
+          </button>
+          <button
+            onClick={() => setActiveTab('business')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${
+              activeTab === 'business'
+                ? 'text-brand border-b-2 border-brand bg-brand/5'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <HiOfficeBuilding className="w-4 h-4 mx-auto mb-0.5" />
+            Företag
+          </button>
+          <button
+            onClick={() => setActiveTab('stad')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${
+              activeTab === 'stad'
+                ? 'text-brand border-b-2 border-brand bg-brand/5'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <HiSparkles className="w-4 h-4 mx-auto mb-0.5" />
+            Städtjänst
+          </button>
+          <button
+            onClick={() => setActiveTab('hours')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${
+              activeTab === 'hours'
+                ? 'text-brand border-b-2 border-brand bg-brand/5'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <HiClock className="w-4 h-4 mx-auto mb-0.5" />
+            Öppettider
+          </button>
+          <button
+            onClick={() => setActiveTab('visibility')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${
+              activeTab === 'visibility'
+                ? 'text-brand border-b-2 border-brand bg-brand/5'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <HiEye className="w-4 h-4 mx-auto mb-0.5" />
+            Synlighet
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -79,6 +137,12 @@ export default function EditSidebar({ company, activeSection, onUpdate, onSave }
         )}
         {activeTab === 'business' && (
           <BusinessTab company={company} onUpdate={onUpdate} />
+        )}
+        {activeTab === 'stad' && (
+          <StadTab company={company} onUpdate={onUpdate} />
+        )}
+        {activeTab === 'hours' && (
+          <OpeningHoursTab company={company} onUpdate={onUpdate} />
         )}
         {activeTab === 'visibility' && (
           <VisibilityTab company={company} onUpdate={onUpdate} />
@@ -336,6 +400,43 @@ function SettingsTab({ company, onUpdate }: any) {
         </div>
       </div>
 
+      {/* SEO */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">SEO</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SEO Titel</label>
+            <input
+              type="text"
+              value={company.seoTitle || ''}
+              onChange={(e) => onUpdate('seoTitle', e.target.value)}
+              placeholder="Titel som visas i Google"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Meta beskrivning</label>
+            <textarea
+              value={company.seoDescription || ''}
+              onChange={(e) => onUpdate('seoDescription', e.target.value)}
+              placeholder="Kort beskrivning (max ~160 tecken)"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">URL-slug</label>
+            <input
+              type="text"
+              value={company.slug || ''}
+              onChange={(e) => onUpdate('slug', e.target.value.replace(/\s+/g, '-').toLowerCase())}
+              placeholder="t.ex. rent-och-fint-ab"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="border-t border-gray-200 pt-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Sociala medier</h3>
         
@@ -504,6 +605,43 @@ function BusinessTab({ company, onUpdate }: any) {
           />
         </div>
       </div>
+
+      {/* Policies */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Policyer</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Avbokningspolicy</label>
+            <textarea
+              value={company.cancellationPolicy || ''}
+              onChange={(e) => onUpdate('cancellationPolicy', e.target.value)}
+              placeholder="Villkor för avbokning och ombokning"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Villkor</label>
+            <textarea
+              value={company.terms || ''}
+              onChange={(e) => onUpdate('terms', e.target.value)}
+              placeholder="Kortfattade villkor för tjänsterna"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Integritetspolicy</label>
+            <textarea
+              value={company.privacyPolicy || ''}
+              onChange={(e) => onUpdate('privacyPolicy', e.target.value)}
+              placeholder="Hur ni hanterar personuppgifter (GDPR)"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand resize-none"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -587,6 +725,365 @@ function VisibilityTab({ company, onUpdate }: any) {
             className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
           />
         </label>
+
+        <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition">
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="text-sm font-medium text-gray-900">Frågor & Svar (FAQ)</div>
+              <div className="text-xs text-gray-500">Vanliga frågor från kunder</div>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={settings.showFAQ !== false}
+            onChange={(e) => handleToggle('showFAQ', e.target.checked)}
+            className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+          />
+        </label>
+      </div>
+    </div>
+  )
+}
+
+// New StadTab for städ/cleaning specific features
+function StadTab({ company, onUpdate }: any) {
+  const features = company.stadFeatures || []
+  const equipment = company.equipment || []
+  const [customFeature, setCustomFeature] = useState('')
+
+  const handleFeatureToggle = (featureId: string) => {
+    const updated = features.includes(featureId)
+      ? features.filter((f: string) => f !== featureId)
+      : [...features, featureId]
+    onUpdate('stadFeatures', updated)
+  }
+
+  const handleEquipmentToggle = (equipmentId: string) => {
+    const updated = equipment.includes(equipmentId)
+      ? equipment.filter((e: string) => e !== equipmentId)
+      : [...equipment, equipmentId]
+    onUpdate('equipment', updated)
+  }
+
+  const handleAddCustomFeature = () => {
+    if (!customFeature.trim()) return
+    const customFeatures = company.customFeatures || []
+    onUpdate('customFeatures', [...customFeatures, customFeature.trim()])
+    setCustomFeature('')
+  }
+
+  const handleRemoveCustomFeature = (index: number) => {
+    const customFeatures = company.customFeatures || []
+    onUpdate('customFeatures', customFeatures.filter((_: string, i: number) => i !== index))
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Städ Features */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">🧹 Städtjänst-funktioner</h3>
+        <p className="text-xs text-gray-500 mb-3">Markera vad som gäller för ert företag</p>
+        
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {stadFeatures.map((feature) => (
+            <label 
+              key={feature.id} 
+              className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition ${
+                features.includes(feature.id) ? 'bg-brand/10 border border-brand/30' : 'bg-gray-50 hover:bg-gray-100'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={features.includes(feature.id)}
+                onChange={() => handleFeatureToggle(feature.id)}
+                className="w-4 h-4 mt-0.5 text-brand border-gray-300 rounded focus:ring-brand"
+              />
+              <div>
+                <div className="text-sm font-medium text-gray-900">{feature.label}</div>
+                <div className="text-xs text-gray-500">{feature.description}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Features */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">✨ Egna funktioner</h3>
+        <p className="text-xs text-gray-500 mb-3">Lägg till egna unika funktioner</p>
+        
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            value={customFeature}
+            onChange={(e) => setCustomFeature(e.target.value)}
+            placeholder="T.ex. Allergivänlig städning"
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
+            onKeyPress={(e) => e.key === 'Enter' && handleAddCustomFeature()}
+          />
+          <button
+            onClick={handleAddCustomFeature}
+            className="px-3 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition"
+          >
+            <HiPlus className="w-4 h-4" />
+          </button>
+        </div>
+
+        {(company.customFeatures || []).length > 0 && (
+          <div className="space-y-2">
+            {(company.customFeatures || []).map((feature: string, index: number) => (
+              <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                <span className="text-sm text-gray-900">✓ {feature}</span>
+                <button
+                  onClick={() => handleRemoveCustomFeature(index)}
+                  className="text-red-500 hover:text-red-700 p-1"
+                >
+                  <HiTrash className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Equipment */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">🧰 Utrustning vi tar med</h3>
+        <p className="text-xs text-gray-500 mb-3">Markera vilken utrustning ni tillhandahåller</p>
+        
+        <div className="grid grid-cols-2 gap-2">
+          {equipmentOptions.map((item) => (
+            <label 
+              key={item.id}
+              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-sm transition ${
+                equipment.includes(item.id) ? 'bg-brand/10 text-brand font-medium' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={equipment.includes(item.id)}
+                onChange={() => handleEquipmentToggle(item.id)}
+                className="w-3 h-3 text-brand border-gray-300 rounded focus:ring-brand"
+              />
+              {item.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Minimum booking */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">📏 Minsta bokning</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Minsta antal timmar</label>
+            <select
+              value={company.minHours || ''}
+              onChange={(e) => onUpdate('minHours', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-sm"
+            >
+              <option value="">Ingen gräns</option>
+              <option value="1">1 timme</option>
+              <option value="2">2 timmar</option>
+              <option value="3">3 timmar</option>
+              <option value="4">4 timmar</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Minsta yta (kvm)</label>
+            <input
+              type="number"
+              value={company.minArea || ''}
+              onChange={(e) => onUpdate('minArea', e.target.value)}
+              placeholder="T.ex. 40"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing info */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">💰 Prisinformation</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Timpris (från)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={company.hourlyRate || ''}
+                onChange={(e) => onUpdate('hourlyRate', Number(e.target.value))}
+                placeholder="350"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-sm"
+              />
+              <span className="text-sm text-gray-500">kr/tim</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Pris per kvm (från)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={company.sqmRate || ''}
+                onChange={(e) => onUpdate('sqmRate', Number(e.target.value))}
+                placeholder="5"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-sm"
+              />
+              <span className="text-sm text-gray-500">kr/kvm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Opening Hours Tab
+function OpeningHoursTab({ company, onUpdate }: any) {
+  const openingHours = company.openingHours || {}
+
+  const handleHoursChange = (day: string, field: string, value: string | boolean) => {
+    const currentDay = openingHours[day] || { open: '08:00', close: '17:00', closed: false }
+    onUpdate('openingHours', {
+      ...openingHours,
+      [day]: { ...currentDay, [field]: value }
+    })
+  }
+
+  const applyToAllWeekdays = () => {
+    const mondayHours = openingHours.monday || { open: '08:00', close: '17:00', closed: false }
+    const updated: any = {}
+    weekDays.forEach(day => {
+      if (day.key !== 'saturday' && day.key !== 'sunday') {
+        updated[day.key] = { ...mondayHours }
+      } else {
+        updated[day.key] = openingHours[day.key] || { open: '10:00', close: '15:00', closed: true }
+      }
+    })
+    onUpdate('openingHours', updated)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900">🕐 Öppettider</h3>
+        <button
+          onClick={applyToAllWeekdays}
+          className="text-xs text-brand hover:text-brand-dark font-medium"
+        >
+          Kopiera mån till vardagar
+        </button>
+      </div>
+      <p className="text-xs text-gray-500">Ange era öppettider för varje dag</p>
+
+      <div className="space-y-3">
+        {weekDays.map((day) => {
+          const hours = openingHours[day.key] || { open: '08:00', close: '17:00', closed: false }
+          return (
+            <div 
+              key={day.key} 
+              className={`p-3 rounded-lg ${hours.closed ? 'bg-gray-100' : 'bg-green-50 border border-green-200'}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-900">{day.label}</span>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className={`text-xs ${hours.closed ? 'text-red-600' : 'text-green-600'}`}>
+                    {hours.closed ? 'Stängt' : 'Öppet'}
+                  </span>
+                  <div 
+                    onClick={() => handleHoursChange(day.key, 'closed', !hours.closed)}
+                    className={`relative w-10 h-5 rounded-full cursor-pointer transition ${
+                      hours.closed ? 'bg-gray-300' : 'bg-green-500'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                      hours.closed ? 'left-0.5' : 'left-5'
+                    }`} />
+                  </div>
+                </label>
+              </div>
+              
+              {!hours.closed && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={hours.open}
+                    onChange={(e) => handleHoursChange(day.key, 'open', e.target.value)}
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded focus:border-brand outline-none"
+                  />
+                  <span className="text-gray-400">–</span>
+                  <input
+                    type="time"
+                    value={hours.close}
+                    onChange={(e) => handleHoursChange(day.key, 'close', e.target.value)}
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded focus:border-brand outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Quick presets */}
+      <div className="border-t border-gray-200 pt-4">
+        <p className="text-xs font-medium text-gray-700 mb-2">Snabbval</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => {
+              const preset: any = {}
+              weekDays.forEach(day => {
+                preset[day.key] = day.key === 'saturday' || day.key === 'sunday'
+                  ? { open: '10:00', close: '15:00', closed: true }
+                  : { open: '08:00', close: '17:00', closed: false }
+              })
+              onUpdate('openingHours', preset)
+            }}
+            className="px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+          >
+            Vardagar 8-17
+          </button>
+          <button
+            onClick={() => {
+              const preset: any = {}
+              weekDays.forEach(day => {
+                preset[day.key] = { open: '07:00', close: '19:00', closed: false }
+              })
+              onUpdate('openingHours', preset)
+            }}
+            className="px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+          >
+            Alla dagar 7-19
+          </button>
+          <button
+            onClick={() => {
+              const preset: any = {}
+              weekDays.forEach(day => {
+                preset[day.key] = { open: '06:00', close: '22:00', closed: false }
+              })
+              onUpdate('openingHours', preset)
+            }}
+            className="px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+          >
+            Utökad 6-22
+          </button>
+          <button
+            onClick={() => {
+              const preset: any = {}
+              weekDays.forEach(day => {
+                preset[day.key] = { open: '00:00', close: '23:59', closed: false }
+              })
+              onUpdate('openingHours', preset)
+            }}
+            className="px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+          >
+            Dygnet runt
+          </button>
+        </div>
       </div>
     </div>
   )

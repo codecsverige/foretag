@@ -3,12 +3,22 @@
 import { useState } from 'react'
 import { HiClock, HiChevronDown, HiChevronUp } from 'react-icons/hi'
 
+interface ServiceOption {
+  name: string
+  price: number
+  included: boolean
+}
+
 interface Service {
   name?: string
   price?: number
+  priceType?: 'fixed' | 'range' | 'quote'
+  priceMax?: number
   duration?: number
+  durationFlexible?: boolean
   description?: string
   category?: string
+  options?: ServiceOption[]
 }
 
 interface ServiceCardProps {
@@ -23,15 +33,47 @@ export default function ServiceCard({ service, onBook, discountedPrice, hasDisco
   const price = service.price || 0
   const showStrike = hasDiscount && discountedPrice && discountedPrice < price
 
+  // Format price display based on price type
+  const formatPrice = () => {
+    if (service.priceType === 'quote') {
+      return <span className="text-base lg:text-sm font-semibold text-gray-700">Enligt offert</span>
+    }
+    if (service.priceType === 'range' && service.priceMax) {
+      return <span className="text-lg lg:text-base font-bold text-gray-900">{price} - {service.priceMax} kr</span>
+    }
+    if (showStrike) {
+      return (
+        <div className="text-right">
+          <span className="text-lg lg:text-base font-bold text-green-600">{discountedPrice} kr</span>
+          <span className="block text-sm lg:text-xs text-gray-400 line-through">{price} kr</span>
+        </div>
+      )
+    }
+    return price > 0 ? <span className="text-lg lg:text-base font-bold text-gray-900">{price} kr</span> : null
+  }
+
+  // Format duration display
+  const formatDuration = () => {
+    if (service.durationFlexible) {
+      return 'Tid varierar'
+    }
+    return `${service.duration || 30} min`
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 lg:p-3 hover:shadow-md transition-all">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 text-sm sm:text-base lg:text-sm">{service.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-900 text-sm sm:text-base lg:text-sm">{service.name}</h3>
+            {service.category && (
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{service.category}</span>
+            )}
+          </div>
           <div className="flex items-center gap-3 mt-1 text-xs sm:text-sm lg:text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <HiClock className="w-4 h-4" />
-              {service.duration || 30} min
+              {formatDuration()}
             </span>
           </div>
           
@@ -54,17 +96,34 @@ export default function ServiceCard({ service, onBook, discountedPrice, hasDisco
               )}
             </div>
           )}
+
+          {/* Service Options Display */}
+          {service.options && service.options.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <p className="text-xs font-medium text-gray-500 mb-2">Tillval & alternativ:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {service.options.map((option, idx) => (
+                  <span
+                    key={idx}
+                    className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+                      option.included 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-blue-50 text-blue-700'
+                    }`}
+                  >
+                    {option.included ? '✓' : '+'} {option.name}
+                    {!option.included && option.price > 0 && (
+                      <span className="font-medium">+{option.price} kr</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          {showStrike ? (
-            <div className="text-right">
-              <span className="text-lg lg:text-base font-bold text-green-600">{discountedPrice} kr</span>
-              <span className="block text-sm lg:text-xs text-gray-400 line-through">{price} kr</span>
-            </div>
-          ) : price > 0 ? (
-            <span className="text-lg lg:text-base font-bold text-gray-900">{price} kr</span>
-          ) : null}
+          {formatPrice()}
           
           <button
             onClick={() => onBook(service)}
