@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { HiSearch, HiAdjustments, HiX, HiChevronDown, HiChevronUp } from 'react-icons/hi'
+import { HiSearch, HiAdjustments, HiX, HiChevronDown, HiChevronUp, HiArrowLeft } from 'react-icons/hi'
 import { getCompanies } from '@/lib/companiesCache'
 import CompanyCard from '@/components/company/CompanyCard'
 import { getCategoryImage } from '@/lib/categoryImages'
@@ -205,80 +205,40 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Search Header */}
+      {/* Compact Header with Back Arrow */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-30">
         <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex gap-3">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <HiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Sök företag, tjänst eller stad..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            {/* Filter Toggle Button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          <div className="flex items-center gap-3">
+            {/* Back Arrow */}
+            <Link 
+              href="/"
+              className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Tillbaka"
             >
-              <HiAdjustments className="w-5 h-5" />
-              {activeFiltersCount > 0 && (
-                <span className="bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
+              <HiArrowLeft className="w-5 h-5 text-gray-700" />
+            </Link>
+            
+            {/* Category Info */}
+            {selectedCategory && (
+              <div className="flex items-center gap-2">
+                <span className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+                  <Image
+                    src={getCategoryImage(selectedCategory)}
+                    alt={categories.find((c) => c.id === selectedCategory)?.name || 'Kategori'}
+                    fill
+                    sizes="32px"
+                    className="object-cover"
+                  />
                 </span>
-              )}
-            </button>
-
+                <h1 className="text-base sm:text-lg font-semibold text-gray-900">
+                  {categories.find((c) => c.id === selectedCategory)?.name}
+                </h1>
+              </div>
+            )}
           </div>
 
-          {/* Filters Panel */}
-          {showFilters && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Stad</label>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
-                >
-                  {cities.map((city) => (
-                    <option key={city.id} value={city.id}>{city.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Sortera</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
-                >
-                  <option value="newest">Senaste</option>
-                  <option value="rating">Högst betyg</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Active Filters - Collapsible */}
-          {(selectedCategory || selectedCity || selectedSubService) && (
+          {/* Hide Active Filters - Not needed anymore */}
+          {false && (selectedCategory || selectedCity || selectedSubService) && (
             <div className="mt-2">
               <button
                 onClick={() => setShowActiveFilters(!showActiveFilters)}
@@ -343,7 +303,7 @@ function SearchContent() {
             </div>
           )}
 
-          {/* Sub-services filter */}
+          {/* Sub-services filter - Keep visible */}
           {selectedCategory && currentCategorySubServices.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100">
               <span className="text-xs text-gray-500 self-center mr-1">Filtrera:</span>
