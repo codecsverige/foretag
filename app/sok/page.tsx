@@ -221,10 +221,10 @@ function SearchContent() {
               />
             </div>
 
-            {/* Filter Toggle (Mobile) */}
+            {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg"
+              className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <HiAdjustments className="w-5 h-5" />
               {activeFiltersCount > 0 && (
@@ -234,42 +234,11 @@ function SearchContent() {
               )}
             </button>
 
-            {/* Desktop Filters */}
-            <div className="hidden md:flex gap-2">
-              <select
-                value={selectedCategory}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
-              >
-                {cities.map((city) => (
-                  <option key={city.id} value={city.id}>{city.name}</option>
-                ))}
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 outline-none text-sm"
-              >
-                <option value="newest">Senaste</option>
-                <option value="rating">Högst betyg</option>
-              </select>
-            </div>
           </div>
 
-          {/* Mobile Filters Panel */}
+          {/* Filters Panel */}
           {showFilters && (
-            <div className="md:hidden mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
                 <select
