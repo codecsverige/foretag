@@ -9,12 +9,15 @@ export default function Loading() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex flex-col gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse flex flex-row">
-              <div className="w-32 sm:w-40 md:w-48 aspect-[4/3] bg-gray-100 flex-shrink-0" />
-              <div className="px-4 py-3 flex-1">
-                <div className="h-4 bg-gray-100 rounded w-1/3 mb-2" />
-                <div className="h-3 bg-gray-100 rounded w-1/2 mb-2" />
-                <div className="h-3 bg-gray-100 rounded w-1/4" />
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 animate-pulse">
+              <div className="flex gap-3 sm:gap-4">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="h-5 bg-gray-100 rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2 mb-2" />
+                  <div className="h-3 bg-gray-100 rounded w-1/3 mb-2" />
+                  <div className="h-5 bg-gray-100 rounded w-16 mt-2" />
+                </div>
               </div>
             </div>
           ))}

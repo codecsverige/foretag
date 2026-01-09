@@ -189,11 +189,114 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
   const fallbackDescription = `Hitta och boka ${categoryName.toLowerCase()}${city ? ` i ${city}` : ''}. Jämför företag, läs omdömen och boka enkelt online.${popularServicesText}`
   const descriptionText = hasDescription ? rawDescription : fallbackDescription
  
+  // Row variant - compact horizontal card
+  if (!isGrid) {
+    return (
+      <article
+        itemScope
+        itemType="https://schema.org/LocalBusiness"
+        className="group bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-brand/30 hover:shadow-md transition-all cursor-pointer p-3 sm:p-4"
+        onMouseEnter={prefetch}
+        onFocus={prefetch}
+        onTouchStart={prefetch}
+        onClick={() => router.push(`/foretag/${company.id}`)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            router.push(`/foretag/${company.id}`)
+          }
+        }}
+        role="link"
+        tabIndex={0}
+        aria-label={`Öppna ${company.name}`}
+      >
+        <div className="flex gap-3 sm:gap-4">
+          {/* Square image */}
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <Image
+              src={imageUrl}
+              alt={company.name}
+              fill
+              sizes="96px"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              loading={priority ? 'eager' : 'lazy'}
+              priority={priority}
+            />
+            {hasDiscount && (
+              <div className="absolute top-1 left-1">
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                  {effectiveType === 'percent' ? `-${effectiveValue}%` : 'Rabatt'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Title */}
+            <h3 itemProp="name" className="font-semibold text-gray-900 group-hover:text-brand transition-colors text-base sm:text-lg leading-tight truncate">
+              {company.name}
+              {company.verified && (
+                <HiBadgeCheck className="inline-block w-4 h-4 ml-1 text-blue-600" aria-label="Verifierad" />
+              )}
+            </h3>
+
+            {/* Location */}
+            <div className="flex items-center gap-1 text-gray-600 text-sm mt-1">
+              <HiLocationMarker className="w-3.5 h-3.5 flex-shrink-0 text-brand/70" />
+              <span itemProp="address" className="truncate">{locationLabel || city}</span>
+            </div>
+
+            {/* Rating */}
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <HiStar
+                    key={star}
+                    className={`w-3.5 h-3.5 ${star <= filledStars ? 'text-amber-400' : 'text-gray-200'}`}
+                  />
+                ))}
+              </div>
+              {reviewCount > 0 ? (
+                <span className="text-xs text-gray-500">{reviewCount} betyg</span>
+              ) : (
+                <span className="text-xs text-blue-600 font-medium">Ny</span>
+              )}
+            </div>
+
+            {/* Opening hours */}
+            {nextOpenInfo && (
+              <div className="flex items-center gap-1 text-xs mt-1">
+                <HiClock className="w-3.5 h-3.5 text-brand/70 flex-shrink-0" />
+                <span className={tiderTextClass}>Tider fr. {nextOpenInfo.open}, {nextOpenInfo.label}</span>
+              </div>
+            )}
+
+            {/* Address line */}
+            {address && (
+              <p className="text-xs text-gray-500 mt-1 truncate">{address}</p>
+            )}
+
+            {/* Category badge */}
+            {categoryName && (
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-brand/5 text-brand border border-brand/20 font-medium">
+                  {categoryName}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    )
+  }
+
+  // Grid variant - full card
   return (
     <article
       itemScope
       itemType="https://schema.org/LocalBusiness"
-      className={`group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 h-full flex ${isGrid ? 'flex-col' : 'flex-row items-stretch'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30`}
+      className="group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 h-full flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
       onMouseEnter={prefetch}
       onFocus={prefetch}
       onTouchStart={prefetch}
@@ -209,7 +312,7 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       aria-label={`Öppna ${company.name}`}
     >
       {/* Image */}
-      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-32 sm:w-40 md:w-48 aspect-[4/3] flex-shrink-0'}`}>
+      <div className="relative overflow-hidden bg-gray-100 w-full aspect-[16/9] md:aspect-[4/3]">
         <Image
           src={imageUrl}
           alt={company.name}
@@ -232,28 +335,10 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
             </span>
           </div>
         )}
-
-        {/* Badge vérifié en haut à droite */}
-        {false && company.verified && (
-          <div className="absolute top-3 right-3">
-            <span className="bg-white text-blue-600 p-1.5 rounded-full shadow-md flex items-center justify-center">
-              <HiBadgeCheck className="w-4 h-4" />
-            </span>
-          </div>
-        )}
-
-        {/* Catégorie en bas de l'image */}
-        {false && (
-          <div className="absolute bottom-3 left-3">
-            <span className="bg-white/95 backdrop-blur-sm text-gray-800 text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm">
-              {categoryName}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Contenu */}
-      <div className={`px-4 md:px-6 py-3 md:py-4 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
+      <div className="px-4 md:px-6 py-3 md:py-4 flex-1 flex flex-col min-h-[120px]">
         {/* Titre */}
         <div className="flex items-start justify-between gap-3">
           <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg md:text-xl lg:text-2xl leading-tight line-clamp-2">
@@ -338,12 +423,12 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
 
         {/* Description adaptée à toutes les catégories */}
         {descriptionText && (
-          <p className={`mt-3 md:mt-4 text-sm md:text-base text-gray-700 leading-relaxed ${isGrid ? 'line-clamp-2' : 'line-clamp-2 md:line-clamp-3 lg:line-clamp-4'}`}>{descriptionText}</p>
+          <p className="mt-3 md:mt-4 text-sm md:text-base text-gray-700 leading-relaxed line-clamp-2">{descriptionText}</p>
         )}
 
         {/* Badges en bas (style Bokadirekt: Qliro, Presentkort, Branschorg.) */}
         {(categoryName || showDiscountLabel || topSubServices.length > 0 || staffCount > 0) && (
-          <div className={`${isGrid ? 'mt-3 md:mt-4' : 'mt-auto pt-3 md:pt-4'} flex flex-wrap gap-2 md:gap-3 items-center`}>
+          <div className="mt-3 md:mt-4 flex flex-wrap gap-2 md:gap-3 items-center">
             {categoryName && (
               <span className="inline-flex items-center px-3 py-1.5 md:py-2 rounded-full text-xs md:text-sm bg-brand/5 text-brand border border-brand/20 font-semibold">
                 {categoryName}
