@@ -209,7 +209,7 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       aria-label={`Öppna ${company.name}`}
     >
       {/* Image */}
-      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-44 sm:w-56 md:w-72 aspect-[4/3] flex-shrink-0'}`}>
+      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-32 sm:w-40 md:w-48 aspect-[4/3] flex-shrink-0'}`}>
         <Image
           src={imageUrl}
           alt={company.name}

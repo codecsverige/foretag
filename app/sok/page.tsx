@@ -206,7 +206,7 @@ function SearchContent() {
     <div className="min-h-screen bg-gray-50">
       {/* Search Header */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-30">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex gap-3">
             {/* Search Input */}
             <div className="flex-1 relative">
@@ -309,52 +309,52 @@ function SearchContent() {
 
           {/* Active Filters */}
           {(selectedCategory || selectedCity || selectedSubService) && (
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
               {selectedCategory && (
-                <span className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm">
-                  <span className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-blue-100 flex-shrink-0">
+                <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs">
+                  <span className="relative w-5 h-5 rounded-full overflow-hidden bg-white border border-blue-100 flex-shrink-0">
                     <Image
                       src={getCategoryImage(selectedCategory)}
                       alt={categories.find((c) => c.id === selectedCategory)?.name || 'Kategori'}
                       fill
-                      sizes="28px"
+                      sizes="20px"
                       className="object-cover"
                     />
                   </span>
                   {categories.find((c) => c.id === selectedCategory)?.name}
                   <button onClick={() => handleCategoryChange('')} className="hover:text-blue-900">
-                    <HiX className="w-4 h-4" />
+                    <HiX className="w-3.5 h-3.5" />
                   </button>
                 </span>
               )}
               {selectedSubService && (
-                <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm">
-                  <span className="relative w-7 h-7 rounded-full overflow-hidden bg-white border border-green-100 flex-shrink-0">
+                <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs">
+                  <span className="relative w-5 h-5 rounded-full overflow-hidden bg-white border border-green-100 flex-shrink-0">
                     <Image
                       src={getCategoryImage(selectedSubService)}
                       alt={currentCategorySubServices.find((s) => s.id === selectedSubService)?.name || 'Tjänst'}
                       fill
-                      sizes="28px"
+                      sizes="20px"
                       className="object-cover"
                     />
                   </span>
                   {currentCategorySubServices.find((s) => s.id === selectedSubService)?.name}
                   <button onClick={() => setSelectedSubService('')} className="hover:text-green-900">
-                    <HiX className="w-4 h-4" />
+                    <HiX className="w-3.5 h-3.5" />
                   </button>
                 </span>
               )}
               {selectedCity && (
-                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-sm">
+                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs">
                   {selectedCity}
                   <button onClick={() => setSelectedCity('')} className="hover:text-blue-900">
-                    <HiX className="w-4 h-4" />
+                    <HiX className="w-3.5 h-3.5" />
                   </button>
                 </span>
               )}
               <button 
                 onClick={clearFilters}
-                className="text-gray-500 hover:text-gray-700 text-sm"
+                className="text-gray-500 hover:text-gray-700 text-xs ml-1"
               >
                 Rensa alla
               </button>
@@ -363,26 +363,26 @@ function SearchContent() {
 
           {/* Sub-services filter */}
           {selectedCategory && currentCategorySubServices.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100">
               <span className="text-xs text-gray-500 self-center mr-1">Filtrera:</span>
               {currentCategorySubServices.map((sub) => (
                 <button
                   key={sub.id}
                   onClick={() => setSelectedSubService(selectedSubService === sub.id ? '' : sub.id)}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition ${
                     selectedSubService === sub.id
                       ? 'bg-brand text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <span className={`relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${
-                    selectedSubService === sub.id ? 'ring-2 ring-white/50' : 'ring-1 ring-gray-200'
+                  <span className={`relative w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ${
+                    selectedSubService === sub.id ? 'ring-1 ring-white/50' : 'ring-1 ring-gray-200'
                   }`}>
                     <Image
                       src={getCategoryImage(sub.id)}
                       alt={sub.name}
                       fill
-                      sizes="32px"
+                      sizes="20px"
                       className="object-cover"
                     />
                   </span>
@@ -397,12 +397,12 @@ function SearchContent() {
       {/* Results */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-200 overflow-hidden animate-pulse flex flex-row">
-                <div className="w-48 sm:w-60 md:w-80 aspect-[4/3] bg-gray-100 flex-shrink-0" />
+              <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse flex flex-row">
+                <div className="w-32 sm:w-40 md:w-48 aspect-[4/3] bg-gray-100 flex-shrink-0" />
                 <div className="px-4 py-3 flex-1">
-                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-3"></div>
+                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-2"></div>
                   <div className="h-3 bg-gray-100 rounded w-1/2 mb-2"></div>
                   <div className="h-3 bg-gray-100 rounded w-1/4"></div>
                 </div>
