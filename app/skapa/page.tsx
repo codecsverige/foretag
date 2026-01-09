@@ -23,6 +23,9 @@ const categories = [
       { id: 'trappstadning', name: 'Trappstädning' },
       { id: 'byggstadning', name: 'Byggstädning' },
       { id: 'fonsterputs', name: 'Fönsterputs' },
+      { id: 'visningsstadning', name: 'Visningsstädning' },
+      { id: 'golvvard', name: 'Golvvård' },
+      { id: 'mattvatt', name: 'Mattvätt' },
     ]
   },
   { 
@@ -46,6 +49,8 @@ const categories = [
       { id: 'snickeri', name: 'Snickeri småjobb' },
       { id: 'el', name: 'El småjobb' },
       { id: 'vvs', name: 'VVS småjobb' },
+      { id: 'malning', name: 'Målning' },
+      { id: 'tapetsering', name: 'Tapetsering' },
     ]
   },
   { 
