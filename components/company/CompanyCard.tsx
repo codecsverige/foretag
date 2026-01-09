@@ -209,7 +209,7 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       aria-label={`Öppna ${company.name}`}
     >
       {/* Image */}
-      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-32 sm:w-40 md:w-48 aspect-[4/3] flex-shrink-0'}`}>
+      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-40 sm:w-48 md:w-64 lg:w-72 aspect-[4/3] flex-shrink-0'}`}>
         <Image
           src={imageUrl}
           alt={company.name}
@@ -253,14 +253,14 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       </div>
 
       {/* Contenu */}
-      <div className={`px-3 md:px-4 py-2.5 md:py-3 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
+      <div className={`px-3 sm:px-4 md:px-5 py-3 md:py-4 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
         {/* Titre */}
         <div className="flex items-start justify-between gap-2">
-          <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-base md:text-lg leading-tight line-clamp-1">
-            <span className="inline-flex items-center gap-1">
+          <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-base sm:text-lg md:text-xl leading-tight line-clamp-1 md:line-clamp-2">
+            <span className="inline-flex items-center gap-1.5">
               {company.name}
               {company.verified && (
-                <HiBadgeCheck className="w-4 h-4 md:w-5 md:h-5 text-blue-600" aria-label="Verifierad" />
+                <HiBadgeCheck className="w-5 h-5 md:w-6 md:h-6 text-blue-600" aria-label="Verifierad" />
               )}
             </span>
           </h3>
@@ -273,27 +273,51 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
           </div>
         )}
 
-        {/* Infos compactes sans logo */}
-        <div className="flex-1 min-w-0 space-y-1.5 mt-1.5">
-          {/* Adresse + Rating sur même ligne */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1 text-gray-600 text-xs md:text-sm">
-              <HiLocationMarker className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0 text-brand/70" />
+        {/* Bloc logo + infos (style Bokadirekt) */}
+        <div className="flex items-start md:items-center gap-2 sm:gap-3 mt-2 md:mt-3">
+          {/* Petit logo carré */}
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg overflow-hidden bg-white flex-shrink-0 border border-gray-200">
+            <Image
+              src={logoUrl}
+              alt={`${company.name} logo`}
+              fill
+              sizes="(max-width: 768px) 56px, (max-width: 1024px) 64px, 72px"
+              className="object-contain p-1"
+              loading="lazy"
+            />
+          </div>
+
+          {/* Infos à droite du logo */}
+          <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
+            {/* Adresse */}
+            <div className="flex items-center gap-1 text-gray-600 text-xs sm:text-sm">
+              <HiLocationMarker className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-brand/70" />
               <span itemProp="address" className="truncate font-medium">{locationLabel || city}</span>
             </div>
 
-            {/* Rating */}
-            <div className="flex items-center gap-1 text-xs md:text-sm">
+            {/* Rating (style Bokadirekt: note + 5 étoiles + nombre betyg) */}
+            <div className="flex items-center gap-1 text-xs sm:text-sm">
               {reviewCount > 0 ? (
                 <>
-                  <HiStar className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-400" />
                   <span className="font-bold text-gray-900">{rating.toFixed(1)}</span>
-                  <span className="text-gray-500">({reviewCount})</span>
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <HiStar
+                        key={star}
+                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${star <= filledStars ? 'text-amber-400' : 'text-gray-200'}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500 font-medium">({reviewCount})</span>
                 </>
               ) : (
                 <>
-                  <HiStar className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-400" />
-                  <span className="text-blue-600 font-semibold">Ny</span>
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <HiStar key={star} className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                    ))}
+                  </div>
+                  <span className="text-xs sm:text-sm text-blue-600 font-semibold">Ny</span>
                 </>
               )}
               <div className="sr-only" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
@@ -302,10 +326,10 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
               </div>
             </div>
 
-            {/* Horaires */}
+            {/* Horaires (style Bokadirekt: Tider fr. HH:MM, Idag) */}
             {nextOpenInfo && (
-              <div className="flex items-center gap-1 text-xs md:text-sm">
-                <HiClock className="w-3.5 h-3.5 md:w-4 md:h-4 text-brand/70 flex-shrink-0" />
+              <div className="flex items-center gap-1 text-xs sm:text-sm">
+                <HiClock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand/70 flex-shrink-0" />
                 <span className={tiderTextClass}>Tider fr. {nextOpenInfo.open}, {nextOpenInfo.label}</span>
               </div>
             )}
@@ -314,29 +338,29 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
 
         {/* Description adaptée à toutes les catégories */}
         {descriptionText && (
-          <p className={`mt-1.5 text-xs md:text-sm text-gray-600 leading-relaxed ${isGrid ? 'line-clamp-2' : 'line-clamp-1 md:line-clamp-2'}`}>{descriptionText}</p>
+          <p className={`mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed ${isGrid ? 'line-clamp-2' : 'line-clamp-2 md:line-clamp-3'}`}>{descriptionText}</p>
         )}
 
-        {/* Badges en bas */}
+        {/* Badges en bas (style Bokadirekt: Qliro, Presentkort, Branschorg.) */}
         {(categoryName || showDiscountLabel || topSubServices.length > 0) && (
-          <div className={`${isGrid ? 'mt-2 md:mt-3' : 'mt-auto pt-2'} flex flex-wrap gap-1.5 items-center`}>
+          <div className={`${isGrid ? 'mt-2 md:mt-3' : 'mt-auto pt-2 md:pt-3'} flex flex-wrap gap-1.5 sm:gap-2 items-center`}>
             {categoryName && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-brand/5 text-brand border border-brand/20 font-medium">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-brand/5 text-brand border border-brand/20 font-medium">
                 {categoryName}
               </span>
             )}
             {showDiscountLabel && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-red-50 text-red-600 border border-red-200 font-medium">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-50 text-red-600 border border-red-200 font-medium">
                 {discountLabel}
               </span>
             )}
-            {topSubServices.slice(0, 2).map((s) => (
-              <span key={s} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-gray-100 text-gray-600 border border-gray-200">
+            {topSubServices.slice(0, 3).map((s) => (
+              <span key={s} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200">
                 {s}
               </span>
             ))}
             {company.premium && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Premium</span>
             )}
           </div>
         )}

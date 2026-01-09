@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { HiSearch, HiAdjustments, HiX } from 'react-icons/hi'
+import { HiSearch, HiAdjustments, HiX, HiChevronDown, HiChevronUp } from 'react-icons/hi'
 import { getCompanies } from '@/lib/companiesCache'
 import CompanyCard from '@/components/company/CompanyCard'
 import { getCategoryImage } from '@/lib/categoryImages'
@@ -111,6 +111,7 @@ function SearchContent() {
   const [selectedCity, setSelectedCity] = useState(searchParams.get('stad') || '')
   const [sortBy, setSortBy] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
+  const [showActiveFilters, setShowActiveFilters] = useState(false)
   
   const currentCategorySubServices = categories.find(c => c.id === selectedCategory)?.subServices || []
 
@@ -307,9 +308,19 @@ function SearchContent() {
             </div>
           )}
 
-          {/* Active Filters */}
+          {/* Active Filters - Collapsible */}
           {(selectedCategory || selectedCity || selectedSubService) && (
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            <div className="mt-2">
+              <button
+                onClick={() => setShowActiveFilters(!showActiveFilters)}
+                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 mb-1.5"
+              >
+                <HiAdjustments className="w-3.5 h-3.5" />
+                <span>Aktiva filter ({[selectedCategory, selectedCity, selectedSubService].filter(Boolean).length})</span>
+                {showActiveFilters ? <HiChevronUp className="w-3.5 h-3.5" /> : <HiChevronDown className="w-3.5 h-3.5" />}
+              </button>
+              {showActiveFilters && (
+                <div className="flex flex-wrap items-center gap-1.5">
               {selectedCategory && (
                 <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs">
                   <span className="relative w-5 h-5 rounded-full overflow-hidden bg-white border border-blue-100 flex-shrink-0">
@@ -352,12 +363,14 @@ function SearchContent() {
                   </button>
                 </span>
               )}
-              <button 
-                onClick={clearFilters}
-                className="text-gray-500 hover:text-gray-700 text-xs ml-1"
-              >
-                Rensa alla
-              </button>
+                  <button 
+                    onClick={clearFilters}
+                    className="text-gray-500 hover:text-gray-700 text-xs ml-1"
+                  >
+                    Rensa alla
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -397,14 +410,15 @@ function SearchContent() {
       {/* Results */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse flex flex-row">
-                <div className="w-32 sm:w-40 md:w-48 aspect-[4/3] bg-gray-100 flex-shrink-0" />
+              <div key={i} className="bg-white rounded-2xl border border-gray-200 overflow-hidden animate-pulse flex flex-row">
+                <div className="w-40 sm:w-48 md:w-64 lg:w-72 aspect-[4/3] bg-gray-100 flex-shrink-0" />
                 <div className="px-4 py-3 flex-1">
-                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-gray-100 rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-gray-100 rounded w-1/4"></div>
+                  <div className="h-5 bg-gray-100 rounded w-2/3 mb-3"></div>
+                  <div className="h-4 bg-gray-100 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-100 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-100 rounded w-1/3"></div>
                 </div>
               </div>
             ))}
