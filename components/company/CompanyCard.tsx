@@ -188,6 +188,7 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
   const popularServicesText = topSubServices.length > 0 ? ` Populära tjänster: ${topSubServices.join(' · ')}.` : ''
   const fallbackDescription = `Hitta och boka ${categoryName.toLowerCase()}${city ? ` i ${city}` : ''}. Jämför företag, läs omdömen och boka enkelt online.${popularServicesText}`
   const descriptionText = hasDescription ? rawDescription : fallbackDescription
+  const isFallbackDescription = !hasDescription
  
   return (
     <article
@@ -209,20 +210,20 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       aria-label={`Öppna ${company.name}`}
     >
       {/* Image */}
-      <div className={`relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-40 sm:w-48 md:w-72 lg:w-80 aspect-[4/3] flex-shrink-0'}`}>
+      <div className={`relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl border border-gray-200 shadow-sm ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-44 sm:w-52 md:w-72 lg:w-80 aspect-[4/3] flex-shrink-0'}`}>
         <Image
           src={imageUrl}
           alt={company.name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover brightness-110 contrast-[1.08] saturate-[1.05] group-hover:scale-110 transition-all duration-700 ease-out"
+          className="object-cover object-center brightness-[1.06] contrast-[1.04] saturate-[1.03] group-hover:brightness-110 group-hover:contrast-[1.08] group-hover:scale-110 transition-all duration-700 ease-out"
           loading={priority ? 'eager' : 'lazy'}
           priority={priority}
           quality={90}
         />
         
         {/* Overlay gradient subtil pour meilleur contraste */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
         
         {/* Badge réduction en haut à gauche */}
         {hasDiscount && (
@@ -244,7 +245,7 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       </div>
 
       {/* Contenu */}
-      <div className={`px-4 sm:px-5 md:px-6 py-4 md:py-5 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
+      <div className={`px-4 sm:px-5 md:px-6 py-4 md:py-5 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : 'min-h-[200px]'}`}>
         {/* Titre */}
         <div className="flex items-start justify-between gap-2">
           <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors text-lg sm:text-xl md:text-2xl leading-tight line-clamp-1 md:line-clamp-2">
@@ -329,7 +330,13 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
 
         {/* Description adaptée à toutes les catégories */}
         {descriptionText && (
-          <p className={`mt-3 text-sm sm:text-base text-gray-700 leading-relaxed font-normal ${isGrid ? 'line-clamp-2' : 'line-clamp-2 md:line-clamp-3'}`}>{descriptionText}</p>
+          <p
+            className={`mt-4 text-sm sm:text-base text-gray-700 leading-relaxed font-normal hidden lg:block max-w-2xl ${
+              isGrid ? 'lg:line-clamp-2' : 'lg:line-clamp-3'
+            }`}
+          >
+            {descriptionText}
+          </p>
         )}
 
         {/* Badges en bas (style Bokadirekt: Qliro, Presentkort, Branschorg.) */}
