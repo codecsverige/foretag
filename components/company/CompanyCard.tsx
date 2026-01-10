@@ -193,7 +193,7 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
     <article
       itemScope
       itemType="https://schema.org/LocalBusiness"
-      className={`group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 h-full flex ${isGrid ? 'flex-col' : 'flex-row items-stretch'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30`}
+      className={`group relative ${isGrid ? 'flex flex-col' : 'flex flex-row'} bg-white rounded-2xl border-2 border-gray-200 hover:border-brand/50 overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30`}
       onMouseEnter={prefetch}
       onFocus={prefetch}
       onTouchStart={prefetch}
@@ -209,25 +209,25 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
       aria-label={`Öppna ${company.name}`}
     >
       {/* Image */}
-      <div className={`relative overflow-hidden bg-gray-100 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-40 sm:w-48 md:w-64 lg:w-72 aspect-[4/3] flex-shrink-0'}`}>
+      <div className={`relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 ${isGrid ? 'w-full aspect-[16/9] md:aspect-[4/3]' : 'w-40 sm:w-48 md:w-72 lg:w-80 aspect-[4/3] flex-shrink-0'}`}>
         <Image
           src={imageUrl}
           alt={company.name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover brightness-[1.02] contrast-[1.05] group-hover:scale-105 transition-transform duration-500"
+          className="object-cover brightness-110 contrast-[1.08] saturate-[1.05] group-hover:scale-110 transition-all duration-700 ease-out"
           loading={priority ? 'eager' : 'lazy'}
           priority={priority}
-          quality={85}
+          quality={90}
         />
         
-        {/* Overlay gradient subtil */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        {/* Overlay gradient subtil pour meilleur contraste */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/5" />
         
         {/* Badge réduction en haut à gauche */}
         {hasDiscount && (
           <div className="absolute top-3 left-3">
-            <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md">
+            <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg backdrop-blur-sm border border-red-400/30">
               {effectiveType === 'percent' ? `-${effectiveValue}%` : 'Rabatt'}
             </span>
           </div>
@@ -241,26 +241,17 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
             </span>
           </div>
         )}
-
-        {/* Catégorie en bas de l'image */}
-        {false && (
-          <div className="absolute bottom-3 left-3">
-            <span className="bg-white/95 backdrop-blur-sm text-gray-800 text-xs font-medium px-2.5 py-1 rounded-lg shadow-sm">
-              {categoryName}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Contenu */}
-      <div className={`px-3 sm:px-4 md:px-5 py-3 md:py-4 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
+      <div className={`px-4 sm:px-5 md:px-6 py-4 md:py-5 flex-1 flex flex-col ${isGrid ? 'min-h-[120px]' : ''}`}>
         {/* Titre */}
         <div className="flex items-start justify-between gap-2">
-          <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-base sm:text-lg md:text-xl leading-tight line-clamp-1 md:line-clamp-2">
+          <h3 itemProp="name" className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors text-lg sm:text-xl md:text-2xl leading-tight line-clamp-1 md:line-clamp-2">
             <span className="inline-flex items-center gap-1.5">
               {company.name}
               {company.verified && (
-                <HiBadgeCheck className="w-5 h-5 md:w-6 md:h-6 text-blue-600" aria-label="Verifierad" />
+                <HiBadgeCheck className="w-5 h-5 md:w-6 md:h-6 text-blue-600 drop-shadow-sm" aria-label="Verifierad" />
               )}
             </span>
           </h3>
@@ -274,9 +265,9 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
         )}
 
         {/* Bloc logo + infos (style Bokadirekt) */}
-        <div className="flex items-start md:items-center gap-2 sm:gap-3 mt-2 md:mt-3">
+        <div className="flex items-start md:items-center gap-3 sm:gap-4 mt-3 md:mt-4">
           {/* Petit logo carré */}
-          <div className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg overflow-hidden bg-white flex-shrink-0 border border-gray-200">
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl overflow-hidden bg-white flex-shrink-0 border-2 border-gray-200 shadow-sm">
             <Image
               src={logoUrl}
               alt={`${company.name} logo`}
@@ -288,36 +279,36 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
           </div>
 
           {/* Infos à droite du logo */}
-          <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
+          <div className="flex-1 min-w-0 space-y-1 sm:space-y-1.5">
             {/* Adresse */}
-            <div className="flex items-center gap-1 text-gray-600 text-xs sm:text-sm">
-              <HiLocationMarker className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-brand/70" />
-              <span itemProp="address" className="truncate font-medium">{locationLabel || city}</span>
+            <div className="flex items-center gap-1.5 text-gray-700 text-sm sm:text-base">
+              <HiLocationMarker className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 text-brand" />
+              <span itemProp="address" className="truncate font-semibold">{locationLabel || city}</span>
             </div>
 
             {/* Rating (style Bokadirekt: note + 5 étoiles + nombre betyg) */}
-            <div className="flex items-center gap-1 text-xs sm:text-sm">
+            <div className="flex items-center gap-1.5 text-sm sm:text-base">
               {reviewCount > 0 ? (
                 <>
-                  <span className="font-bold text-gray-900">{rating.toFixed(1)}</span>
-                  <div className="flex items-center">
+                  <span className="font-bold text-gray-900 text-base sm:text-lg">{rating.toFixed(1)}</span>
+                  <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <HiStar
                         key={star}
-                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${star <= filledStars ? 'text-amber-400' : 'text-gray-200'}`}
+                        className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${star <= filledStars ? 'text-amber-400 drop-shadow-sm' : 'text-gray-300'}`}
                       />
                     ))}
                   </div>
-                  <span className="text-xs text-gray-500 font-medium">({reviewCount})</span>
+                  <span className="text-sm text-gray-600 font-semibold">({reviewCount})</span>
                 </>
               ) : (
                 <>
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <HiStar key={star} className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                      <HiStar key={star} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-400 drop-shadow-sm" />
                     ))}
                   </div>
-                  <span className="text-xs sm:text-sm text-blue-600 font-semibold">Ny</span>
+                  <span className="text-sm sm:text-base text-blue-600 font-bold">Ny</span>
                 </>
               )}
               <div className="sr-only" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
@@ -328,8 +319,8 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
 
             {/* Horaires (style Bokadirekt: Tider fr. HH:MM, Idag) */}
             {nextOpenInfo && (
-              <div className="flex items-center gap-1 text-xs sm:text-sm">
-                <HiClock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand/70 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 text-sm sm:text-base">
+                <HiClock className="w-4 h-4 sm:w-5 sm:h-5 text-brand flex-shrink-0" />
                 <span className={tiderTextClass}>Tider fr. {nextOpenInfo.open}, {nextOpenInfo.label}</span>
               </div>
             )}
@@ -338,14 +329,14 @@ function CompanyCardComponent({ company, priority = false, variant = 'row' }: Co
 
         {/* Description adaptée à toutes les catégories */}
         {descriptionText && (
-          <p className={`mt-2 text-xs sm:text-sm text-gray-600 leading-relaxed ${isGrid ? 'line-clamp-2' : 'line-clamp-2 md:line-clamp-3'}`}>{descriptionText}</p>
+          <p className={`mt-3 text-sm sm:text-base text-gray-700 leading-relaxed font-normal ${isGrid ? 'line-clamp-2' : 'line-clamp-2 md:line-clamp-3'}`}>{descriptionText}</p>
         )}
 
         {/* Badges en bas (style Bokadirekt: Qliro, Presentkort, Branschorg.) */}
         {(categoryName || showDiscountLabel || topSubServices.length > 0) && (
-          <div className={`${isGrid ? 'mt-2 md:mt-3' : 'mt-auto pt-2 md:pt-3'} flex flex-wrap gap-1.5 sm:gap-2 items-center`}>
+          <div className={`${isGrid ? 'mt-3 md:mt-4' : 'mt-auto pt-3 md:pt-4'} flex flex-wrap gap-2 sm:gap-2.5 items-center`}>
             {categoryName && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-brand/5 text-brand border border-brand/20 font-medium">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm bg-brand/10 text-brand border-2 border-brand/30 font-semibold shadow-sm">
                 {categoryName}
               </span>
             )}
