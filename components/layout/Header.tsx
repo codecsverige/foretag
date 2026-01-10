@@ -44,7 +44,7 @@ export default function Header() {
   }
 
   return (
-    <header className={`sticky top-0 z-50 border-b border-gray-200/80 backdrop-blur-md transition-all ${scrolled ? 'bg-white/90 shadow-sm' : 'bg-white/70'}`}>
+    <header className={`sticky top-0 z-40 border-b border-gray-200/80 backdrop-blur-md transition-all ${scrolled ? 'bg-white/95 shadow-sm' : 'bg-white/90'}`}>
       <div className="w-full max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo - goes to dashboard if logged in, home if not */}
@@ -146,85 +146,104 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[60]">
-          <button
-            className="absolute inset-0 bg-black/30"
-            aria-label="Stäng meny"
+        <div className="md:hidden fixed inset-0 z-[100] animate-fadeIn">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}
+            aria-label="Stäng meny"
           />
-          <div className="absolute right-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-2xl border-l border-gray-200 p-4">
-            <div className="flex items-center justify-between">
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-2xl border-l border-gray-200 p-5 animate-slideInRight overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
               <Link href={user ? "/konto" : "/"} className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
-                <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center shadow-sm">
-                  <span className="text-white font-bold text-sm">B</span>
+                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-sm">
+                  <span className="text-white font-bold text-base">B</span>
                 </div>
-                <span className="text-lg font-semibold text-gray-900 tracking-tight">BokaNära</span>
+                <span className="text-xl font-bold text-gray-900 tracking-tight">BokaNära</span>
               </Link>
               <button
-                className="p-2 rounded-xl hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
+                className="p-2.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors"
                 aria-label="Stäng meny"
                 onClick={() => setMenuOpen(false)}
               >
-                <HiX className="w-5 h-5" />
+                <HiX className="w-6 h-6 text-gray-600" />
               </button>
             </div>
 
-            <div className="mt-4 space-y-2">
+            {/* User Info (if logged in) */}
+            {user && (
+              <div className="mb-6 p-4 bg-gradient-to-br from-brand/5 to-brand/10 rounded-xl border border-brand/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center shadow-sm">
+                    <span className="text-white font-bold text-lg">
+                      {user.displayName?.charAt(0) || user.email?.charAt(0) || '?'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{user.displayName || 'Användare'}</p>
+                    <p className="text-xs text-gray-600 truncate">{user.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
               <Link
                 href="/sok"
-                className={`flex items-center gap-2 px-3 py-3 rounded-xl text-sm transition-all ${isActive('/sok') ? 'bg-brand/10 text-brand' : 'text-gray-700 hover:bg-gray-50'}`}
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all ${isActive('/sok') ? 'bg-brand text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'}`}
                 onClick={() => setMenuOpen(false)}
               >
                 <HiSearch className="w-5 h-5" />
-                Sök företag
+                <span>Sök företag</span>
               </Link>
 
               {user ? (
                 <>
                   <Link
                     href="/konto"
-                    className={`flex items-center gap-2 px-3 py-3 rounded-xl text-sm transition-all ${isActive('/konto') ? 'bg-brand/10 text-brand' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all ${isActive('/konto') ? 'bg-brand text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'}`}
                     onClick={() => setMenuOpen(false)}
                   >
                     <HiOfficeBuilding className="w-5 h-5" />
-                    Mina företag
+                    <span>Mina företag</span>
                   </Link>
 
                   <Link
                     href="/skapa"
-                    className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm bg-brand text-white hover:bg-brand-dark transition-colors shadow-sm"
+                    className="flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl text-base font-semibold bg-gradient-to-r from-brand to-blue-600 text-white hover:from-brand-dark hover:to-blue-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98] mt-2"
                     onClick={() => setMenuOpen(false)}
                   >
                     <HiPlus className="w-5 h-5" />
-                    Lägg till företag
+                    <span>Lägg till företag</span>
                   </Link>
+
+                  <div className="border-t border-gray-200 my-3" />
 
                   <button
                     onClick={() => { logout(); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-red-600 hover:bg-red-50 active:bg-red-100 transition-all"
                   >
                     <HiLogout className="w-5 h-5" />
-                    Logga ut
+                    <span>Logga ut</span>
                   </button>
                 </>
               ) : (
                 <>
                   <Link
                     href="/login"
-                    className={`flex items-center gap-2 px-3 py-3 rounded-xl text-sm transition-all ${isActive('/login') ? 'bg-brand/10 text-brand' : 'text-gray-700 hover:bg-gray-50'}`}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-all ${isActive('/login') ? 'bg-brand text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'}`}
                     onClick={() => setMenuOpen(false)}
                   >
                     <HiUser className="w-5 h-5" />
-                    Logga in
+                    <span>Logga in</span>
                   </Link>
 
                   <Link
                     href="/skapa"
-                    className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm bg-brand text-white hover:bg-brand-dark transition-colors shadow-sm"
+                    className="flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl text-base font-semibold bg-gradient-to-r from-brand to-blue-600 text-white hover:from-brand-dark hover:to-blue-700 transition-all shadow-md hover:shadow-lg active:scale-[0.98] mt-2"
                     onClick={() => setMenuOpen(false)}
                   >
                     <HiPlus className="w-5 h-5" />
-                    Registrera företag
+                    <span>Registrera företag</span>
                   </Link>
                 </>
               )}
